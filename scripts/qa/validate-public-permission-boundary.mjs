@@ -55,13 +55,13 @@ const gatesPath = 'scripts/qa/commercial-repo-gates.sh';
 const localEvidencePath = 'scripts/qa/gate1-evidence-local.sh';
 const packagePath = 'package.json';
 const communityControllerPath =
-  'apps/api/src/modules/community/community.controller.ts';
+  'apps/api/src/modules/community/community-reflection.controller.ts';
 const communityServicePath =
   'apps/api/src/modules/community/community.service.ts';
 const communityPublishPath =
   'apps/web/src/features/community/services/community-publish.ts';
 const communityPagePath =
-  'apps/web/src/features/community/pages/CommunityPage.tsx';
+  'apps/web/src/features/community/pages/CommunityReflectionPage.tsx';
 
 const boundary = readRequired(boundaryPath);
 const bola = readRequired(bolaPath);
@@ -134,19 +134,25 @@ for (const model of [
 requirePattern(
   communityControllerPath,
   communityController,
-  /@Get\('posts'\)[\s\S]{0,520}getOptionalUser\(authorizationHeader\)/,
+  /@Get\(\)[\s\S]{0,620}getOptionalUser\(authorizationHeader\)/,
   'Community feed reads must stay public with optional bearer viewer flags.',
 );
 requirePattern(
   communityControllerPath,
   communityController,
-  /@Post\('posts'\)[\s\S]{0,260}@UseGuards\(JwtAuthGuard\)/,
+  /@Post\(\)[\s\S]{0,260}@UseGuards\(JwtAuthGuard\)/,
   'Community publication must require authentication.',
 );
+requirePattern(
+  communityControllerPath,
+  communityController,
+  /@RequireCommunityRelease\('reflection'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
+  'approved Community endpoints must require the reflection release capability.',
+);
 for (const route of [
-  "@Post('posts/:id/reactions')",
-  "@Post('moderation/posts/:id/hide')",
-  "@Post('moderation/posts/:id/restore')",
+  "@Post(':id/reactions')",
+  "@Post('moderation/:id/hide')",
+  "@Post('moderation/:id/restore')",
   "@Post('moderation/reports/:id/resolve')",
 ]) {
   requirePattern(
@@ -179,7 +185,7 @@ requireIncludes(communityServicePath, communityService, [
 requirePattern(
   schemaPath,
   schema,
-  /@@index\(\[status, reactionCount\(sort: Desc\), createdAt\(sort: Desc\), id\(sort: Desc\)\]\)/,
+  /@@index\(\[surface, status, reactionCount\(sort: Desc\), createdAt\(sort: Desc\), id\(sort: Desc\)\]\)/,
   'Popular Community reads must use the scalar reaction count index.',
 );
 requireIncludes(communityPagePath, communityPage, [

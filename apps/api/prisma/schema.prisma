@@ -226,6 +226,11 @@ enum CommunityBoardCategory {
   spoiler
 }
 
+enum CommunityPostSurface {
+  reflection
+  board
+}
+
 enum CommunityProfileVisibility {
   private
   public
@@ -914,6 +919,7 @@ model CommunityPost {
   workType         WorkType?
   workThumbnailUrl String                        @default("") @db.Text
   reactionCount    Int                           @default(0)
+  surface          CommunityPostSurface          @default(reflection)
   status           CommunityPostStatus           @default(published)
   createdAt        DateTime                      @default(now())
   updatedAt        DateTime                      @updatedAt
@@ -926,11 +932,11 @@ model CommunityPost {
   reports          CommunityReport[]
   moderationLogs   CommunityModerationAuditLog[]
 
-  @@index([status, createdAt, id])
-  @@index([status, reactionCount(sort: Desc), createdAt(sort: Desc), id(sort: Desc)])
-  @@index([authorId, status, createdAt])
-  @@index([category, status, createdAt, id])
-  @@index([catalogTitleId, status, createdAt, id])
+  @@index([surface, status, createdAt, id])
+  @@index([surface, status, reactionCount(sort: Desc), createdAt(sort: Desc), id(sort: Desc)])
+  @@index([authorId, surface, status, createdAt])
+  @@index([surface, category, status, createdAt, id])
+  @@index([catalogTitleId, surface, status, createdAt, id])
   @@map("community_posts")
 }
 

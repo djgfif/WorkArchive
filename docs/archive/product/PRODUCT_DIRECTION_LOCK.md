@@ -2,13 +2,18 @@
 
 | Field                 | Value                                                                                                                            |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `canonical`                                                                                                                      |
-| Role                  | `product direction lock`                                                                                                         |
-| Source of truth       | user-stated product intent, current local-first architecture, current README/CURRENT_STATUS, current Quick Add/import behavior   |
-| Last verified against | `2026-08-25` personal-first direction with opt-in Community alpha                                                               |
+| Status                | `archived`                                                                                                                       |
+| Role                  | `historical product direction snapshot`                                                                                          |
+| Source of truth       | historical context only; superseded by [`PRODUCT_CONSTITUTION.md`](../../product/PRODUCT_CONSTITUTION.md)                        |
+| Last verified against | `2026-08-25` personal-first direction with opt-in Community alpha                                                                |
 | When to update        | only when the product's primary purpose, personal-only policy, guest/login policy, or data-boundary policy intentionally changes |
 
-이 문서는 Work Archive의 제품 본질과 구현 방향을 고정한다. 여러 차례 리팩터링과 확장 문서가 추가되면서 방향이 흐려질 수 있으므로, 앞으로 모든 기획/구현/문서 판단은 이 문서를 우선 기준으로 삼는다.
+> **퇴역 경고:** 이 문서는 현재 기준이 아니다. 현재 제품 판단은
+> [`PRODUCT_CONSTITUTION.md`](../../product/PRODUCT_CONSTITUTION.md)를 따른다.
+
+이 문서는 2026-08-25까지 Work Archive의 제품 본질과 Community alpha 전환을
+고정했던 역사 스냅샷이다. 아래 내용은 당시 판단의 추적을 위해 보존하며 현재
+기획, 구현 또는 배포를 승인하지 않는다.
 
 ## 1. Product Essence
 

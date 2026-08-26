@@ -1,48 +1,45 @@
 # EXECUTION_ROADMAP.md
 
-| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Role                  | `integrated execution roadmap`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands                                                                                                                                                                                                                                                                                         |
-| Last verified against | `2026-08-03` full local repository gates (`lint`, `typecheck`, 1,259 tests, production build), Archive Health review flow, source-aware automatic timeline, type-aware reread/rewatch quick record, local repeat-history insights, Home one-click progress logging, recent 28-day activity rhythm, route-level lazy loading, hardened automatic sync scheduling, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
-| When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Field                 | Value                                                                                                                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `active`                                                                                                                                                                                                    |
+| Role                  | `integrated execution roadmap`                                                                                                                                                                              |
+| Source of truth       | [`PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current implementation and verification evidence |
+| Last verified against | `2026-08-26` product-principle, navigation, document-authority, and Community scope audit                                                                                                                   |
+| When to update        | near-term sequence, release profile, phase boundary, or verification gate changes                                                                                                                           |
 
-이 문서는 Work Archive의 **통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다. 최신 구현 현실은 [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), 개발 진입점은 [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md), 2026-06 구조 부채 보조 로드맵은 [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md)를 따른다.
+이 문서는 승인된 제품 방향을 실행 순서로 바꾼다. 구현 현실은
+[`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md),
+개발 진입점은 [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md)를 따른다.
 
 ## Summary
 
-- 제품 본질은 **순수 개인용 local-first 작품 기록/리뷰 아카이브**다.
-- 로그인은 선택이다. 꼭 계정이 필요한 기능이 아니라면 guest도 사용할 수 있어야 한다.
-- 공개 프로필, 공개 리뷰, 커뮤니티, 팔로우, 댓글, moderation은 현재 제품 범위 밖이다.
-- 현재 제품 기준은 `direct manual add + optional-auth server-assisted search + local-first save`다.
-- Manual Add, guest no-key provider search, Quick Add identity 저장, duplicate detection, backend sync create 순서는 테스트로 고정돼 있다.
-- 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage, manual fallback 분리, candidate trust 표시, live-smoke manifest까지 2차 고도화가 진행됐다. 남은 작업은 실제 provider별 검색어 QA와 튜닝이다.
-- 수정된 우선순위는 `개인 기록 UX -> export/import -> 개인 기록 깊이 -> optional private sync -> search quality -> personal Insights`다.
-- `Public`, `Community`, `Social`, `Catalog moderation` 계열 작업은 무기한 보류한다.
+- 제품 본질은 개인 local-first 작품 기록과 회고 아카이브다.
+- 핵심 루프는 `capture-first, enrich-later`이며 로그인은 선택이다.
+- 우선순위는 `개인 아카이브 핵심 -> 개인 회고 -> 파생 도구 -> 공개·소셜 실험`이다.
+- Community reflection alpha는 개인 기록과 분리된 opt-in 공개 plane이다.
+- 저장소의 Community 구현은 승인된 단일 feed·단일 reaction 범위를 넘어
+  boards, public profiles, comments, follows, taste/trending까지 확장돼 있다.
+- 이 확장 surface는 구현 완료 여부와 무관하게 **production blocked**다.
+- 공개 베타는 Personal archive profile을 기본으로 하며, Community alpha는
+  별도 release evidence가 통과할 때만 활성화한다.
 
-## Product Direction Lock
+## Product Constitution
 
 우선 읽을 기준 문서:
 
-- [`../archive/product/PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md)
-
-핵심 원칙:
-
-```text
-Work Archive의 본질은 순수 개인용 local-first 작품 기록/리뷰 아카이브다.
-서버 검색과 catalog identity는 입력 보조 기능이며,
-public/community/catalog promotion은 현재 제품 범위 밖이다.
-```
+- [`../product/PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md)
+- [`COMMUNITY_ALPHA_PLAN.md`](./COMMUNITY_ALPHA_PLAN.md)
 
 구현 판단 원칙:
 
-- 수동 추가는 핵심 기능이다.
-- 로그인은 선택이다.
-- 로그인하지 않아도 작품 기록 앱으로 쓸 수 있어야 한다.
-- key가 필요 없는 검색 provider는 guest에게도 제공하는 방향으로 구현한다.
-- 개인 기록 데이터와 서버/catalog 보조 데이터는 별도 plane이다.
-- 커뮤니티와 공개 기능은 현재 구현하지 않는다.
+- guest와 offline에서도 최소 기록과 export가 가능해야 한다.
+- 직접 입력과 검색 보조 모두 빠른 capture를 위해 존재한다.
+- 개인 기록, account sync, catalog assist, Community, credentials/diagnostics는
+  서로 다른 data plane이다.
+- 공개는 개별 opt-in 행동이고 실제 공개 필드와 회수 한계를 먼저 보여 준다.
+- 코드가 존재한다는 사실은 제품 또는 production 승인이 아니다.
+- 미승인 공개·소셜 route와 API는 release profile 뒤에 격리한다.
 
 ## Frontend Design Workflow
 
@@ -263,27 +260,34 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 - 사용자는 자신의 기록을 요약해서 돌아볼 수 있다.
 - 모든 insight는 개인 기록 기반이며 공개/랭킹/커뮤니티 기능과 연결하지 않는다.
 
-## Out Of Scope. Public / Community / Social
+## Track 7. Public Experiment Isolation And Contract Reconciliation
 
-현재 제품 범위 밖:
+승인된 현재 범위:
 
-- public profile
-- public works
-- public review
-- comments
-- likes
-- follow
-- community timeline
-- moderation
+- Community reflection alpha의 새 짧은 감상
+- 단일 feed와 단일 reaction
+- owner delete, report, moderation
+- 명시적 공개 snapshot과 private archive 분리
+
+별도 승인 전 production 범위 밖:
+
+- boards, public profiles, comments, follows
+- taste/trending와 recommendation network
+- public tier boards와 public aggregate ranking
 - catalog promotion workflow
-- public aggregate ranking
 
 원칙:
 
 - 개인 기록은 기본 private다.
-- 공개 여부를 설계하지 않는다.
-- public/community 기능은 현재 roadmap에서 제거한다.
-- 나중에 공유 기능을 만들더라도 export/share artifact 형태를 먼저 검토한다.
+- Community alpha는 Personal archive와 다른 release profile로 격리한다.
+- 저장소에 존재하는 social expansion route/API는 구현 사실로 기록하되 노출하지 않는다.
+- 확장 전에 제품 헌법, decision record, 데이터 권리, 성공·중단 기준을 먼저 갱신한다.
+
+완료 기준:
+
+- Personal archive 배포에서 미승인 route/API가 도달 불가능하다.
+- Community reflection alpha만 allowlist와 release evidence로 독립 활성화할 수 있다.
+- rollback이 개인 아카이브 저장과 navigation을 손상시키지 않는다.
 
 ## Verification Gates
 

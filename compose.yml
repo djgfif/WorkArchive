@@ -48,6 +48,7 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/work_archive?schema=public}
+      PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}
       HOST: ${HOST:-0.0.0.0}
       PORT: 3000
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
@@ -102,6 +103,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         VITE_API_BASE_URL: /api
+        VITE_PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}
     container_name: work-archive-web
     restart: unless-stopped
     depends_on:

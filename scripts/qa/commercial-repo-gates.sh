@@ -41,6 +41,7 @@ node --check scripts/qa/validate-operator-safety.mjs
 node --check scripts/qa/validate-backup-restore-policy.mjs
 node --check scripts/qa/validate-secure-sdlc-policy.mjs
 node --check scripts/qa/validate-public-permission-boundary.mjs
+node --check scripts/qa/validate-product-contract.mjs
 node --check scripts/qa/validate-retention-policy.mjs
 node --check scripts/qa/validate-user-data-rights-policy.mjs
 node --check scripts/qa/user-data-rights-smoke.mjs
@@ -76,6 +77,7 @@ npm run qa:backup-restore-policy
 RESTORE_DRILL_PLAN_ONLY=true npm run ops:restore-drill
 npm run qa:secure-sdlc-policy
 npm run qa:public-boundary
+npm run qa:product-contract
 npm run qa:retention-policy
 npm run qa:user-data-rights-policy
 USER_DATA_RIGHTS_SMOKE_LIVE=false npm run qa:user-data-rights-smoke

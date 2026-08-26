@@ -50,9 +50,16 @@ export default defineConfig(({ mode }) => ({
               // 자체 호스팅 한글 폰트는 unicode-range 서브셋이 수백 개라 precache 에서
               // 제외하고, 실제 요청되는 글리프 청크만 런타임 CacheFirst 로 보관한다.
               globPatterns: ['**/*.{js,css,html,svg}'],
+              // 릴리스 프로필과 긴급 철회 설정은 배포 후에도 즉시 바뀔 수 있어야 한다.
+              globIgnores: ['**/work-archive-config.js'],
               cleanupOutdatedCaches: true,
               clientsClaim: true,
               runtimeCaching: [
+                {
+                  urlPattern: ({ url }) =>
+                    url.pathname === '/work-archive-config.js',
+                  handler: 'NetworkOnly',
+                },
                 {
                   // 자체 호스팅 웹폰트 — 요청된 서브셋만 캐시 우선으로 보관
                   urlPattern: ({ request, url }) =>

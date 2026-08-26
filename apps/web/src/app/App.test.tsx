@@ -42,8 +42,8 @@ describe('App', () => {
       within(primaryNavigation).getByRole('link', { name: '작품 서재' }),
     ).toHaveAttribute('href', '/works');
     expect(
-      within(primaryNavigation).getByRole('link', { name: '커뮤니티' }),
-    ).toHaveAttribute('href', '/community');
+      within(primaryNavigation).queryByRole('link', { name: '커뮤니티' }),
+    ).not.toBeInTheDocument();
     expect(
       within(primaryNavigation).getByRole('link', { name: '인사이트' }),
     ).toHaveAttribute('href', '/insights');
@@ -116,8 +116,8 @@ describe('App', () => {
       screen.getByRole('button', { name: /계정 메뉴 · 모바일 탐색/ }),
     );
     expect(
-      await screen.findByRole('menuitem', { name: '커뮤니티' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('menuitem', { name: '커뮤니티' }),
+    ).not.toBeInTheDocument();
   });
 
   it('starts the Sites POC in local guest mode without server entry points', async () => {

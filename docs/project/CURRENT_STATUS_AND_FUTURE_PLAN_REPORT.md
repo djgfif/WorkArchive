@@ -1,12 +1,12 @@
 # CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md
 
-| Field                 | Value                                                                                                                                                                                                                                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Status                | `canonical`                                                                                                                                                                                                                                                                                                                                            |
-| Role                  | `current reality`                                                                                                                                                                                                                                                                                                                                      |
-| Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/community`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/community`, package manifests                                                         |
-| Last verified against | `2026-08-25` Community alpha repository implementation, focused authorization/publication tests, schema validation, and permission QA. Full local gates and real migrated desktop/mobile runtime evidence are recorded separately; production community host, moderation operator, retention, takedown, rollback, and release approval remain pending. |
-| When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                                                                                                       |
+| Field                 | Value                                                                                                                                                                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `canonical`                                                                                                                                                                                                                                                                                    |
+| Role                  | `current reality`                                                                                                                                                                                                                                                                              |
+| Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/community`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/community`, package manifests |
+| Last verified against | `2026-08-26` product-principle, route inventory, and Community approval-boundary audit. Full local gates and production evidence are recorded separately.                                                                                                                                      |
+| When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                                               |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
 
@@ -26,7 +26,8 @@ without losing in-flight updates, and resumes pending work after browser availab
 - Quick Add 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage를 갖추고 manual fallback을 일반 검색 결과에서 분리한다.
 - 현재 sync는 Settings 계정 백업 섹션과 로그인 상태의 제한적 자동 sync를 함께 지원한다.
 - Settings는 로컬 IndexedDB 원본, 자동 JSON 폴더 백업, 계정 백업/sync 상태, 원인별 sync recovery assistant, 서버 데이터 export/delete 계열 작업을 분리해 설명한다.
-- `Tier Boards`는 작품 기록과 분리된 독립 보드 기능이다. `Insights`는 개인 기록 기반의 비공개 통계 화면이다. `Community`는 공개 읽기·로그인 쓰기의 별도 알파 화면이며, 로컬 기록을 자동 공개하지 않는다. 프로덕션 노출 승인은 아직 보류다.
+- `Tier Boards`는 작품 기록과 분리된 독립 보드 기능이다. `Insights`는 개인 기록 기반의 비공개 통계 화면이다.
+- 기본 `personal-archive` 프로필에는 `Community` 라우트와 API가 없다. 승인된 짧은 감상만 노출하는 `community-reflection-alpha`와 게시판·공개 프로필까지 포함하는 `community-social-experiment`는 별도 실행 프로필이며, 후자는 기본 제품으로 승인된 상태가 아니다.
 
 ## 2. Verified Stack
 
@@ -66,13 +67,15 @@ without losing in-flight updates, and resumes pending work after browser availab
 
 ### 3-2. Current Routes
 
-| Area                    | Routes                                                                                                                                                                     | Current state                                                       |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/community`, `/insights`, `/tier-boards`, `/tier-boards/:boardId`, `/tier-boards/:boardId/view`, `/profile` | 홈/작품/커뮤니티/개인 인사이트 흐름과 독립 티어보드 기능            |
-| Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings`, `/account/sync`                                                                                                | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트             |
-| Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                                                                                                          | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
-| Account                 | `/account`, `/account/transfer`, `/account/settings`                                                                                                                       | 계정 개요, guest review, 설정/data safety 흐름 구현                 |
-| Minimal                 | `*`                                                                                                                                                                        | 404 처리                                                            |
+| Area                    | Routes                                                                                                                                                                                                                                                                              | Current state                                                       |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/insights`, `/tier-boards`, `/tier-boards/:boardId`, `/tier-boards/:boardId/view`, `/profile` | 모든 프로필의 개인 아카이브·인사이트·티어보드 기능 |
+| Reflection alpha        | `/community` | `community-reflection-alpha` 이상에서만 열리는 짧은 감상 feed |
+| Social experiment       | `/community/boards`, `/community/posts/:id`, `/community/reviews/:id`, `/community/taste`, `/u/:handle` | `community-social-experiment`에서만 열리는 비기본 실험 표면 |
+| Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings`, `/account/sync`                                                                                                                                                                                                         | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트             |
+| Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                                                                                                                                                                                                                   | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
+| Account                 | `/account`, `/account/transfer`, `/account/settings`                                                                                                                                                                                                                                | 계정 개요, guest review, 설정/data safety 흐름 구현                 |
+| Minimal                 | `*`                                                                                                                                                                                                                                                                                 | 404 처리                                                            |
 
 ### 3-3. Current User Flows
 
@@ -80,7 +83,11 @@ without losing in-flight updates, and resumes pending work after browser availab
 - Works: 목록/필터/정렬/리스트-그리드 전환/보기 모드 URL 유지/휴지통 관리
 - Works / Work Create: `/works`에서는 `AddWorkDialog`로 작품 추가를 열고, `/works/new`는 같은 `QuickAddWorkForm` 흐름을 page fallback으로 제공한다. `직접 입력 -> 저장`이 기본 경로이며, `검색 -> 후보 선택 -> 입력 채우기 -> 개인 기록 확인 -> 저장`은 같은 dialog/page 안의 보조 흐름이다.
 - Work Detail / Edit: 감상 기록 확인과 수정
-- Community: 공개 피드 읽기, 로그인 사용자의 새 감상 공개, 스포일러 보호, 반응·신고·소유 게시물 삭제. 선택한 작품 표시 스냅샷 외의 개인 기록은 전송하지 않는다.
+- Community: 기본 프로필에서는 경로 자체가 없다. `community-reflection-alpha`는
+  새 짧은 감상, 단일 feed/reaction, report/moderation만 노출한다.
+  `community-social-experiment`만 게시판, post/review 상세, 취향 찾기, handle 기반
+  공개 profile을 추가한다. 세 프로필은 동일한 메뉴를 숨기는 방식이 아니라 라우트,
+  API guard, DB `surface`로 분리된다.
 - Auth: Google OAuth 로그인 / 세션 복구. legacy 회원가입/이메일 로그인은 비활성화
 - Account: sync, 설정/data safety, guest 기록 검토/선택 import
 
@@ -126,6 +133,7 @@ Dexie DB는 현재 아래 테이블을 사용한다.
 - `ImportsModule`
 - `WorksModule`
 - `SyncModule`
+- `CommunityModule`
 
 `SyncModule`은 현재 push/pull orchestration을 작은 서비스 유틸리티와
 handler로 분해한 상태다. Pull 경로는 page loader, record/include 정의,
@@ -182,6 +190,14 @@ catalog match 문자열 정규화는 `catalog-title-matching` helper가 담당�
 moderation access guard, pending review guard는 `catalog-submissions` helper가
 담당한다.
 
+
+`CommunityModule`은 `PRODUCT_RELEASE_PROFILE`을 서버 시작 시 해석한다. 기본
+`personal-archive`에서는 모든 Community controller를 `404`로 닫고,
+`community-reflection-alpha`에서는 `/community/reflections`만 허용한다.
+기존 `/community/*` 소셜 API는 `community-social-experiment`에서만 허용한다.
+`CommunityPost.surface`는 `reflection`과 `board`를 저장 단계부터 구분하며 list,
+reaction, report, moderation 쿼리도 같은 surface를 강제한다. 마이그레이션 이전
+게시물은 보수적으로 `board`로 분류해 제한 회고 feed에 유입되지 않는다.
 ### 4-2. Current Domain Model
 
 Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
@@ -500,7 +516,10 @@ also get serialized pull-before-push, coalesced push drain, and availability-bas
   collision은 후속 수동 검토로 남긴다.
 - auto sync push는 conflict queue item을 자동 전송하지 않고 수동 검토 대상으로 남긴다.
 - guest local-first write는 자동 pull/push를 시작하지 않고 로그인 archive와 분리된다.
-- Profile과 Insights는 개인 기록 요약/통계로 제한한다. Tier Boards는 독립 기능으로 유지한다. Community는 개인 아카이브와 분리된 공개 읽기·로그인 쓰기 알파로 노출한다.
+- private `/profile`과 Insights는 개인 기록 요약/통계다. 이와 별도로
+  `/u/:handle` public profile, Community boards/detail/taste route가 저장소에
+  구현돼 있다. 승인된 reflection alpha를 넘어선 이 surface는 production
+  release profile에서 격리해야 한다.
 
 ### 7-3. Backend / Security
 
@@ -509,7 +528,7 @@ also get serialized pull-before-push, coalesced push drain, and availability-bas
 - sync create path는 `catalogTitleId -> importDraft -> legacy fallback` 순서로 테스트 고정돼 있다. `importDraft.catalogTitle`은 optional legacy-compatible field이며, 없으면 `payload.title`로 fallback한다.
 - 장기적으로 sync create와 Quick Add import 흐름은 `Works` compatibility layer에서 더 멀어져야 한다.
 - access token은 memory-first로 관리되며 브라우저 `localStorage`/`sessionStorage`에 지속 저장하지 않는다.
-- Community 저장소 구현은 존재하지만 production 노출 승인은 별도 Gate 증적 전까지 보류다. Tier Board의 link_only enum은 future-reserved 상태로 유지하고 사용자 설정 UI에 노출하지 않는다. 남은 운영 과제는 Community host/migration/moderation/retention/takedown/rollback 증적, 세션/디바이스 관리 고도화, production cookie/origin/secret 운영 검증이다.
+- Community 저장소 구현은 승인된 reflection alpha보다 넓으며 boards, public profiles, comments, follows, taste/trending은 production blocked다. 승인된 alpha도 별도 Gate 증적 전까지 노출 승인이 보류된다. Tier Board의 link_only enum은 future-reserved 상태로 유지하고 사용자 설정 UI에 노출하지 않는다. 남은 운영 과제는 Community host/migration/moderation/retention/takedown/rollback 증적, 세션/디바이스 관리 고도화, production cookie/origin/secret 운영 검증이다.
 
 ## 8. Where To Read Next
 

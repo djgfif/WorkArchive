@@ -61,6 +61,7 @@ services:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: ${DATABASE_URL:?required}
+      PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}
       HOST: ${HOST:-0.0.0.0}
       PORT: 3000
       SWAGGER_ENABLED: 'false'
@@ -184,6 +185,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        VITE_PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}
     container_name: work-archive-web
     cpus: '0.50'
     mem_limit: 128m

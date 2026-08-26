@@ -5,7 +5,7 @@
 | Status                | `canonical`                                    |
 | Role                  | `governance`                                   |
 | Source of truth       | 문서 운영 규칙과 현재 폴더 구조                |
-| Last verified against | `2026-05-25` working tree                      |
+| Last verified against | `2026-08-26` product-authority audit           |
 | When to update        | 문서 생성/이동/metadata/archive 규칙이 바뀔 때 |
 
 이 문서는 Work Archive 저장소의 문서를 어떻게 만들고, 어디에 두고, 어떤 상태로 해석할지 정하는 운영 규칙이다.
@@ -39,6 +39,7 @@
 
 ## 4. Folder Responsibilities
 
+- `docs/product`: 유일한 제품 방향 기준과 권한 지도
 - `docs/getting-started`: local setup과 developer onboarding
 - `docs/architecture`: ADR과 현재 코드 구조 경계
 - `docs/operations`: runbook, deployment, release, migration, backup 절차
@@ -71,7 +72,17 @@
 - reference 문서는 현재 코드 기준으로 읽지 않도록 파일 내부에서 직접 경고한다.
 - archive는 대체 기준 문서가 명확하고 재참조 가치가 낮을 때만 사용한다.
 - reference라고 해서 자동으로 archive로 보내지 않는다.
+- archive 문서는 현재 기준이나 source of truth가 될 수 없다.
+- active 문서는 archive 문서를 현재 권한의 근거로 인용할 수 없다.
 
-## 8. Practical Rule
+## 8. Product Authority Rules
+
+- 제품 방향의 canonical authority는 [`PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md) 하나만 둔다.
+- 디자인, 실행계획, 실험 계약은 제품 헌법의 하위 active 문서다.
+- 제품 정체성, public plane, 기본 navigation, 데이터 권리의 변경은 구현보다 먼저 제품 헌법과 decision record를 갱신한다.
+- 구현 완료는 제품 승인이나 production exposure 승인이 아니다.
+- 자동 검증은 `npm run qa:product-contract`로 권한 역전과 Community release block을 확인한다.
+
+## 9. Practical Rule
 
 문서를 줄이는 것보다, **어떤 문서가 무엇을 책임지는지 먼저 분명히 한다.**

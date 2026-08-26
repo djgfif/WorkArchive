@@ -15,12 +15,13 @@ This table separates current docs from archived reference material.
 | [`../../README.md`](../../README.md)                                                                         | `active`    | public repository entrypoint              |
 | [`../README.md`](../README.md)                                                                               | `active`    | docs hub                                  |
 | [`../getting-started/LOCAL_DEVELOPMENT.md`](../getting-started/LOCAL_DEVELOPMENT.md)                         | `active`    | local setup                               |
+| [`../product/PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md)                                   | `canonical` | sole product-direction authority          |
 | [`../architecture/FEATURE_FIRST_STRUCTURE.md`](../architecture/FEATURE_FIRST_STRUCTURE.md)                   | `canonical` | codebase boundary guide                   |
 | [`../architecture/API_BOUNDARY_GUIDE.md`](../architecture/API_BOUNDARY_GUIDE.md)                             | `active`    | API boundary guide                        |
 | [`../architecture/I18N_LOCALIZATION.md`](../architecture/I18N_LOCALIZATION.md)                               | `active`    | web localization boundary guide           |
 | [`../architecture/adr/`](../architecture/adr/)                                                               | `canonical` | accepted architecture decisions           |
-| [`../design/PRODUCT_EXPERIENCE_DIRECTION.md`](../design/PRODUCT_EXPERIENCE_DIRECTION.md)                     | `canonical` | product experience direction              |
-| [`../design/STUDIO_PHILOSOPHY.md`](../design/STUDIO_PHILOSOPHY.md)                                           | `canonical` | visual direction                          |
+| [`../design/PRODUCT_EXPERIENCE_DIRECTION.md`](../design/PRODUCT_EXPERIENCE_DIRECTION.md)                     | `active`    | product experience direction              |
+| [`../design/STUDIO_PHILOSOPHY.md`](../design/STUDIO_PHILOSOPHY.md)                                           | `active`    | visual direction                          |
 | [`../commercial/COMMERCIAL_LAUNCH_READINESS.md`](../commercial/COMMERCIAL_LAUNCH_READINESS.md)               | `canonical` | public beta readiness gate                |
 | [`../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`](../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md)               | `active`    | beta release evidence ledger              |
 | [`../operations/RUNBOOK.md`](../operations/RUNBOOK.md)                                                       | `active`    | operations runbook                        |
@@ -34,6 +35,7 @@ This table separates current docs from archived reference material.
 | [`../security/LOG_REDACTION_POLICY.md`](../security/LOG_REDACTION_POLICY.md)                                 | `canonical` | log and security-event redaction boundary |
 | [`../security/USER_DATA_RIGHTS_POLICY.md`](../security/USER_DATA_RIGHTS_POLICY.md)                           | `canonical` | user data export and deletion policy      |
 | [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | `canonical` | current implementation state              |
+| [`../project/COMMUNITY_ALPHA_PLAN.md`](../project/COMMUNITY_ALPHA_PLAN.md)                                   | `active`    | production-blocked Community experiment   |
 | [`../project/EXECUTION_ROADMAP.md`](../project/EXECUTION_ROADMAP.md)                                         | `active`    | current execution sequencing              |
 | [`../project/ROADMAP_FEEDBACK_2026-06.md`](../project/ROADMAP_FEEDBACK_2026-06.md)                           | `active`    | structural debt advisory roadmap          |
 | [`../archive/`](../archive/README.md)                                                                        | `archived`  | historical reference material             |

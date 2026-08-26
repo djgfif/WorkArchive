@@ -3,9 +3,9 @@
 <!-- prettier-ignore -->
 | Field | Value |
 | --- | --- |
-| Status | `implemented in repository; production exposure pending evidence` |
+| Status | `production blocked; repository implementation exceeds approved alpha` |
 | Role | `community alpha product, privacy, and moderation contract` |
-| Source of truth | explicit user request on 2026-08-25, local-first product direction, public permission boundary |
+| Source of truth | [`PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md), explicit 2026-08-25 reflection-alpha approval, public permission boundary |
 | When to update | community visibility, author identity, moderation, API, or private-record publication semantics change |
 
 ## Product Position
@@ -17,6 +17,21 @@ The alpha supports one deliberate action: a signed-in user writes a new short
 reflection, optionally connects a display snapshot of one local work, and
 presses `공개하기`. The feed is readable without an account. Reactions and
 publishing require authentication.
+
+## Approved Scope And Implementation Drift
+
+승인된 alpha는 짧은 공개 감상, 단일 feed, 단일 reaction, post delete,
+report와 moderation뿐이다. 현재 저장소에는 이 계약을 넘어선 boards, public
+profiles, comments, follows, taste/trending surface와 관련 route/API가 존재한다.
+
+이 확장은 제품 헌법 변경이나 별도 승인 없이 같은 alpha로 간주할 수 없다.
+개인 아카이브 release profile에서는 노출하지 않으며, 별도 decision record,
+데이터 권리 검토, 성공·중단 기준, browser/host evidence를 갖추기 전까지
+**production blocked** 상태를 유지한다.
+
+승인된 web route allowlist는 Community feed와 feed 안의 publish/reaction/
+report/delete 흐름이다. public profile, board detail, taste/trending route는
+approved alpha allowlist에 포함되지 않는다.
 
 ## Publication Contract
 
@@ -40,23 +55,44 @@ delete the post explicitly.
 
 ## API Surface
 
-- `GET /community/posts`: public, published posts only, cursor pagination,
+- `GET /community/reflections`: public, published reflection rows only,
+  cursor pagination,
   latest or popular ordering.
-- `POST /community/posts`: authenticated explicit publication.
-- `DELETE /community/posts/:id`: owner-only soft deletion.
-- `POST /community/posts/:id/reactions`: authenticated idempotent reaction.
-- `DELETE /community/posts/:id/reactions`: authenticated reaction removal.
-- `POST /community/posts/:id/reports`: authenticated one-report-per-user
+- `POST /community/reflections`: authenticated explicit publication.
+- `DELETE /community/reflections/:id`: owner-only soft deletion.
+- `POST /community/reflections/:id/reactions`: authenticated idempotent
+  reaction.
+- `DELETE /community/reflections/:id/reactions`: authenticated reaction
+  removal.
+- `POST /community/reflections/:id/reports`: authenticated
+  one-report-per-user
   submission.
-- `GET /community/moderation/reports`: moderator/admin only.
-- `POST /community/moderation/posts/:id/hide`: moderator/admin only.
-- `POST /community/moderation/posts/:id/restore`: moderator/admin only.
-- `POST /community/moderation/reports/:id/resolve`: moderator/admin only;
+- `GET /community/reflections/moderation/reports`: moderator/admin only.
+- `POST /community/reflections/moderation/:id/hide`: moderator/admin only.
+- `POST /community/reflections/moderation/:id/restore`: moderator/admin only.
+- `POST /community/reflections/moderation/reports/:id/resolve`:
+  moderator/admin only;
   resolve or dismiss with a bounded note.
 
 Public responses use opaque post IDs and bounded public author fields. They do
 not expose raw user IDs, email, OAuth identifiers, session data, report details,
 reporter identity, or moderation notes.
+
+The `/community/posts`, `/community/feed`, reviews, comments, profiles,
+follows, notifications, taste, and trending endpoints belong to the separate
+`community-social-experiment` surface. They are not aliases for the approved
+reflection alpha.
+
+## Runtime And Storage Enforcement
+
+- Missing configuration resolves to `personal-archive`.
+- The web omits Community routes and navigation unless the active profile
+  permits them. Direct navigation therefore reaches the product 404.
+- API controllers return 404 when their required release capability is off.
+- `CommunityPost.surface` separates `reflection` from `board` in every
+  list, write, reaction, delete, report, and moderation path.
+- The migration classifies all pre-existing posts as `board`; only writes
+  through the reflection controller create `reflection` rows.
 
 ## Abuse And Takedown
 
@@ -72,8 +108,8 @@ reporter identity, or moderation notes.
 - Moderator access applies only to community rows. It grants no access to
   private archive, sync, credential, or diagnostic data.
 
-The alpha has repository-level implementation and local verification only.
-Production exposure remains pending until host smoke, database migration,
+The approved reflection alpha has repository-level implementation and local verification only.
+The broader social expansion is not part of this approval. Production exposure remains pending until host smoke, database migration,
 moderation-operator, retention, and takedown evidence are recorded for the
 release commit.
 
@@ -105,7 +141,8 @@ single-reaction, privacy-first scope.
 - The privacy line states that the archive stays private and only the selected
   work snapshot plus newly written reflection is published.
 - Desktop uses a focused feed with a compact principles rail. Mobile uses one
-  column and keeps Community available in bottom navigation.
+  column and an explicit experiment entry point; Community is not required in
+  the core archive bottom navigation.
 
 ## Non-goals
 

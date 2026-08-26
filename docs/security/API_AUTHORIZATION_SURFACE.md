@@ -1,7 +1,7 @@
 # API Authorization Surface
 
 Status: canonical.
-Last reviewed: 2026-08-25 Community alpha authorization surface.
+Last reviewed: 2026-08-26 Community release-profile split.
 
 This document classifies every Nest controller in the API by its intended
 authentication boundary. Update it before adding, renaming, or exposing a
@@ -15,7 +15,8 @@ drift for the public cacheable image surface.
 | --- | --- |
 | `apps/api/src/modules/auth/auth.controller.ts` | Mixed auth surface. Legacy email/password `register` and `login` return `410 Gone`; Google OAuth start/status/callback are public OAuth endpoints; refresh/logout are refresh-cookie mediated; profile, export, account deletion, and session management routes are protected by `JwtAuthGuard`. |
 | `apps/api/src/modules/catalog/catalog.controller.ts` | Class-level protected by `JwtAuthGuard`; catalog reads are authenticated, submissions are current-user scoped, and moderation actions are authorized in `CatalogService`. |
-| `apps/api/src/modules/community/community.controller.ts` | Mixed Community surface. Published feed reads are public with strict optional bearer parsing for viewer flags; publishing, owner deletion, reactions, reports, and moderator operations use method-level `JwtAuthGuard`; role and owner checks remain in `CommunityService`. |
+| `apps/api/src/modules/community/community-reflection.controller.ts` | Approved short-reflection surface, available only with the `reflection` release capability. Published reflection reads are public with strict optional bearer parsing; publication, owner deletion, reactions, reports, and moderation use method-level `JwtAuthGuard`. |
+| `apps/api/src/modules/community/community.controller.ts` | Expanded social experiment, available only with the `social` release capability. Public feed/review/profile reads use strict optional bearer parsing; all writes use method-level `JwtAuthGuard`; role and owner checks remain in `CommunityService`. |
 | `apps/api/src/modules/health/health.controller.ts` | Public platform health surface for `/health`, `/livez`, and `/readyz`; do not add user data or secrets. |
 | `apps/api/src/modules/image-proxy/image-proxy.controller.ts` | Policy-bounded public image proxy; requests are constrained by `ImageProxyService` URL policy, content type, byte limits, DNS checks, cache headers, and no-sniff response headers. |
 | `apps/api/src/modules/imports/imports.controller.ts` | Mixed import surface. Provider credential status/save/delete/test and candidate resolve are protected by `JwtAuthGuard`; provider list and search use optional bearer parsing and must not expose stored credentials to guests. |

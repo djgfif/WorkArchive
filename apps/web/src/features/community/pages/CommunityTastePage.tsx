@@ -6,6 +6,7 @@ import type { CommunityTasteMatchView } from '@work-archive/shared-types';
 import { AppButton, AppLinkButton, LoadingState, PageHeader, PageShell, StateMessage } from '@shared/components/AppPrimitives';
 import { useAuthSession } from '@features/auth';
 import { worksRepository } from '@features/works';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { getDisplayImageUrl } from '@shared/utils/image-proxy';
 import { fetchCommunityTasteCandidates, setCommunityFollow } from '../services/community.api';
 import { buildLocalTasteFingerprint, rankTasteCandidates } from '../services/taste-match';
@@ -16,6 +17,7 @@ export function CommunityTastePage() {
   const [matches, setMatches] = useState<CommunityTasteMatchView[]>([]);
   const [loading, setLoading] = useState(mode === 'authenticated');
   const [error, setError] = useState<string | null>(null);
+  usePageTitle('취향 찾기');
 
   useEffect(() => {
     if (mode !== 'authenticated' || !user?.handle) return;
@@ -28,7 +30,8 @@ export function CommunityTastePage() {
       .finally(() => setLoading(false));
   }, [mode, user?.handle]);
 
-  if (mode !== 'authenticated' || !user?.handle) return <PageShell size={980}><PageHeader description="개인 기록은 브라우저 안에서만 비교되며 서버로 전송되지 않습니다." eyebrow="PRIVATE TASTE MATCH" title="취향 찾기" titleOrder={1} /><StateMessage actions={<AppLinkButton state={{ returnTo: '/community/taste' }} to="/auth/login" tone="primary">로그인</AppLinkButton>} description="로그인과 고유 핸들이 있어야 공개 취향 후보와 비교할 수 있습니다." title="취향 찾기를 시작할 준비가 필요합니다" /></PageShell>;
+  if (mode !== 'authenticated') return <PageShell size={980}><PageHeader description="개인 기록은 브라우저 안에서만 비교되며 서버로 전송되지 않습니다." eyebrow="PRIVATE TASTE MATCH" title="취향 찾기" titleOrder={1} /><StateMessage actions={<AppLinkButton state={{ returnTo: '/community/taste' }} to="/auth/login" tone="primary">로그인</AppLinkButton>} description="로그인한 뒤 공개 취향 후보와 내 기록을 브라우저에서 비교할 수 있습니다." title="로그인이 필요합니다" /></PageShell>;
+  if (!user?.handle) return <PageShell size={980}><PageHeader description="개인 기록은 브라우저 안에서만 비교되며 서버로 전송되지 않습니다." eyebrow="PRIVATE TASTE MATCH" title="취향 찾기" titleOrder={1} /><StateMessage actions={<AppLinkButton to="/account/settings" tone="primary">핸들 만들기</AppLinkButton>} description="고유 핸들을 만든 뒤 공개 취향 후보와 내 기록을 비교할 수 있습니다." title="핸들을 만들면 시작할 수 있어요" /></PageShell>;
   return (
     <PageShell size={980}>
       <PageHeader description="내 IndexedDB 기록으로 브라우저에서만 계산하고, 서버에는 로컬 벡터나 작품 기록을 보내지 않습니다." eyebrow="PRIVATE TASTE MATCH" title="취향 찾기" titleOrder={1} />

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CommunityFeedItem, CommunityFeedScope, CommunityPostSort, CommunityTrendingWorkView, WorkRecord } from '@work-archive/shared-types';
 
-import { AppBadge, AppButton, FeedbackMessage, LoadingState, PageShell, StateMessage } from '@shared/components/AppPrimitives';
+import { AppBadge, AppButton, AppLinkButton, FeedbackMessage, LoadingState, PageShell, StateMessage } from '@shared/components/AppPrimitives';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '@features/auth';
 import { getWorkTypeLabel, worksRepository } from '@features/works';
@@ -13,6 +13,12 @@ import { buildCommunityReviewRequest, createCommunityReviewDraft } from '../serv
 import styles from './CommunityPage.module.css';
 
 const sortLabels: Record<CommunityPostSort, string> = { latest: '최신', popular: '인기' };
+
+const communityPaths = [
+  { description: '작품별 평점과 리뷰를 한 흐름에서 살펴봅니다.', eyebrow: '작품 중심', label: '리뷰 발견', to: '#community-feed' },
+  { description: '작품 연결 없이도 추천·질문·정보를 나눕니다.', eyebrow: '자유 토론', label: '게시판', to: '/community/boards' },
+  { description: '개인 기록은 보내지 않고 브라우저에서만 비교합니다.', eyebrow: '로컬 분석', label: '취향 찾기', to: '/community/taste' },
+] as const;
 
 function WorkCover({ work }: { work: { thumbnailUrl: string; title: string } }) {
   const image = getDisplayImageUrl(work.thumbnailUrl);
@@ -132,9 +138,22 @@ export function CommunityPage() {
   return (
     <PageShell size={1360}>
       <section className={styles.hero}>
-        <div><Text className={styles.eyebrow ?? ''}>COMMUNITY</Text><h1>작품에서 시작하는 이야기</h1><Text c="dimmed">평가와 리뷰를 발견하고, 취향이 닮은 사람을 만나보세요.</Text></div>
-        <Group gap="xs"><Link className={styles.secondaryLink} to="/community/boards">게시판</Link><Link className={styles.primaryLink} to="/community/taste">취향 찾기</Link></Group>
+        <div>
+          <Text className={styles.eyebrow ?? ''}>COMMUNITY</Text>
+          <h1>작품에서 시작하는 이야기</h1>
+          <Text c="dimmed">평가와 리뷰를 발견하고, 취향이 닮은 사람을 만나보세요.</Text>
+          <Text className={styles.trustLine ?? ''}>개인 기록은 비공개로 유지되고, 직접 공개한 내용만 이곳에 나타납니다.</Text>
+        </div>
       </section>
+
+      <nav aria-label="커뮤니티 둘러보기" className={styles.pathNav}>
+        {communityPaths.map((path) => {
+          const content = <><span className={styles.pathEyebrow}>{path.eyebrow}</span><strong>{path.label}</strong><span>{path.description}</span></>;
+          return path.to.startsWith('#')
+            ? <a className={styles.pathLink} href={path.to} key={path.label}>{content}</a>
+            : <Link className={styles.pathLink} key={path.label} to={path.to}>{content}</Link>;
+        })}
+      </nav>
 
       {authenticated && user?.handle ? (
         <Paper className={styles.composer ?? ''} p="lg" radius="lg" withBorder>
@@ -159,20 +178,48 @@ export function CommunityPage() {
       ) : null}
 
       {notice && <FeedbackMessage tone={notice.includes('못') ? 'error' : 'success'}>{notice}</FeedbackMessage>}
-      <section className={styles.trendingSection}>
-        <Group justify="space-between"><h2>지금 이야기되는 작품</h2><Text c="dimmed" size="sm">최근 리뷰와 토론 기준</Text></Group>
-        {trending.length ? <div className={styles.trendingGrid}>{trending.map((entry) => <Paper className={styles.trendingCard ?? ''} key={entry.work.catalogTitleId} p="md" radius="lg" withBorder><WorkCover work={entry.work} /><div><Text fw={800} lineClamp={1}>{entry.work.title}</Text><Text c="dimmed" size="xs">리뷰 {entry.reviewCount} · 토론 {entry.discussionCount}</Text>{entry.averageRating !== null && <Text className={styles.ratingValue ?? ''}>{entry.averageRating.toFixed(1)} / 5</Text>}</div></Paper>)}</div> : <Text c="dimmed" mt="sm" size="sm">첫 작품 리뷰가 공개되면 이곳에서 최근 화제작을 발견할 수 있습니다.</Text>}
-      </section>
+      {trending.length > 0 && (
+        <section className={styles.trendingSection}>
+          <Group justify="space-between"><h2>지금 이야기되는 작품</h2><Text c="dimmed" size="sm">최근 리뷰와 토론 기준</Text></Group>
+          <div className={styles.trendingGrid}>{trending.map((entry) => <Paper className={styles.trendingCard ?? ''} key={entry.work.catalogTitleId} p="md" radius="lg" withBorder><WorkCover work={entry.work} /><div><Text fw={800} lineClamp={1}>{entry.work.title}</Text><Text c="dimmed" size="xs">리뷰 {entry.reviewCount} · 토론 {entry.discussionCount}</Text>{entry.averageRating !== null && <Text className={styles.ratingValue ?? ''}>{entry.averageRating.toFixed(1)} / 5</Text>}</div></Paper>)}</div>
+        </section>
+      )}
 
       <div className={styles.layout}>
-        <main>
-          <div className={styles.feedToolbar}><div><h2>새로운 감상</h2><Text c="dimmed" size="sm">공개된 리뷰와 작품 토론만 보여요.</Text></div><Tabs onChange={(value) => value && setSort(value as CommunityPostSort)} value={sort}><Tabs.List>{Object.entries(sortLabels).map(([value, label]) => <Tabs.Tab key={value} value={value}>{label}</Tabs.Tab>)}</Tabs.List></Tabs></div>
-          {authenticated && <Tabs className={styles.scopeTabs ?? ''} onChange={(value) => { if (value) setScope(value as CommunityFeedScope); }} value={scope}><Tabs.List><Tabs.Tab value="all">전체</Tabs.Tab><Tabs.Tab value="following">팔로잉</Tabs.Tab></Tabs.List></Tabs>}
-          {loading ? <LoadingState rows={4} title="감상을 불러오는 중" /> : error ? <StateMessage actions={<AppButton onClick={() => void load()} tone="primary">다시 시도</AppButton>} description={error} title="피드를 불러오지 못했습니다" tone="error" /> : items.length ? <Stack gap="md">{items.map((item) => authenticated ? <CommunityFeedCard item={item} key={item.id} onReaction={(entry) => void react(entry)} /> : <CommunityFeedCard item={item} key={item.id} />)}</Stack> : <StateMessage description="첫 리뷰나 게시판 글을 남겨 작품 이야기를 시작해 보세요." title="아직 공개된 감상이 없습니다" />}
+        <main id="community-feed">
+          <div className={styles.feedToolbar}>
+            <div><h2>새로운 감상</h2><Text c="dimmed" size="sm">공개된 리뷰와 작품 토론만 보여요.</Text></div>
+            <div className={styles.feedFilters}>
+              {authenticated && <Tabs onChange={(value) => { if (value) setScope(value as CommunityFeedScope); }} value={scope}><Tabs.List aria-label="피드 범위"><Tabs.Tab value="all">전체</Tabs.Tab><Tabs.Tab value="following">팔로잉</Tabs.Tab></Tabs.List></Tabs>}
+              <Tabs onChange={(value) => value && setSort(value as CommunityPostSort)} value={sort}><Tabs.List aria-label="피드 정렬">{Object.entries(sortLabels).map(([value, label]) => <Tabs.Tab key={value} value={value}>{label}</Tabs.Tab>)}</Tabs.List></Tabs>
+            </div>
+          </div>
+          {loading ? <LoadingState rows={4} title="감상을 불러오는 중" /> : error ? <StateMessage actions={<Group gap="xs"><AppButton onClick={() => void load()} tone="primary">다시 시도</AppButton><AppLinkButton to="/works" tone="secondary">내 서재로</AppLinkButton></Group>} description={`${error} 내 서재와 개인 기록은 그대로 사용할 수 있습니다.`} title="커뮤니티에 연결하지 못했습니다" tone="error" /> : items.length ? <Stack gap="md">{items.map((item) => authenticated ? <CommunityFeedCard item={item} key={item.id} onReaction={(entry) => void react(entry)} /> : <CommunityFeedCard item={item} key={item.id} />)}</Stack> : (
+            <Paper className={styles.emptyFeed ?? ''} p="xl" radius="lg" withBorder>
+              <div>
+                <Text className={styles.emptyEyebrow ?? ''}>첫 번째 이야기</Text>
+                <Text fw={850} mt={6} size="lg">아직 공개된 감상이 없습니다</Text>
+                <Text c="dimmed" mt="xs" size="sm">카탈로그 작품의 리뷰를 공개하거나, 작품 연결 없이 게시판에서 이야기를 시작할 수 있습니다.</Text>
+              </div>
+              <Group gap="xs">
+                <Link className={styles.secondaryLink} to="/community/boards">게시판 둘러보기</Link>
+                {authenticated && !user?.handle && <Link className={styles.primaryLink} to="/account/settings">핸들 만들기</Link>}
+              </Group>
+            </Paper>
+          )}
         </main>
         <aside className={styles.rail}>
-          <Paper p="lg" radius="lg" withBorder><Stack gap="md"><Text fw={800}>활동 중인 아카이버</Text>{authors.map((author) => <Link className={styles.railAuthor} key={author.handle} to={`/u/${author.handle}`}><Avatar radius="xl" size={34} src={getDisplayImageUrl(author.avatarUrl) || null}>{author.displayName.slice(0, 1)}</Avatar><span><Text fw={700} size="sm">{author.displayName}</Text><Text c="dimmed" size="xs">@{author.handle}</Text></span></Link>)}{!authors.length && <Text c="dimmed" size="sm">활동이 쌓이면 여기에서 만날 수 있어요.</Text>}</Stack></Paper>
-          <Paper className={styles.privacyCard ?? ''} p="lg" radius="lg" withBorder><Text fw={800}>내 기록은 그대로 비공개</Text><Text c="dimmed" mt="xs" size="sm">직접 공개한 리뷰와 글만 커뮤니티에 나타납니다. 서재와 메모는 누구에게도 전송되지 않습니다.</Text></Paper>
+          {authors.length ? <Paper p="lg" radius="lg" withBorder><Stack gap="md"><Text fw={800}>활동 중인 아카이버</Text>{authors.map((author) => <Link className={styles.railAuthor} key={author.handle} to={`/u/${author.handle}`}><Avatar radius="xl" size={34} src={getDisplayImageUrl(author.avatarUrl) || null}>{author.displayName.slice(0, 1)}</Avatar><span><Text fw={700} size="sm">{author.displayName}</Text><Text c="dimmed" size="xs">@{author.handle}</Text></span></Link>)}</Stack></Paper> : (
+            <Paper className={styles.guideCard ?? ''} p="lg" radius="lg" withBorder>
+              <Text fw={800}>어디서 시작할까요?</Text>
+              <Stack gap="sm" mt="md">
+                <a href="#community-feed"><strong>리뷰 발견</strong><span>작품별 평점과 감상 보기</span></a>
+                <Link to="/community/boards"><strong>게시판</strong><span>추천·질문·정보 나누기</span></Link>
+                <Link to="/community/taste"><strong>취향 찾기</strong><span>공개 취향과 내 기록 비교하기</span></Link>
+              </Stack>
+            </Paper>
+          )}
+          <Paper className={styles.privacyCard ?? ''} p="lg" radius="lg" withBorder><AppBadge>명시적 공개만</AppBadge><Text fw={800} mt="sm">내 기록은 그대로 비공개</Text><Text c="dimmed" mt="xs" size="sm">직접 공개한 리뷰와 글만 커뮤니티에 나타납니다. 서재와 메모는 누구에게도 전송되지 않습니다.</Text></Paper>
         </aside>
       </div>
     </PageShell>

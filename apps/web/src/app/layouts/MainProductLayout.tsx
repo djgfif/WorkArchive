@@ -25,6 +25,10 @@ import { SitesPocNotice } from '@shared/components/SitesPocNotice';
 import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import { useWorkLinkKeyboardNav } from '@shared/components/useWorkLinkKeyboardNav';
 import { useAppTranslation } from '@app/i18n';
+import {
+  isCommunityReflectionEnabled,
+  productReleaseProfile,
+} from '@shared/runtime/product-release-profile';
 import { cn } from '@shared/utils/class-names';
 import { getPrimaryNavigationItems } from './navigation';
 import styles from './MainProductLayout.module.css';
@@ -118,7 +122,9 @@ export function MainProductLayout() {
   const accountMenuLabel = authenticated
     ? `${t('navigation.accountMenu')}: ${accountLabel}, ${profile.email}`
     : `${t('navigation.accountMenu')}: ${accountLabel}`;
-  const items = getPrimaryNavigationItems();
+  const communityEnabled =
+    !sitesGuestPoc && isCommunityReflectionEnabled(productReleaseProfile);
+  const items = getPrimaryNavigationItems(undefined, productReleaseProfile);
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
 
   async function handleSignOut() {
@@ -189,7 +195,7 @@ export function MainProductLayout() {
               {t('navigation.accountOverview')}
             </Menu.Item>
           )}
-          {mobile && (
+          {mobile && communityEnabled && (
             <Menu.Item
               className={cn(css.accountMenuItem)}
               leftSection={<NavIcon name="community" />}

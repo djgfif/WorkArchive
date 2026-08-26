@@ -79,6 +79,69 @@ export function publishCommunityPost(input: CreateCommunityPostRequest) {
   });
 }
 
+export async function fetchCommunityReflections(
+  sort: CommunityPostSort,
+  cursor?: string,
+) {
+  const search = new URLSearchParams({ limit: '20', sort });
+  if (cursor) search.set('cursor', cursor);
+
+  return publicOrAuthenticated<CommunityPostListResponse>(
+    `/community/reflections?${search.toString()}`,
+  );
+}
+
+export function publishCommunityReflection(input: CreateCommunityPostRequest) {
+  const reflectionInput = { ...input };
+  delete reflectionInput.category;
+
+  return requestAuthenticatedApiJson<CommunityPostView>(
+    '/community/reflections',
+    {
+      body: JSON.stringify(reflectionInput),
+      method: 'POST',
+      timeoutMs: COMMUNITY_REQUEST_TIMEOUT_MS,
+    },
+  );
+}
+
+export function deleteCommunityReflection(postId: string) {
+  return requestAuthenticatedApiJson<CommunityMutationResponse>(
+    `/community/reflections/${encodeURIComponent(postId)}`,
+    {
+      method: 'DELETE',
+      timeoutMs: COMMUNITY_REQUEST_TIMEOUT_MS,
+    },
+  );
+}
+
+export function setCommunityReflectionReaction(
+  postId: string,
+  reacted: boolean,
+) {
+  return requestAuthenticatedApiJson<CommunityMutationResponse>(
+    `/community/reflections/${encodeURIComponent(postId)}/reactions`,
+    {
+      method: reacted ? 'DELETE' : 'POST',
+      timeoutMs: COMMUNITY_REQUEST_TIMEOUT_MS,
+    },
+  );
+}
+
+export function reportCommunityReflection(
+  postId: string,
+  reason: CommunityReportReason,
+) {
+  return requestAuthenticatedApiJson<CommunityMutationResponse>(
+    `/community/reflections/${encodeURIComponent(postId)}/reports`,
+    {
+      body: JSON.stringify({ reason }),
+      method: 'POST',
+      timeoutMs: COMMUNITY_REQUEST_TIMEOUT_MS,
+    },
+  );
+}
+
 export function fetchCommunityBoardPosts(
   sort: CommunityPostSort,
   category?: CommunityBoardCategory,

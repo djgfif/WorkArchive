@@ -45,6 +45,10 @@ import {
   UpsertCommunityReviewDto,
 } from './dto/community.dto';
 import { CommunityService } from './community.service';
+import {
+  CommunityReleaseGuard,
+  RequireCommunityRelease,
+} from './community-release-policy';
 
 @ApiTags('community')
 @ApiExtraModels(
@@ -55,6 +59,8 @@ import { CommunityService } from './community.service';
   UpdateCommunityProfileDto,
 )
 @Controller('community')
+@RequireCommunityRelease('social')
+@UseGuards(CommunityReleaseGuard)
 export class CommunityController {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
@@ -186,6 +192,7 @@ export class CommunityController {
   @Patch('comments/:id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @ApiBody({ type: UpdateCommunityCommentDto })
   updateComment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -248,6 +255,7 @@ export class CommunityController {
   @Patch('profile')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @ApiBody({ type: UpdateCommunityProfileDto })
   updateProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: UpdateCommunityProfileDto,

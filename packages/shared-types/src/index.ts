@@ -1156,8 +1156,58 @@ export interface AppMetaRecord {
   value: string;
 }
 
+export const PRODUCT_RELEASE_PROFILES = [
+  'personal-archive',
+  'community-reflection-alpha',
+  'community-social-experiment',
+] as const;
+export type ProductReleaseProfile =
+  (typeof PRODUCT_RELEASE_PROFILES)[number];
+
+export interface ProductReleaseCapabilities {
+  communityReflection: boolean;
+  communitySocial: boolean;
+}
+
+export const PRODUCT_RELEASE_CAPABILITIES: Record<
+  ProductReleaseProfile,
+  ProductReleaseCapabilities
+> = {
+  'personal-archive': {
+    communityReflection: false,
+    communitySocial: false,
+  },
+  'community-reflection-alpha': {
+    communityReflection: true,
+    communitySocial: false,
+  },
+  'community-social-experiment': {
+    communityReflection: true,
+    communitySocial: true,
+  },
+};
+
+export function isProductReleaseProfile(
+  value: unknown,
+): value is ProductReleaseProfile {
+  return (
+    typeof value === 'string' &&
+    PRODUCT_RELEASE_PROFILES.includes(value as ProductReleaseProfile)
+  );
+}
+
+export function getProductReleaseCapabilities(
+  profile: ProductReleaseProfile,
+): ProductReleaseCapabilities {
+  return PRODUCT_RELEASE_CAPABILITIES[profile];
+}
+
 export const COMMUNITY_POST_SORTS = ['latest', 'popular'] as const;
 export type CommunityPostSort = (typeof COMMUNITY_POST_SORTS)[number];
+
+export const COMMUNITY_POST_SURFACES = ['reflection', 'board'] as const;
+export type CommunityPostSurface =
+  (typeof COMMUNITY_POST_SURFACES)[number];
 
 export const COMMUNITY_REPORT_REASONS = [
   'spoiler',
@@ -1208,6 +1258,7 @@ export interface CommunityPostView {
   id: EntityId;
   reactionCount: number;
   spoiler: boolean;
+  surface: CommunityPostSurface;
   updatedAt: ISODateString;
   viewerCanDelete: boolean;
   viewerHasReacted: boolean;

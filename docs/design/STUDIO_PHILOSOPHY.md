@@ -1,9 +1,17 @@
 # Studio
 
+| Field                 | Value                                                           |
+| --------------------- | --------------------------------------------------------------- |
+| Status                | `active`                                                        |
+| Role                  | `visual design guidance`                                        |
+| Source of truth       | [`PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md) |
+| Last verified against | `2026-08-26` product-principle audit                            |
+| When to update        | visual hierarchy, semantic colour, motion, or trust cues change |
+
 > A visual philosophy for the personal archive — the calm confidence of a
 > well-made product.
 
-> Supersedes *Vellum Index* (warm archival dark + editorial gold), the
+> Supersedes _Vellum Index_ (warm archival dark + editorial gold), the
 > earlier direction. The legacy manifesto survives in git history and in the
 > `VELLUM_INDEX.png` mockup; this document describes the current system.
 
@@ -12,7 +20,7 @@
 ## The Movement
 
 **Studio** is the aesthetic of the modern workspace — the quiet competence of a
-tool that respects your time. Where *Vellum Index* once dressed the archive as
+tool that respects your time. Where _Vellum Index_ once dressed the archive as
 an antique catalogue, Studio treats it as a contemporary product: neutral,
 legible, unobtrusive. Nothing is ornamental for its own sake. Surfaces recede so
 that the work — the covers, the records, the numbers — can come forward. The
@@ -59,10 +67,17 @@ label, a single line of intent. The interface explains itself through structure
 and convention, leaning on patterns the user already knows from the software they
 open every day.
 
+## Trust And Deliberate Friction
+
+Studio의 절제는 위험 상태를 무채색으로 숨기라는 뜻이 아니다. 일반 정보는
+조용하게 유지하되 오류, 경고, 성공, 공개 상태는 semantic token과 명확한 copy로
+구분한다. 데이터 삭제, 공개, sync conflict, 되돌릴 수 없는 결과에는 추가 확인과
+영향 요약을 둔다. 이 마찰은 장식이 아니라 사용자 신뢰를 지키는 기능이다.
+
 ## The Standard
 
 The finished artifact must feel effortless and trustworthy — the result of
-restraint, of a thousand small decisions to *remove* rather than add. It should
+restraint, of a thousand small decisions to _remove_ rather than add. It should
 look manufactured to a high tolerance, not hand-distressed; assured, not loud.
 Up close it rewards the eye with precise alignment and consistent spacing; from
 across the room it holds as one calm, neutral whole. This is the quiet confidence
@@ -85,7 +100,7 @@ Change values there — never inline.
   (light). Used only for active states, selection, and primary CTAs.
 - **Rating accent** — amber. `--app-accent-warm` `#fbbf24` (dark) / `#d97706`
   (light). Stars only; do not borrow it as a general accent.
-- **Type** — Pretendard for body *and* display (`--app-font-display`); JetBrains
+- **Type** — Pretendard for body _and_ display (`--app-font-display`); JetBrains
   Mono for codes and numerals. No editorial serif.
 - **Radius** — `md` 8px (controls), `lg` 12px (cards), `xl` 16px (modals).
 - **Numerals** — tabular (`font-variant-numeric: tabular-nums`).

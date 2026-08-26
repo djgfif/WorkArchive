@@ -109,6 +109,7 @@ const controllerFiles = walkFiles(join(root, 'apps/api/src'))
 const expectedControllers = [
   'apps/api/src/modules/auth/auth.controller.ts',
   'apps/api/src/modules/catalog/catalog.controller.ts',
+  'apps/api/src/modules/community/community-reflection.controller.ts',
   'apps/api/src/modules/community/community.controller.ts',
   'apps/api/src/modules/health/health.controller.ts',
   'apps/api/src/modules/image-proxy/image-proxy.controller.ts',
@@ -161,6 +162,52 @@ requirePattern(
   community,
   /@Get\('posts'\)[\s\S]{0,520}getOptionalUser\(authorizationHeader\)/,
   'GET community/posts must use optional bearer parsing for viewer flags.',
+);
+
+const reflectionPath =
+  'apps/api/src/modules/community/community-reflection.controller.ts';
+const reflection = readRequired(reflectionPath);
+requirePattern(
+  reflectionPath,
+  reflection,
+  /@Post\(\)[\s\S]{0,180}@ApiBearerAuth\(\)[\s\S]{0,180}@UseGuards\(JwtAuthGuard\)/,
+  'POST community/reflections must require and advertise bearer auth.',
+);
+for (const [decorator, route] of [
+  ['Delete', ':id'],
+  ['Post', ':id/reactions'],
+  ['Delete', ':id/reactions'],
+  ['Post', ':id/reports'],
+  ['Get', 'moderation/reports'],
+  ['Post', 'moderation/:id/hide'],
+  ['Post', 'moderation/:id/restore'],
+  ['Post', 'moderation/reports/:id/resolve'],
+]) {
+  requireRouteGuard(reflectionPath, reflection, decorator, route);
+}
+requireIncludes(
+  reflectionPath,
+  reflection,
+  'extractOptionalBearerAccessToken',
+);
+requireIncludes(reflectionPath, reflection, 'private async getOptionalUser');
+requirePattern(
+  reflectionPath,
+  reflection,
+  /@Get\(\)[\s\S]{0,620}getOptionalUser\(authorizationHeader\)/,
+  'GET community/reflections must use optional bearer parsing for viewer flags.',
+);
+requirePattern(
+  reflectionPath,
+  reflection,
+  /@RequireCommunityRelease\('reflection'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
+  'reflection controller must be release-profile guarded.',
+);
+requirePattern(
+  communityPath,
+  community,
+  /@RequireCommunityRelease\('social'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
+  'social controller must be release-profile guarded.',
 );
 
 const classGuardedControllers = [

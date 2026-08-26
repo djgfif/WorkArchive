@@ -1,22 +1,24 @@
 # WorkArchive Current Execution Plan
 
-| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Role                  | `developer execution entrypoint`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, `docs/project/ROADMAP_FEEDBACK_2026-06.md`, current local `master` working tree                                                                                                                                                                                                                                                                                                                                                       |
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Role                  | `developer execution entrypoint`                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Source of truth       | `docs/product/PRODUCT_CONSTITUTION.md`, `README.md`, current-status report, execution roadmap, current working tree                                                                                                                                                                                                                                                                                                                              |
 | Last verified against | `2026-08-04` full local code-completion gates (`lint`, `typecheck`, 1,265 tests, production build, desktop/mobile Playwright, Docker web image build), conflict impact preview, Studio UI polish, local credential-free Chrome search QA, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, production release runner, monitoring, restore target, and disposable-account evidence remain pending. |
-| When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                      |
 
 이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`../archive/project/PLAN.md`](../archive/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
 
 ## Read First
 
-1. [`README.md`](../../README.md): 실행 명령, 환경 변수, 검증 상태
-2. [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md): 현재 코드 현실
-3. [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md): 통합 실행 순서
-4. [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md): 구조적 부채 상환과 확장 대비 보조 로드맵
-5. 작업 영역별 문서:
+1. [`PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md): 제품 목적, 데이터 경계, 승인 규칙
+2. [`README.md`](../../README.md): 실행 명령, 환경 변수, 검증 상태
+3. [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md): 현재 코드 현실
+4. [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md): 통합 실행 순서
+5. [`COMMUNITY_ALPHA_PLAN.md`](./COMMUNITY_ALPHA_PLAN.md): 승인된 공개 감상 알파 계약
+6. [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md): 구조적 부채 상환 보조 로드맵
+7. 작업 영역별 문서:
    - Frontend archive: [`docs/archive/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../archive/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
    - Backend archive: [`docs/archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
 
@@ -119,7 +121,9 @@ npm run dev
 - 실제 계정/브라우저에서 account activation pull 직렬화, 다중 탭 lease,
   대용량 queue 재시도 증적 확보
 - `Works` compatibility layer 축소와 `Catalog` / `Imports` / `UserRecords` 경계 정리
-- public/community/share surface 비노출 경계 유지와 production cookie/origin/secret 운영 검증
+- 승인된 Community reflection alpha와 저장소의 social expansion 구현 차이 격리
+- boards, public profiles, comments, follows, taste/trending route와 API의 production 비노출 보장
+- production cookie/origin/secret 운영 검증
 - provider runtime Redis 경로의 beta/production 운영 증적 확보
 
 ## 2026-06-04 Expert Feedback Implementation
@@ -131,8 +135,10 @@ npm run dev
 - 정정: 라이선스는 누락이 아니라 README 기준 all-rights-reserved 정책이다.
 - 정정: CI/E2E는 부재가 아니라 web Playwright E2E의 validate 포함 여부가
   아직 별도 안정화 과제다.
-- 제외: public/community/social/recommendation, mobile, Tauri, i18n은 현재
-  실행계획 범위 밖이다.
+- 조정: 승인된 Community reflection alpha는 별도 release profile로 관리한다.
+  boards, public profiles, comments, follows, taste/trending, recommendation은
+  제품 헌법 변경과 별도 decision record 전까지 production blocked다.
+- 제외: Tauri와 native mobile app은 현재 실행계획 범위 밖이다.
 
 구현 기준:
 
@@ -181,4 +187,5 @@ npm run dev
 - 코드, 타입, 설정, 테스트 파일이 의도치 않게 바뀌면 범위를 멈추고 분리한다.
 - 코드 변경이 포함된 작업은 최소 `npm run typecheck`와 관련 테스트를 실행한다.
 - 실행하지 않은 검증 명령은 문서에 새 통과 기록으로 남기지 않는다.
-- public/share/community 문서는 Gate 1 hosted sharing이나 public ranking을 현재 범위처럼 쓰지 않는다.
+- public/share/community 문서는 승인된 release profile, 실제 구현 범위, production 승인 상태를 분리한다.
+- `npm run qa:product-contract`로 archived 권한 역전과 Community production block을 검증한다.

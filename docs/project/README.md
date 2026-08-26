@@ -1,12 +1,12 @@
 # docs/project/
 
-| Field                 | Value                                                                                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Status                | `active`                                                                                                                                                                                               |
-| Role                  | `navigation`                                                                                                                                                                                           |
-| Source of truth       | [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md), [`COMMUNITY_ALPHA_PLAN.md`](./COMMUNITY_ALPHA_PLAN.md), [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md) |
-| Last verified against | `2026-08-25` Community alpha contract                                                                                                                           |
-| When to update        | project 폴더의 주요 문서 구성과 읽기 순서가 바뀔 때                                                                                                                                                    |
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Role                  | `navigation`                                                                                                                                                                                                                                                                                                                                                                                               |
+| Source of truth       | [`../product/PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md), [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md), [`COMMUNITY_ALPHA_PLAN.md`](./COMMUNITY_ALPHA_PLAN.md), [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md) |
+| Last verified against | `2026-08-26` product-authority and Community scope audit                                                                                                                                                                                                                                                                                                                                                   |
+| When to update        | project 폴더의 주요 문서 구성과 읽기 순서가 바뀔 때                                                                                                                                                                                                                                                                                                                                                        |
 
 이 폴더는 현재 실행 기준, 현재 구현 상태, 통합 실행 로드맵, 구조 부채
 보조 로드맵만 둔다.
@@ -14,12 +14,13 @@
 
 ## Read In This Order
 
-1. [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md)
-2. [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
-3. [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md)
-4. [`COMMUNITY_ALPHA_PLAN.md`](./COMMUNITY_ALPHA_PLAN.md)
-5. [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md)
-5. milestone 맥락이 필요하면 [`../archive/project/`](../archive/project/)를 참고한다.
+1. [`../product/PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md)
+2. [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md)
+3. [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
+4. [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md)
+5. [`COMMUNITY_ALPHA_PLAN.md`](./COMMUNITY_ALPHA_PLAN.md)
+6. [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md)
+7. milestone 맥락이 필요하면 [`../archive/project/`](../archive/project/)를 참고한다.
 
 ## What Lives Here
 

@@ -76,6 +76,18 @@ contributor's private archive state.
 | hide/restore post      | moderator/admin | explicit action plus immutable audit row                        |
 | resolve/dismiss report | moderator/admin | explicit action plus immutable audit row                        |
 
+이 표는 `community-reflection-alpha`의
+`/community/reflections` route family에만 적용된다. 웹의 `/community`
+화면과 API controller는 reflection release capability가 꺼져 있으면
+등록되지 않거나 `404`를 반환한다.
+
+`CommunityPost.surface = reflection`인 행만 이 feed, reaction, report,
+delete, moderation 경로에서 읽거나 변경할 수 있다. 이전 migration에서 생성된
+게시물은 `board`로 분류하며 좁은 alpha에 자동 노출하지 않는다.
+`/community/posts`, combined feed, reviews, comments, public profiles,
+follows, notifications, taste/trending은 별도
+`community-social-experiment` capability 없이는 접근할 수 없다.
+
 Public author views contain display name, optional handle, and avatar URL. They
 never contain email or raw user ID. Public post views contain only the newly
 entered body, spoiler flag, optional title/type/thumbnail snapshot, timestamps,

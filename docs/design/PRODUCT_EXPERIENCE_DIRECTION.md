@@ -1,77 +1,65 @@
 # Product Experience Direction
 
-| Field         | Value                                                                            |
-| ------------- | -------------------------------------------------------------------------------- |
-| Status        | Canonical                                                                        |
-| Owner         | Web product experience                                                           |
-| Last reviewed | 2026-07-22                                                                       |
-| Update when   | The core archive loop, privacy posture, or default information hierarchy changes |
+| Field                 | Value                                                                   |
+| --------------------- | ----------------------------------------------------------------------- |
+| Status                | `active`                                                                |
+| Role                  | `product-experience guidance`                                           |
+| Source of truth       | [`PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md)         |
+| Last verified against | `2026-08-26` product-principle and navigation audit                     |
+| When to update        | core archive loop, information hierarchy, or interaction policy changes |
 
-This document defines the product experience Work Archive should preserve while
-individual screens evolve. Visual implementation follows
-[Studio](./STUDIO_PHILOSOPHY.md); this document governs what the interface
-prioritizes.
+이 문서는 제품 헌법을 화면 경험으로 구체화한다. 시각 구현은
+[`Studio`](./STUDIO_PHILOSOPHY.md)를 따르며, 범위가 충돌하면 제품 헌법이 우선한다.
 
-## Product promise
+## Product Promise
 
-Work Archive is a private, local-first place to capture and revisit a personal
-media history. IndexedDB remains the client source of truth. Account sync,
-imports, and external providers extend the archive but must not become a
-prerequisite for starting or maintaining it.
+Work Archive는 개인 미디어 역사를 빠르게 기록하고 다시 발견하는 private,
+local-first 아카이브다. 계정 sync, import, 검색 provider는 아카이브를 확장하지만
+시작과 유지의 전제 조건이 될 수 없다.
 
-The product is intentionally not a social feed. Public profiles, follows,
-comments, and recommendation-network mechanics are outside the default
-experience. Any future sharing feature must remain explicit, scoped, reversible,
-and default-private.
+Community는 기본 제품 경험이나 소셜 feed가 아니다. 승인된 공개 감상 알파는
+개인 아카이브와 분리된 opt-in plane이며, profile, follow, comment, ranking,
+recommendation mechanics는 별도 승인 전까지 실험 범위다.
 
-## Primary experience
+## Primary Experience
 
-The first-use loop is:
+첫 사용 루프는 `capture-first, enrich-later`다.
 
-1. Enter a title from Home.
-2. Confirm the media type and save locally.
-3. Add status, rating, notes, cover, and metadata only when useful.
-4. See the saved work immediately and retain a clear path to backup.
+1. Home이나 추가 화면에서 제목을 입력하거나 검색 보조를 사용한다.
+2. 매체 유형과 저장 위치를 확인하고 즉시 local save한다.
+3. 상태, 별점, 메모, 표지와 메타데이터는 필요할 때 보강한다.
+4. 저장 결과와 backup 경로를 분명히 보여 준다.
 
-Home should feel like an archive desk, not an analytics dashboard. Quick capture
-and the user's records lead; aggregate statistics become prominent only after
-enough records exist to be meaningful.
+Home은 analytics dashboard보다 archive desk에 가깝다. 빠른 기록과 최근
+개인 기록이 먼저 오며, 통계는 의미 있는 신호가 있을 때 점진적으로 열린다.
 
-## Progressive disclosure
+## Progressive Disclosure
 
-Work Archive serves both first-time and experienced users with the same data
-model:
+- 제목, 매체 유형, primary action, 저장 위치와 data-safety 상태는 보이게 둔다.
+- 선택 메타데이터와 기술 설정은 명확한 disclosure 아래 둔다.
+- 데이터 손실, 공개, 삭제, sync conflict에는 위험에 비례한 의도적 마찰을 둔다.
+- 일반 안내를 위험 경고처럼 과장하지 않는다.
+- 큰 아카이브에서는 검색·정렬·필터를, 작은 아카이브에서는 다음 유용한 행동을 우선한다.
+- desktop과 mobile의 표현은 달라도 핵심 능력의 도달 가능성은 같아야 한다.
 
-- Keep title, media type, primary action, and data-safety status visible.
-- Put optional metadata behind a clear disclosure on full-page creation.
-- Keep modal capture dense enough for experienced repeat entry.
-- Keep common settings visible; group providers, diagnostics, security, and
-  destructive controls under advanced navigation.
-- Keep search, sort, and filter visible in large libraries; place display
-  density and other presentation controls under view options.
-- Never hide data loss, sync conflict, or destructive-action warnings.
+Progressive disclosure는 표현만 바꾼다. 기존 능력이나 local-first 저장 의미를
+없애지 않는다.
 
-Progressive disclosure changes presentation only. It must not remove an
-existing capability or alter local-first storage semantics.
+## Low-data Behavior
 
-## Low-data behavior
+고정된 작품 수만으로 화면을 잠그지 않는다.
 
-- Zero works: teach the three safe starting paths—direct entry, assisted search,
-  and backup/import.
-- One to three works: show the small archive and the next useful actions without
-  empty dashboards.
-- Fewer than five works in Insights: show a transparent milestone and recent
-  records instead of statistically weak charts.
-- Established archives: reveal shelves, trends, filters, and advanced
-  organization tools.
+- 기록이 없으면 직접 입력, 검색 보조, import/restore의 안전한 시작 경로를 가르친다.
+- 기록이 적으면 빈 chart 대신 최근 기록과 다음 행동을 보여 준다.
+- 충분한 timeline, rating, completion 신호가 생긴 insight만 설명과 함께 연다.
+- 신뢰할 수 없는 표본은 숨기기보다 한계와 산출 근거를 알린다.
 
-## Product review checklist
+## Product Review Checklist
 
-- Can a guest save a minimal record without network access?
-- Does the primary task remain above the first fold at desktop and mobile sizes?
-- Are optional or technical controls discoverable without competing with the
-  primary action?
-- Does every data-changing action communicate where the record is stored?
-- Are backup and recovery reachable from Home and Settings?
-- Are local-first, private-by-default, Korean-first, and Studio design rules
-  preserved?
+- guest가 network 없이 최소 기록을 저장할 수 있는가?
+- desktop과 mobile에서 핵심 행동이 첫 화면 또는 명확한 한 단계 안에 있는가?
+- 데이터 변경 전에 저장 plane과 영향을 이해할 수 있는가?
+- 공개 전 실제 공개 필드와 회수 한계를 보여 주는가?
+- backup, recovery, conflict resolution이 Home 또는 Settings에서 도달 가능한가?
+- Community나 파생 도구가 개인 아카이브의 정보 구조를 지배하지 않는가?
+- Korean-first, accessibility, Studio의 의미론적 상태 표현이 유지되는가?

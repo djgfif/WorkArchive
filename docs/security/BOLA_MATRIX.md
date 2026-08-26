@@ -37,6 +37,12 @@ Status values:
 | `community_report`                                                         | satisfied   | satisfied   | not_exposed | not_exposed | not_exposed | Create assigns the current reporter; list and resolution require moderator/admin; normal public responses do not expose report data.                                                                                                                                                                                                                         | `apps/api/test/community.service.spec.ts` covers self/duplicate rejection, regular-user moderation rejection, and atomic resolve/audit.                                                                                                                                                                                        |
 | `community_moderation_audit`                                               | not_exposed | not_exposed | not_exposed | not_exposed | not_exposed | Immutable audit rows are written only inside authorized moderation transactions and have no public route.                                                                                                                                                                                                                                                    | `apps/api/test/community.service.spec.ts` asserts audit rows for hide and resolve actions; no standalone audit controller exists.                                                                                                                                                                                              |
 
+Community post IDs are also scoped by `CommunityPost.surface`.
+`community-reflection-alpha` operations require `reflection`; the expanded
+controller requires `board` for post operations. Supplying an otherwise valid
+ID from the other surface returns not found for reads, delete, reaction, report,
+and moderation rather than crossing the release boundary.
+
 ## Current Owner-Scoped Mutations
 
 These paths are already scoped to the authenticated user or to an owned parent:

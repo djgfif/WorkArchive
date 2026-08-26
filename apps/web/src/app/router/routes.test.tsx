@@ -24,7 +24,6 @@ describe('app routes', () => {
     expect(getPrimaryNavigationItems(flagsWithTierBoardsOff)).toEqual([
       { label: '홈', to: '/' },
       { label: '작품', to: '/works' },
-      { label: '커뮤니티', to: '/community' },
       { label: '인사이트', to: '/insights' },
     ]);
 
@@ -52,8 +51,19 @@ describe('app routes', () => {
       });
     }
   });
-  it('keeps /community in the product layout instead of redirecting to works', () => {
-    const routes = createAppRoutes();
+  it('does not register Community routes in the default personal archive', () => {
+    const paths = createAppRoutes()[0]?.children?.map((route) => route.path);
+    expect(paths).not.toContain('community');
+    expect(paths).not.toContain('community/boards');
+    expect(paths).not.toContain('u/:handle');
+  });
+
+  it('registers only the approved root Community route for reflection alpha', () => {
+    const routes = createAppRoutes(
+      undefined,
+      'standard',
+      'community-reflection-alpha',
+    );
     const productRoutes = routes[0]?.children ?? [];
     const communityRoute = productRoutes.find(
       (route) => route.path === 'community',
@@ -64,20 +74,26 @@ describe('app routes', () => {
     expect(
       isValidElement(communityRoute?.element) && communityRoute.element.type,
     ).toBe(Suspense);
-    expect(
-      routes.some(
-        (route) =>
-          route.path === '/community' &&
-          isValidElement(route.element) &&
-          route.element.type === Navigate,
-      ),
-    ).toBe(false);
+    expect(productRoutes.map((route) => route.path)).not.toEqual(
+      expect.arrayContaining([
+        'community/boards',
+        'community/posts/:id',
+        'community/reviews/:id',
+        'community/taste',
+        'u/:handle',
+      ]),
+    );
   });
 
-  it('registers the board, detail, taste, and public profile routes', () => {
-    const paths = createAppRoutes()[0]?.children?.map((route) => route.path);
+  it('registers expanded routes only for the social experiment', () => {
+    const paths = createAppRoutes(
+      undefined,
+      'standard',
+      'community-social-experiment',
+    )[0]?.children?.map((route) => route.path);
     expect(paths).toEqual(
       expect.arrayContaining([
+        'community',
         'community/boards',
         'community/posts/:id',
         'community/reviews/:id',
@@ -135,7 +151,11 @@ describe('app routes', () => {
   });
 
   it('adds route error boundaries to primary product, auth, and account routes', () => {
-    const routes = createAppRoutes();
+    const routes = createAppRoutes(
+      undefined,
+      'standard',
+      'community-reflection-alpha',
+    );
     const productRoutes = routes[0]?.children ?? [];
     const authRoutes =
       routes.find((route) => route.path === '/auth')?.children ?? [];

@@ -11,6 +11,7 @@ import {
   CommunityModerationAction,
   CommunityProfileVisibility,
   CommunityPostStatus,
+  CommunityPostSurface,
   CommunityReportStatus,
   type Prisma,
   type UserRole,
@@ -63,6 +64,7 @@ interface CommunityPostReadModel {
   workType: WorkType | null;
   workThumbnailUrl: string;
   reactionCount: number;
+  surface: CommunityPostSurface;
   createdAt: Date;
   updatedAt: Date;
   author: {
@@ -121,6 +123,7 @@ interface CommunityReportReadModel {
     spoiler: boolean;
     workTitle: string;
     workType: WorkType | null;
+    surface: CommunityPostSurface;
     workThumbnailUrl: string;
     createdAt: Date;
   } | null;
@@ -176,10 +179,12 @@ export class CommunityService {
   async listPosts(
     input: CommunityListInput,
     viewerUserId: string | null,
+    surface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityPostListResponse> {
     const rows = await this.prisma.communityPost.findMany({
       where: {
         status: CommunityPostStatus.published,
+        surface,
         ...(input.category ? { category: input.category } : {}),
       },
       include: this.postInclude(viewerUserId),
@@ -204,16 +209,28 @@ export class CommunityService {
   async createPost(
     authorId: string,
     input: CreateCommunityPostRequest,
+    surface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityPostView> {
     await this.assertCommunityIdentity(authorId);
+    if (
+      surface === CommunityPostSurface.reflection &&
+      input.category &&
+      input.category !== CommunityBoardCategory.free
+    ) {
+      throw new BadRequestException('Short reflections cannot use board categories.');
+    }
     const work = await this.resolvePostWork(input);
     const post = await this.prisma.communityPost.create({
       data: {
         authorId,
         body: input.body.trim(),
         catalogTitleId: work?.catalogTitleId ?? null,
-        category: input.category ?? CommunityBoardCategory.free,
+        category:
+          surface === CommunityPostSurface.reflection
+            ? CommunityBoardCategory.free
+            : (input.category ?? CommunityBoardCategory.free),
         spoiler: input.spoiler ?? false,
+        surface,
         workThumbnailUrl: work?.thumbnailUrl ?? '',
         workTitle: work?.title ?? '',
         workType: work?.type ?? null,
@@ -227,9 +244,14 @@ export class CommunityService {
   async getPost(
     postId: string,
     viewerUserId: string | null,
+    surface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityBoardPostView> {
     const post = await this.prisma.communityPost.findFirst({
-      where: { id: postId, status: CommunityPostStatus.published },
+      where: {
+        id: postId,
+        status: CommunityPostStatus.published,
+        surface,
+      },
       include: this.postInclude(viewerUserId),
     });
 
@@ -246,12 +268,14 @@ export class CommunityService {
   async deletePost(
     authorId: string,
     postId: string,
+    surface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityMutationResponse> {
     const result = await this.prisma.communityPost.updateMany({
       where: {
         authorId,
         id: postId,
         status: CommunityPostStatus.published,
+        surface,
       },
       data: {
         deletedAt: new Date(),
@@ -288,6 +312,7 @@ export class CommunityService {
       this.prisma.communityPost.findMany({
         where: {
           status: CommunityPostStatus.published,
+          surface: CommunityPostSurface.board,
           ...(authorIds ? { authorId: { in: authorIds } } : {}),
         },
         include: this.postInclude(viewerUserId),
@@ -360,6 +385,7 @@ export class CommunityService {
         where: {
           catalogTitleId: { not: null },
           status: CommunityPostStatus.published,
+          surface: CommunityPostSurface.board,
         },
         _count: { _all: true },
         orderBy: { _count: { catalogTitleId: 'desc' } },
@@ -793,7 +819,11 @@ export class CommunityService {
       await Promise.all([
         canShowDetails && sections.showBoardPosts
           ? this.prisma.communityPost.findMany({
-              where: { authorId: user.id, status: CommunityPostStatus.published },
+              where: {
+                authorId: user.id,
+                status: CommunityPostStatus.published,
+                surface: CommunityPostSurface.board,
+              },
               include: this.postInclude(viewerUserId),
               orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
               take: 6,
@@ -1042,11 +1072,16 @@ export class CommunityService {
   async addReaction(
     userId: string,
     postId: string,
+    surface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityMutationResponse> {
     await this.assertCommunityIdentity(userId);
     await this.prisma.$transaction(async (transaction) => {
       const post = await transaction.communityPost.findFirst({
-        where: { id: postId, status: CommunityPostStatus.published },
+        where: {
+          id: postId,
+          status: CommunityPostStatus.published,
+          surface,
+        },
         select: { id: true },
       });
 
@@ -1061,7 +1096,7 @@ export class CommunityService {
 
       if (created.count === 1) {
         const updated = await transaction.communityPost.updateMany({
-          where: { id: postId, status: CommunityPostStatus.published },
+          where: { id: postId, status: CommunityPostStatus.published, surface },
           data: { reactionCount: { increment: 1 } },
         });
 
@@ -1077,11 +1112,16 @@ export class CommunityService {
   async removeReaction(
     userId: string,
     postId: string,
+    surface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityMutationResponse> {
     await this.assertCommunityIdentity(userId);
     await this.prisma.$transaction(async (transaction) => {
       const post = await transaction.communityPost.findFirst({
-        where: { id: postId, status: CommunityPostStatus.published },
+        where: {
+          id: postId,
+          status: CommunityPostStatus.published,
+          surface,
+        },
         select: { id: true },
       });
 
@@ -1099,6 +1139,7 @@ export class CommunityService {
             id: postId,
             reactionCount: { gt: 0 },
             status: CommunityPostStatus.published,
+            surface,
           },
           data: { reactionCount: { decrement: 1 } },
         });
@@ -1116,8 +1157,9 @@ export class CommunityService {
     reporterId: string,
     postId: string,
     input: CreateCommunityReportRequest,
+    surface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityMutationResponse> {
-    return this.reportTarget(reporterId, 'post', postId, input);
+    return this.reportTarget(reporterId, 'post', postId, input, surface);
   }
 
   async reportReview(
@@ -1141,11 +1183,13 @@ export class CommunityService {
     targetType: 'post' | 'review' | 'comment',
     targetId: string,
     input: CreateCommunityReportRequest,
+    postSurface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityMutationResponse> {
     await this.assertCommunityIdentity(reporterId);
     const target = await this.findVisibleModerationTargetOrThrow(
       targetType,
       targetId,
+      postSurface,
     );
 
     if (target.authorId === reporterId) {
@@ -1206,10 +1250,26 @@ export class CommunityService {
 
   async listReports(
     moderator: ModeratorIdentity,
+    scope: 'reflection' | 'social' = 'social',
   ): Promise<CommunityModerationReportListResponse> {
     this.assertModerator(moderator.role);
     const reports = await this.prisma.communityReport.findMany({
-      where: { status: CommunityReportStatus.pending },
+      where: {
+        status: CommunityReportStatus.pending,
+        ...(scope === 'reflection'
+          ? {
+              post: {
+                is: { surface: CommunityPostSurface.reflection },
+              },
+            }
+          : {
+              OR: [
+                { post: { is: { surface: CommunityPostSurface.board } } },
+                { reviewId: { not: null } },
+                { commentId: { not: null } },
+              ],
+            }),
+      },
       include: {
         comment: {
           select: {
@@ -1228,6 +1288,7 @@ export class CommunityService {
             workThumbnailUrl: true,
             workTitle: true,
             workType: true,
+            surface: true,
           },
         },
         reporter: { select: PUBLIC_AUTHOR_SELECT },
@@ -1264,8 +1325,16 @@ export class CommunityService {
     moderator: ModeratorIdentity,
     postId: string,
     note = '',
+    surface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityMutationResponse> {
-    return this.moderateTarget(moderator, 'post', postId, 'hide', note);
+    return this.moderateTarget(
+      moderator,
+      'post',
+      postId,
+      'hide',
+      note,
+      surface,
+    );
   }
 
   async hideReview(moderator: ModeratorIdentity, reviewId: string, note = '') {
@@ -1280,8 +1349,16 @@ export class CommunityService {
     moderator: ModeratorIdentity,
     postId: string,
     note = '',
+    surface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityMutationResponse> {
-    return this.moderateTarget(moderator, 'post', postId, 'restore', note);
+    return this.moderateTarget(
+      moderator,
+      'post',
+      postId,
+      'restore',
+      note,
+      surface,
+    );
   }
 
   async restoreReview(moderator: ModeratorIdentity, reviewId: string, note = '') {
@@ -1298,6 +1375,7 @@ export class CommunityService {
     targetId: string,
     operation: 'hide' | 'restore',
     note: string,
+    postSurface: CommunityPostSurface = CommunityPostSurface.board,
   ): Promise<CommunityMutationResponse> {
     this.assertModerator(moderator.role);
     await this.prisma.$transaction(async (transaction) => {
@@ -1315,9 +1393,19 @@ export class CommunityService {
       let existing: { status: CommunityPostStatus } | null = null;
       if (targetType === 'post') {
         result = await transaction.communityPost.updateMany({
-          where: { id: targetId, status: expectedStatus }, data,
+          where: {
+            id: targetId,
+            status: expectedStatus,
+            surface: postSurface,
+          },
+          data,
         });
-        if (result.count !== 1) existing = await transaction.communityPost.findUnique({ where: { id: targetId }, select: { status: true } });
+        if (result.count !== 1) {
+          existing = await transaction.communityPost.findFirst({
+            where: { id: targetId, surface: postSurface },
+            select: { status: true },
+          });
+        }
       } else if (targetType === 'review') {
         result = await transaction.communityReview.updateMany({
           where: { id: targetId, status: expectedStatus }, data,
@@ -1353,6 +1441,7 @@ export class CommunityService {
     moderator: ModeratorIdentity,
     reportId: string,
     input: ResolveCommunityReportRequest,
+    scope: 'reflection' | 'social' = 'social',
   ): Promise<CommunityMutationResponse> {
     this.assertModerator(moderator.role);
     const dismissed = input.resolution === 'dismiss';
@@ -1362,12 +1451,25 @@ export class CommunityService {
         select: {
           commentId: true,
           postId: true,
+          post: { select: { surface: true } },
           reviewId: true,
           status: true,
         },
       });
 
-      if (!report || report.status !== CommunityReportStatus.pending) {
+      const belongsToScope =
+        report &&
+        (scope === 'reflection'
+          ? report.post?.surface === CommunityPostSurface.reflection
+          : report.post?.surface === CommunityPostSurface.board ||
+            report.reviewId !== null ||
+            report.commentId !== null);
+
+      if (
+        !report ||
+        report.status !== CommunityReportStatus.pending ||
+        !belongsToScope
+      ) {
         throw new NotFoundException('Pending community report not found.');
       }
 
@@ -1461,7 +1563,11 @@ export class CommunityService {
     const target =
       targetType === 'post'
         ? await this.prisma.communityPost.findFirst({
-            where: { id: targetId, status: CommunityPostStatus.published },
+            where: {
+              id: targetId,
+              status: CommunityPostStatus.published,
+              surface: CommunityPostSurface.board,
+            },
             select: { authorId: true, id: true },
           })
         : await this.prisma.communityReview.findFirst({
@@ -1643,9 +1749,12 @@ export class CommunityService {
     };
   }
 
-  private async findVisiblePostOrThrow(postId: string) {
+  private async findVisiblePostOrThrow(
+    postId: string,
+    surface: CommunityPostSurface = CommunityPostSurface.board,
+  ) {
     const post = await this.prisma.communityPost.findFirst({
-      where: { id: postId, status: CommunityPostStatus.published },
+      where: { id: postId, status: CommunityPostStatus.published, surface },
       select: { authorId: true, id: true },
     });
 
@@ -1659,11 +1768,15 @@ export class CommunityService {
   private async findVisibleModerationTargetOrThrow(
     targetType: 'post' | 'review' | 'comment',
     targetId: string,
+    postSurface: CommunityPostSurface = CommunityPostSurface.board,
   ) {
     const where = { id: targetId, status: CommunityPostStatus.published };
     const select = { authorId: true, id: true } as const;
     const target = targetType === 'post'
-      ? await this.prisma.communityPost.findFirst({ where, select })
+      ? await this.prisma.communityPost.findFirst({
+          where: { ...where, surface: postSurface },
+          select,
+        })
       : targetType === 'review'
         ? await this.prisma.communityReview.findFirst({ where, select })
         : await this.prisma.communityComment.findFirst({ where, select });
@@ -1696,6 +1809,7 @@ export class CommunityService {
       id: post.id,
       reactionCount: post.reactionCount,
       spoiler: post.spoiler,
+      surface: post.surface,
       updatedAt: post.updatedAt.toISOString(),
       viewerCanDelete: viewerUserId === post.authorId,
       viewerHasReacted: post.reactions.length > 0,

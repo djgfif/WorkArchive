@@ -1,5 +1,6 @@
 import {
   CommunityPostStatus,
+  CommunityPostSurface,
   CommunityReportStatus,
   WorkType,
 } from '@prisma/client';
@@ -51,11 +52,14 @@ function createPostRow(overrides: Record<string, unknown> = {}) {
     },
     authorId: 'user-1',
     body: '좋았던 장면을 오래 생각하게 됐어요.',
+    category: 'free',
+    commentCount: 0,
     createdAt: new Date('2026-08-25T01:00:00.000Z'),
     id: 'post-1',
     reactionCount: 2,
     reactions: [{ id: 'reaction-1' }],
     spoiler: false,
+    surface: CommunityPostSurface.board,
     updatedAt: new Date('2026-08-25T01:00:00.000Z'),
     workThumbnailUrl: 'https://example.com/work.jpg',
     workTitle: '여름의 문장들',
@@ -88,7 +92,10 @@ describe('CommunityService', () => {
 
     expect(prisma.communityPost.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { status: CommunityPostStatus.published },
+        where: {
+          status: CommunityPostStatus.published,
+          surface: CommunityPostSurface.board,
+        },
         take: 21,
       }),
     );
@@ -123,6 +130,46 @@ describe('CommunityService', () => {
     );
   });
 
+  it('queries and writes reflections only through the reflection surface', async () => {
+    prisma.communityPost.findMany.mockResolvedValue([
+      createPostRow({ surface: CommunityPostSurface.reflection }),
+    ]);
+    prisma.communityPost.create.mockResolvedValue(
+      createPostRow({
+        reactionCount: 0,
+        reactions: [],
+        surface: CommunityPostSurface.reflection,
+      }),
+    );
+
+    await service.listPosts(
+      { limit: 20, sort: 'latest' },
+      null,
+      CommunityPostSurface.reflection,
+    );
+    await service.createPost(
+      'user-1',
+      { body: '짧은 공개 감상' },
+      CommunityPostSurface.reflection,
+    );
+
+    expect(prisma.communityPost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          surface: CommunityPostSurface.reflection,
+        }),
+      }),
+    );
+    expect(prisma.communityPost.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          category: 'free',
+          surface: CommunityPostSurface.reflection,
+        }),
+      }),
+    );
+  });
+
   it('publishes only the explicit body and bounded work snapshot', async () => {
     prisma.communityPost.create.mockResolvedValue(
       createPostRow({ reactionCount: 0, reactions: [] }),
@@ -145,6 +192,7 @@ describe('CommunityService', () => {
           catalogTitleId: null,
           category: 'free',
           spoiler: true,
+          surface: CommunityPostSurface.board,
           workThumbnailUrl: 'https://s4.anilist.co/file/work.jpg',
           workTitle: '여름의 문장들',
           workType: 'novel',
@@ -187,6 +235,7 @@ describe('CommunityService', () => {
           authorId: 'user-2',
           id: 'post-1',
           status: CommunityPostStatus.published,
+          surface: CommunityPostSurface.board,
         },
       }),
     );
@@ -287,7 +336,7 @@ describe('CommunityService', () => {
         create: jest.fn(async (_input: unknown) => ({})),
       },
       communityPost: {
-        findUnique: jest.fn(async () => ({
+        findFirst: jest.fn(async () => ({
           status: CommunityPostStatus.published,
         })),
         updateMany: jest.fn(async (_input: unknown) => ({ count: 1 })),
@@ -308,6 +357,7 @@ describe('CommunityService', () => {
         where: expect.objectContaining({
           id: 'post-1',
           status: CommunityPostStatus.published,
+          surface: CommunityPostSurface.board,
         }),
         data: expect.objectContaining({ status: CommunityPostStatus.hidden }),
       }),
@@ -329,7 +379,7 @@ describe('CommunityService', () => {
         create: jest.fn(async (_input: unknown) => ({})),
       },
       communityPost: {
-        findUnique: jest.fn(async () => ({
+        findFirst: jest.fn(async () => ({
           status: CommunityPostStatus.hidden,
         })),
         updateMany: jest.fn(async (_input: unknown) => ({ count: 0 })),
@@ -376,6 +426,7 @@ describe('CommunityService', () => {
         where: {
           id: 'post-1',
           status: CommunityPostStatus.hidden,
+          surface: CommunityPostSurface.board,
         },
         data: expect.objectContaining({
           hiddenAt: null,
@@ -395,7 +446,10 @@ describe('CommunityService', () => {
       },
       communityReport: {
         findUnique: jest.fn(async () => ({
+          commentId: null,
+          post: { surface: CommunityPostSurface.board },
           postId: 'post-1',
+          reviewId: null,
           status: CommunityReportStatus.pending,
         })),
         updateMany: jest.fn(async (_input: unknown) => ({ count: 1 })),
@@ -441,7 +495,10 @@ describe('CommunityService', () => {
       },
       communityReport: {
         findUnique: jest.fn(async () => ({
+          commentId: null,
+          post: { surface: CommunityPostSurface.board },
           postId: 'post-1',
+          reviewId: null,
           status: CommunityReportStatus.pending,
         })),
         updateMany: jest.fn(async (_input: unknown) => ({ count: 0 })),

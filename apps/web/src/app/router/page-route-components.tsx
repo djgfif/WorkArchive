@@ -32,25 +32,42 @@ export const PersonalInsightsPage = lazy(() =>
     default: module.PersonalInsightsPage,
   })),
 );
+
+export const CommunityReflectionPage = lazy(() =>
+  import('@features/community/pages/CommunityReflectionPage').then((module) => ({
+    default: module.CommunityReflectionPage,
+  })),
+);
+
 export const CommunityPage = lazy(() =>
-  import('@features/community').then((module) => ({
+  import('@features/community/pages/CommunityPage').then((module) => ({
     default: module.CommunityPage,
   })),
 );
 export const CommunityBoardsPage = lazy(() =>
-  import('@features/community').then((module) => ({ default: module.CommunityBoardsPage })),
+  import('@features/community/pages/CommunityBoardsPage').then((module) => ({
+    default: module.CommunityBoardsPage,
+  })),
 );
 export const CommunityPostDetailPage = lazy(() =>
-  import('@features/community').then((module) => ({ default: module.CommunityPostDetailPage })),
+  import('@features/community/pages/CommunityDetailPage').then((module) => ({
+    default: module.CommunityPostDetailPage,
+  })),
 );
 export const CommunityReviewDetailPage = lazy(() =>
-  import('@features/community').then((module) => ({ default: module.CommunityReviewDetailPage })),
+  import('@features/community/pages/CommunityDetailPage').then((module) => ({
+    default: module.CommunityReviewDetailPage,
+  })),
 );
 export const CommunityProfilePage = lazy(() =>
-  import('@features/community').then((module) => ({ default: module.CommunityProfilePage })),
+  import('@features/community/pages/CommunityProfilePage').then((module) => ({
+    default: module.CommunityProfilePage,
+  })),
 );
 export const CommunityTastePage = lazy(() =>
-  import('@features/community').then((module) => ({ default: module.CommunityTastePage })),
+  import('@features/community/pages/CommunityTastePage').then((module) => ({
+    default: module.CommunityTastePage,
+  })),
 );
 
 export const ProfilePage = lazy(() =>

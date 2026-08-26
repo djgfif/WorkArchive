@@ -1,3 +1,4 @@
+import type { ProductReleaseProfile } from '@work-archive/shared-types';
 import type { RouteObject } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 import { Suspense, type ReactNode } from 'react';
@@ -17,6 +18,7 @@ import {
   CommunityBoardsPage,
   CommunityPostDetailPage,
   CommunityProfilePage,
+  CommunityReflectionPage,
   CommunityReviewDetailPage,
   CommunityTastePage,
   AccountOverviewPage,
@@ -37,6 +39,11 @@ import {
   deploymentProfile,
   type DeploymentProfile,
 } from '@shared/runtime/deployment-profile';
+import {
+  isCommunityReflectionEnabled,
+  isCommunitySocialEnabled,
+  productReleaseProfile,
+} from '@shared/runtime/product-release-profile';
 import { HomePage } from '@features/home';
 import { StateMessage } from '@shared/components/AppPrimitives';
 import { appI18n } from '@app/i18n';
@@ -83,8 +90,53 @@ function tierBoardElement(flags: FeatureFlags, element: ReactNode) {
 export function createAppRoutes(
   flags: FeatureFlags = featureFlags,
   profile: DeploymentProfile = deploymentProfile,
+  releaseProfile: ProductReleaseProfile = productReleaseProfile,
 ): RouteObject[] {
   const sitesGuestPoc = profile === 'sites-guest-poc';
+  const reflectionEnabled =
+    !sitesGuestPoc && isCommunityReflectionEnabled(releaseProfile);
+  const socialEnabled =
+    !sitesGuestPoc && isCommunitySocialEnabled(releaseProfile);
+  const communityRoutes: RouteObject[] = reflectionEnabled
+    ? [
+        {
+          path: 'community',
+          element: lazyRoute(
+            socialEnabled ? <CommunityPage /> : <CommunityReflectionPage />,
+          ),
+          errorElement: routeError(
+            appI18n.t('routes.communityError'),
+            '/works',
+            appI18n.t('routes.fallbackWorks'),
+          ),
+        },
+        ...(socialEnabled
+          ? [
+              {
+                path: 'community/boards',
+                element: lazyRoute(<CommunityBoardsPage />),
+              },
+              {
+                path: 'community/posts/:id',
+                element: lazyRoute(<CommunityPostDetailPage />),
+              },
+              {
+                path: 'community/reviews/:id',
+                element: lazyRoute(<CommunityReviewDetailPage />),
+              },
+              {
+                path: 'community/taste',
+                element: lazyRoute(<CommunityTastePage />),
+              },
+              {
+                path: 'u/:handle',
+                element: lazyRoute(<CommunityProfilePage />),
+              },
+            ]
+          : []),
+      ]
+    : [];
+
   return [
     {
       element: <MainProductLayout />,
@@ -111,35 +163,7 @@ export function createAppRoutes(
             appI18n.t('routes.fallbackHome'),
           ),
         },
-        {
-          path: 'community',
-          element: lazyRoute(<CommunityPage />),
-          errorElement: routeError(
-            appI18n.t('routes.communityError'),
-            '/works',
-            appI18n.t('routes.fallbackWorks'),
-          ),
-        },
-        {
-          path: 'community/boards',
-          element: lazyRoute(<CommunityBoardsPage />),
-        },
-        {
-          path: 'community/posts/:id',
-          element: lazyRoute(<CommunityPostDetailPage />),
-        },
-        {
-          path: 'community/reviews/:id',
-          element: lazyRoute(<CommunityReviewDetailPage />),
-        },
-        {
-          path: 'community/taste',
-          element: lazyRoute(<CommunityTastePage />),
-        },
-        {
-          path: 'u/:handle',
-          element: lazyRoute(<CommunityProfilePage />),
-        },
+        ...communityRoutes,
         {
           path: 'works/new',
           element: lazyRoute(<WorkCreatePage />),
