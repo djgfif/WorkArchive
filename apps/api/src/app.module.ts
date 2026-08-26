@@ -13,6 +13,7 @@ import { HealthModule } from './modules/health';
 import { ImageProxyModule } from './modules/image-proxy';
 import { ImportsModule } from './modules/imports';
 import { NotionModule } from './modules/notion';
+import { ProductReleaseModule } from './modules/product-release';
 import { SyncModule } from './modules/sync';
 import { UserRecordsModule } from './modules/user-records';
 import { WorksModule } from './modules/works';
@@ -54,6 +55,7 @@ import { SecurityModule } from './security/security.module';
     ImageProxyModule,
     CatalogModule,
     CommunityModule,
+    ProductReleaseModule,
     UserRecordsModule,
     ImportsModule,
     NotionModule,

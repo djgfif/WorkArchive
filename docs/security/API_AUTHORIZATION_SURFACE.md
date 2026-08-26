@@ -19,6 +19,7 @@ drift for the public cacheable image surface.
 | `apps/api/src/modules/community/community.controller.ts` | Expanded social experiment, available only with the `social` release capability. Public feed/review/profile reads use strict optional bearer parsing; all writes use method-level `JwtAuthGuard`; role and owner checks remain in `CommunityService`. |
 | `apps/api/src/modules/health/health.controller.ts` | Public platform health surface for `/health`, `/livez`, and `/readyz`; do not add user data or secrets. |
 | `apps/api/src/modules/image-proxy/image-proxy.controller.ts` | Policy-bounded public image proxy; requests are constrained by `ImageProxyService` URL policy, content type, byte limits, DNS checks, cache headers, and no-sniff response headers. |
+| `apps/api/src/modules/product-release/product-release.controller.ts` | Public release capability metadata. Returns only the active profile identifier and its boolean capabilities so the web container can detect profile mismatch; it must never include user, secret, or operator data. |
 | `apps/api/src/modules/imports/imports.controller.ts` | Mixed import surface. Provider credential status/save/delete/test and candidate resolve are protected by `JwtAuthGuard`; provider list and search use optional bearer parsing and must not expose stored credentials to guests. |
 | `apps/api/src/modules/notion/notion.controller.ts` | Class-level protected by `JwtAuthGuard`; every connection, test, push, preview, and apply route uses the current authenticated `userId`. |
 | `apps/api/src/modules/sync/sync.controller.ts` | Class-level protected by `JwtAuthGuard`; push and pull both use the current authenticated `userId`. |
@@ -59,6 +60,7 @@ check verifies:
   route-specifically rate limited while safe GET/HEAD/OPTIONS requests stay
   outside that mutation bucket;
 - public platform health stays public and data-free;
+- public release capability metadata stays public, data-free, and limited to the profile identifier plus boolean capabilities;
 - `/metrics` remains hidden without exactly one valid metrics bearer token;
 - the policy-bounded public image proxy still delegates URL enforcement to
   `ImageProxyService`.

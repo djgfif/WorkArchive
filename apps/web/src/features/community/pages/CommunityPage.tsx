@@ -8,7 +8,7 @@ import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '@features/auth';
 import { getWorkTypeLabel, worksRepository } from '@features/works';
 import { getDisplayImageUrl } from '@shared/utils/image-proxy';
-import { fetchCommunityFeed, fetchTrendingCommunityWorks, setCommunityTargetReaction, upsertCommunityReview } from '../services/community.api';
+import { describeCommunityLoadFailure, fetchCommunityFeed, fetchTrendingCommunityWorks, setCommunityTargetReaction, upsertCommunityReview, type CommunityLoadFailure } from '../services/community.api';
 import { buildCommunityReviewRequest, createCommunityReviewDraft } from '../services/community-review-share';
 import styles from './CommunityPage.module.css';
 
@@ -83,7 +83,7 @@ export function CommunityPage() {
   const [spoiler, setSpoiler] = useState(false);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CommunityLoadFailure | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   usePageTitle('커뮤니티');
@@ -95,7 +95,7 @@ export function CommunityPage() {
       setItems(feed.items);
       setTrending(worksResult);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : '커뮤니티를 불러오지 못했습니다.');
+      setError(describeCommunityLoadFailure(loadError, '커뮤니티를 불러오지 못했습니다.'));
     } finally { setLoading(false); }
   }, [scope, sort]);
 
@@ -194,7 +194,7 @@ export function CommunityPage() {
               <Tabs onChange={(value) => value && setSort(value as CommunityPostSort)} value={sort}><Tabs.List aria-label="피드 정렬">{Object.entries(sortLabels).map(([value, label]) => <Tabs.Tab key={value} value={value}>{label}</Tabs.Tab>)}</Tabs.List></Tabs>
             </div>
           </div>
-          {loading ? <LoadingState rows={4} title="감상을 불러오는 중" /> : error ? <StateMessage actions={<Group gap="xs"><AppButton onClick={() => void load()} tone="primary">다시 시도</AppButton><AppLinkButton to="/works" tone="secondary">내 서재로</AppLinkButton></Group>} description={`${error} 내 서재와 개인 기록은 그대로 사용할 수 있습니다.`} title="커뮤니티에 연결하지 못했습니다" tone="error" /> : items.length ? <Stack gap="md">{items.map((item) => authenticated ? <CommunityFeedCard item={item} key={item.id} onReaction={(entry) => void react(entry)} /> : <CommunityFeedCard item={item} key={item.id} />)}</Stack> : (
+          {loading ? <LoadingState rows={4} title="감상을 불러오는 중" /> : error ? <StateMessage actions={<Group gap="xs">{error.retryable && <AppButton onClick={() => void load()} tone="primary">다시 시도</AppButton>}<AppLinkButton to="/works" tone="secondary">내 서재로</AppLinkButton></Group>} description={error.description} title={error.title} tone="error" /> : items.length ? <Stack gap="md">{items.map((item) => authenticated ? <CommunityFeedCard item={item} key={item.id} onReaction={(entry) => void react(entry)} /> : <CommunityFeedCard item={item} key={item.id} />)}</Stack> : (
             <Paper className={styles.emptyFeed ?? ''} p="xl" radius="lg" withBorder>
               <div>
                 <Text className={styles.emptyEyebrow ?? ''}>첫 번째 이야기</Text>

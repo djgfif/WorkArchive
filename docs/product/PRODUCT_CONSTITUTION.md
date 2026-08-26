@@ -121,8 +121,11 @@ Work Archive는 사용자가 자신이 읽고 본 작품의 역사를 빠르게 
 - 프로필이 없으면 웹과 API 모두 `personal-archive`로 fail closed한다.
 - 오타가 난 웹 프로필은 `personal-archive`로 축소되며, API의 잘못된 명시적
   프로필은 요청을 허용하지 않는 설정 오류다.
-- Compose는 하나의 `PRODUCT_RELEASE_PROFILE` 값을 웹 빌드와 API에 함께
-  전달한다.
+- 운영 컨테이너에서는 잘못된 웹 프로필도 시작 실패로 처리한다. 정적 호스팅의
+  잘못된 런타임 값만 브라우저에서 `personal-archive`로 축소한다.
+- 웹 번들에는 프로필을 굽지 않는다. 컨테이너 시작 시 `/tmp`에 생성한
+  `work-archive-config.js`를 `no-store`로 제공한다.
+- Compose는 하나의 `PRODUCT_RELEASE_PROFILE` 값을 웹과 API 런타임에 함께 전달하고, 웹 healthcheck가 공개 API 프로필과 일치하는지 확인한다.
 - `community-reflection-alpha`는 `/community`와
   `/community/reflections` API만 연다.
 - 게시판·리뷰·댓글·프로필·팔로우·taste/trending은

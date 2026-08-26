@@ -305,7 +305,10 @@ function runReportContentFixture({ expectedMessage, label, name, reportPath }) {
   const labelPattern = label.startsWith('`')
     ? escapedLabel
     : `(?:${escapedLabel}|\`${escapedLabel}\`)`;
-  const sourceLinePattern = new RegExp(`^- ${labelPattern}:[^\\n]*$`, 'm');
+  const sourceLinePattern = new RegExp(
+    `^- ${labelPattern}[^:\\n]*:[^\\n]*$`,
+    'm',
+  );
   const shouldRenderAsCommand =
     label.startsWith('`') || label.includes('npm run') || label.includes('=true');
   const renderedLabel = label.startsWith('`')

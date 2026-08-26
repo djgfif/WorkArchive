@@ -2,6 +2,10 @@
 
 Last local update: 2026-06-24.
 
+Dependency lock note (2026-08-26): the repository currently resolves
+`multer@2.2.0`, `js-yaml@5.4.0`, and `undici@7.29.0`. This is a lockfile fact,
+not a new audit result; the release commands below still require a fresh run.
+
 This file is the release artifact for dependency and container security scans.
 Update it for every beta or production release candidate.
 
@@ -44,7 +48,7 @@ release gate.
   while staying on Nest 11. Result summary: found 0 vulnerabilities. public beta release status: high gate passed.
 - `npm run security:audit --audit-level=high`: completed locally on
   2026-06-24. Result: PASS for high or critical findings after updating the
-  `jsdom` dev/test dependency path to `undici@7.28.0`, pinning `js-yaml@5.1.0`
+  `jsdom` dev/test dependency path and pinning `js-yaml`
   through the root npm override, and keeping `multer@2.2.0` patched. Result
   summary: found 0 vulnerabilities.
 - `npm run security:audit:prod`: completed locally on 2026-06-24. Result

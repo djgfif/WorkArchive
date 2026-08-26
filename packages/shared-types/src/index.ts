@@ -1169,6 +1169,11 @@ export interface ProductReleaseCapabilities {
   communitySocial: boolean;
 }
 
+export interface ProductReleaseRuntime {
+  capabilities: ProductReleaseCapabilities;
+  profile: ProductReleaseProfile;
+}
+
 export const PRODUCT_RELEASE_CAPABILITIES: Record<
   ProductReleaseProfile,
   ProductReleaseCapabilities

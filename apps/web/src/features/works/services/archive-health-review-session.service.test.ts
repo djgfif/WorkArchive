@@ -106,6 +106,28 @@ describe('archive health review item helpers', () => {
 });
 
 describe('ArchiveHealthReviewSessionService', () => {
+  it('uses a Web Crypto UUID for the default browser-backed session', () => {
+    const service = new ArchiveHealthReviewSessionService();
+    const session = service.create([
+      {
+        issueCodes: ['completed_without_date'],
+        workId: 'work-crypto',
+      },
+    ]);
+
+    expect(session).not.toBeNull();
+    expect(session?.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    expect(service.getContext(session!.id, 'work-crypto')).toMatchObject({
+      currentItem: { workId: 'work-crypto' },
+      total: 1,
+    });
+
+    service.remove(session!.id);
+    expect(service.getContext(session!.id, 'work-crypto')).toBeNull();
+  });
+
   it('stores the queue contract and advances by the current work', () => {
     const storage = new MemoryStorage();
     const service = new ArchiveHealthReviewSessionService(

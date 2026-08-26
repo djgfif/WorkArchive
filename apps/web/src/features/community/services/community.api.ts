@@ -22,11 +22,40 @@ import type {
 
 import { readStoredAuthTokens } from '@features/auth';
 import {
+  ApiRequestError,
   requestApiJson,
   requestAuthenticatedApiJson,
 } from '@shared/services/api-client';
 
 const COMMUNITY_REQUEST_TIMEOUT_MS = 12_000;
+
+export interface CommunityLoadFailure {
+  description: string;
+  retryable: boolean;
+  title: string;
+}
+
+export function describeCommunityLoadFailure(
+  error: unknown,
+  fallbackMessage: string,
+): CommunityLoadFailure {
+  if (error instanceof ApiRequestError && error.status === 404) {
+    return {
+      description:
+        '운영자가 공개 기능을 중단했거나 현재 배포에서 제공하지 않습니다. 내 서재와 개인 기록은 그대로 사용할 수 있습니다.',
+      retryable: false,
+      title: '커뮤니티가 현재 비활성화되었습니다',
+    };
+  }
+
+  const message = error instanceof Error ? error.message : fallbackMessage;
+
+  return {
+    description: `${message} 내 서재와 개인 기록은 그대로 사용할 수 있습니다.`,
+    retryable: true,
+    title: '커뮤니티에 연결하지 못했습니다',
+  };
+}
 
 function publicOrAuthenticated<T>(path: string) {
   const init = { method: 'GET', timeoutMs: COMMUNITY_REQUEST_TIMEOUT_MS };

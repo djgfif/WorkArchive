@@ -185,8 +185,9 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
-        VITE_PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}
     container_name: work-archive-web
+    environment:
+      PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}
     cpus: '0.50'
     mem_limit: 128m
     pids_limit: 128
@@ -207,7 +208,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'wget -q -O /dev/null http://127.0.0.1:8080/work-archive-config.js',
+          'wget -q -O - http://127.0.0.1:8080/work-archive-config.js | grep -F "productReleaseProfile = ''$${PRODUCT_RELEASE_PROFILE}''" >/dev/null && wget -q -O - http://127.0.0.1:8080/api/product-release | grep -F "\"profile\":\"$${PRODUCT_RELEASE_PROFILE}\"" >/dev/null',
         ]
       interval: 30s
       timeout: 5s

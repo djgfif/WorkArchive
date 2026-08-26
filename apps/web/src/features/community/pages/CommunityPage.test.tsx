@@ -3,11 +3,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthContext, type AuthContextValue } from '@features/auth';
+import { ApiRequestError } from '@shared/services/api-client';
 import { renderWithProviders } from '@test/render-with-providers';
 import { fetchCommunityFeed } from '../services/community.api';
+import type * as CommunityApiModule from '../services/community.api';
 import { CommunityPage } from './CommunityPage';
 
-vi.mock('../services/community.api', () => ({
+vi.mock('../services/community.api', async (importOriginal) => ({
+  ...(await importOriginal<typeof CommunityApiModule>()),
   fetchCommunityFeed: vi.fn(async () => ({ items: [], nextCursor: null })),
   fetchTrendingCommunityWorks: vi.fn(async () => []),
   setCommunityTargetReaction: vi.fn(),
@@ -58,6 +61,26 @@ describe('CommunityPage', () => {
 
     expect(await screen.findByText('커뮤니티에 연결하지 못했습니다')).toBeInTheDocument();
     expect(screen.getByText('서버에 연결할 수 없습니다. 내 서재와 개인 기록은 그대로 사용할 수 있습니다.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '내 서재로' })).toHaveAttribute('href', '/works');
+  });
+
+  it('explains a revoked release profile without offering a futile retry', async () => {
+    fetchCommunityFeedMock.mockRejectedValueOnce(
+      new ApiRequestError(404, '요청한 리소스를 찾을 수 없습니다.'),
+    );
+
+    renderWithProviders(
+      <AuthContext.Provider value={guestSession}>
+        <MemoryRouter initialEntries={['/community']}>
+          <CommunityPage />
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+
+    expect(
+      await screen.findByText('커뮤니티가 현재 비활성화되었습니다'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: '내 서재로' })).toHaveAttribute('href', '/works');
   });
 });

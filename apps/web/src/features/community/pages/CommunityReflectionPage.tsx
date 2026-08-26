@@ -39,10 +39,12 @@ import { useAuthSession } from '@features/auth';
 import { getWorkTypeLabel, worksRepository } from '@features/works';
 import {
   deleteCommunityReflection,
+  describeCommunityLoadFailure,
   fetchCommunityReflections,
   publishCommunityReflection,
   reportCommunityReflection,
   setCommunityReflectionReaction,
+  type CommunityLoadFailure,
 } from '../services/community.api';
 import { buildCommunityPostInput } from '../services/community-publish';
 import styles from './CommunityReflectionPage.module.css';
@@ -72,7 +74,7 @@ export function CommunityReflectionPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [feedError, setFeedError] = useState<string | null>(null);
+  const [feedError, setFeedError] = useState<CommunityLoadFailure | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [works, setWorks] = useState<WorkRecord[]>([]);
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
@@ -102,9 +104,7 @@ export function CommunityReflectionPage() {
       setNextCursor(response.nextCursor);
     } catch (error) {
       if (requestId !== feedRequestId.current) return;
-      setFeedError(
-        error instanceof Error ? error.message : t('community.errorLoad'),
-      );
+      setFeedError(describeCommunityLoadFailure(error, t('community.errorLoad')));
     } finally {
       if (requestId === feedRequestId.current) setIsLoading(false);
     }
@@ -457,12 +457,17 @@ export function CommunityReflectionPage() {
           ) : feedError ? (
             <StateMessage
               actions={
-                <AppButton onClick={() => void loadFeed()} tone="primary">
-                  {t('community.retry')}
-                </AppButton>
+                <Group gap="xs">
+                  {feedError.retryable && (
+                    <AppButton onClick={() => void loadFeed()} tone="primary">
+                      {t('community.retry')}
+                    </AppButton>
+                  )}
+                  <AppLinkButton to="/works" tone="secondary">내 서재로</AppLinkButton>
+                </Group>
               }
-              description={feedError}
-              title={t('community.errorTitle')}
+              description={feedError.description}
+              title={feedError.title}
               tone="error"
             />
           ) : posts.length === 0 ? (

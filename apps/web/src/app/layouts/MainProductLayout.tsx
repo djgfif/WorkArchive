@@ -195,15 +195,6 @@ export function MainProductLayout() {
               {t('navigation.accountOverview')}
             </Menu.Item>
           )}
-          {mobile && communityEnabled && (
-            <Menu.Item
-              className={cn(css.accountMenuItem)}
-              leftSection={<NavIcon name="community" />}
-              onClick={() => navigate('/community')}
-            >
-              {t('navigation.community')}
-            </Menu.Item>
-          )}
           <Menu.Item
             className={cn(css.accountMenuItem)}
             leftSection={<NavIcon name="settings" />}
@@ -365,6 +356,17 @@ export function MainProductLayout() {
           <NavIcon name="works" />
           <span>{t('navigation.worksLibrary')}</span>
         </NavLink>
+        {communityEnabled && (
+          <NavLink
+            className={({ isActive }) =>
+              `${cn(css.mobileNavLink)} ${isActive ? cn(css.mobileNavLinkActive) : ''}`
+            }
+            to="/community"
+          >
+            <NavIcon name="community" />
+            <span>{t('navigation.community')}</span>
+          </NavLink>
+        )}
       </nav>
       <CommandPalette />
     </div>

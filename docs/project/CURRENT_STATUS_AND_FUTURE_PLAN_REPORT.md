@@ -198,9 +198,19 @@ moderation access guard, pending review guard는 `catalog-submissions` helper가
 `CommunityPost.surface`는 `reflection`과 `board`를 저장 단계부터 구분하며 list,
 reaction, report, moderation 쿼리도 같은 surface를 강제한다. 마이그레이션 이전
 게시물은 보수적으로 `board`로 분류해 제한 회고 feed에 유입되지 않는다.
-### 4-2. Current Domain Model
+
+웹 번들은 공개 프로필을 빌드 시점에 고정하지 않는다. 컨테이너 시작 스크립트가
+동일한 `PRODUCT_RELEASE_PROFILE`에서 `/tmp/work-archive-config.js`를 생성하고,
+Nginx가 이를 `no-store`로 제공한다. 웹 healthcheck는 해당 값과 공개
+`GET /api/product-release` 응답이 일치할 때만 컨테이너를 healthy로 판정한다.
+따라서 이미지를 다시 만들지 않고 프로필을 되돌릴 수 있으며, 웹과 API가 서로
+다른 공개 범위를 제공하는 잘못된 배포는 준비 상태에서 차단된다. Community API가
+`404`로 회수된 경우 UI는 일반 네트워크 장애 대신 기능 비활성화 상태와 로컬 서재
+복귀 경로를 표시한다.
+
 
 Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
+### 4-2. Current Domain Model
 
 - `User`
 - `CatalogWork`

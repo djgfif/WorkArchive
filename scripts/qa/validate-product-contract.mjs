@@ -41,6 +41,8 @@ const packagePath = 'package.json';
 const sharedTypesPath = 'packages/shared-types/src/index.ts';
 const webProfilePath =
   'apps/web/src/shared/runtime/product-release-profile.ts';
+const apiProfilePath = 'apps/api/src/config/product-release-profile.ts';
+const webEntrypointPath = 'apps/web/docker-entrypoint.d/40-work-archive-config.sh';
 const webIndexPath = 'apps/web/index.html';
 const webViteConfigPath = 'apps/web/vite.config.ts';
 const webRoutesPath = 'apps/web/src/app/router/routes.tsx';
@@ -71,6 +73,8 @@ const gates = readRequired(gatesPath);
 const packageJson = readRequired(packagePath);
 const sharedTypes = readRequired(sharedTypesPath);
 const webProfile = readRequired(webProfilePath);
+const apiProfile = readRequired(apiProfilePath);
+const webEntrypoint = readRequired(webEntrypointPath);
 const webIndex = readRequired(webIndexPath);
 const webViteConfig = readRequired(webViteConfigPath);
 const webRoutes = readRequired(webRoutesPath);
@@ -251,10 +255,22 @@ requirePattern(
   'web Community routes must be capability-gated.',
 );
 requirePattern(
-  apiPolicyPath,
-  apiPolicy,
+  apiProfilePath,
+  apiProfile,
   /DEFAULT_PRODUCT_RELEASE_PROFILE[\s\S]{0,100}'personal-archive'/,
   'API profile resolution must fail closed to personal archive.',
+);
+requirePattern(
+  webEntrypointPath,
+  webEntrypoint,
+  /PRODUCT_RELEASE_PROFILE:-personal-archive[\s\S]{0,500}productReleaseProfile/,
+  'web container must generate fail-closed runtime config.',
+);
+requirePattern(
+  packagePath,
+  packageJson,
+  /"qa:product-release-runtime":\s*"node scripts\/qa\/validate-product-release-runtime\.mjs"/,
+  'package.json must expose the runtime profile matrix check.',
 );
 requirePattern(
   socialControllerPath,
@@ -311,8 +327,8 @@ for (const [path, content] of [
   requirePattern(
     path,
     content,
-    /PRODUCT_RELEASE_PROFILE:[^\n]*personal-archive[\s\S]{0,6000}VITE_PRODUCT_RELEASE_PROFILE:[^\n]*personal-archive/,
-    'Compose must pass one fail-closed profile to API and web.',
+    /PRODUCT_RELEASE_PROFILE:[^\n]*personal-archive[\s\S]{0,6000}PRODUCT_RELEASE_PROFILE:[^\n]*personal-archive/,
+    'Compose must pass one fail-closed runtime profile to API and web.',
   );
 }
 

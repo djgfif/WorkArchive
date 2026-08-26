@@ -1,6 +1,5 @@
 import {
   getProductReleaseCapabilities,
-  isProductReleaseProfile,
   type ProductReleaseProfile,
 } from '@work-archive/shared-types';
 import {
@@ -12,31 +11,12 @@ import {
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
+import { readProductReleaseProfile } from '../../config/product-release-profile';
+
 export type CommunityReleaseRequirement = 'reflection' | 'social';
 
 const COMMUNITY_RELEASE_REQUIREMENT = 'communityReleaseRequirement';
-const DEFAULT_PRODUCT_RELEASE_PROFILE: ProductReleaseProfile =
-  'personal-archive';
-
-export function readProductReleaseProfile(
-  configuredValue: unknown = process.env.PRODUCT_RELEASE_PROFILE,
-): ProductReleaseProfile {
-  if (
-    configuredValue === undefined ||
-    configuredValue === null ||
-    configuredValue === ''
-  ) {
-    return DEFAULT_PRODUCT_RELEASE_PROFILE;
-  }
-
-  if (!isProductReleaseProfile(configuredValue)) {
-    throw new Error(
-      'PRODUCT_RELEASE_PROFILE must be personal-archive, community-reflection-alpha, or community-social-experiment.',
-    );
-  }
-
-  return configuredValue;
-}
+export { readProductReleaseProfile } from '../../config/product-release-profile';
 
 export function isCommunityReleaseEnabled(
   profile: ProductReleaseProfile,

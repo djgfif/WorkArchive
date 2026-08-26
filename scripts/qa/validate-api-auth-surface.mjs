@@ -112,6 +112,7 @@ const expectedControllers = [
   'apps/api/src/modules/community/community-reflection.controller.ts',
   'apps/api/src/modules/community/community.controller.ts',
   'apps/api/src/modules/health/health.controller.ts',
+  'apps/api/src/modules/product-release/product-release.controller.ts',
   'apps/api/src/modules/image-proxy/image-proxy.controller.ts',
   'apps/api/src/modules/imports/imports.controller.ts',
   'apps/api/src/modules/notion/notion.controller.ts',
@@ -498,6 +499,21 @@ for (const route of ['health', 'livez', 'readyz']) {
 if (health.includes('JwtAuthGuard') || health.includes('@UseGuards')) {
   failures.push(`${healthPath} must remain public for platform health checks.`);
 }
+const productReleasePath =
+  'apps/api/src/modules/product-release/product-release.controller.ts';
+const productRelease = readRequired(productReleasePath);
+requireIncludes(productReleasePath, productRelease, "@Controller('product-release')");
+requireIncludes(productReleasePath, productRelease, '@Get()');
+requireIncludes(productReleasePath, productRelease, 'getProductReleaseRuntime()');
+if (
+  productRelease.includes('JwtAuthGuard') ||
+  productRelease.includes('@UseGuards')
+) {
+  failures.push(
+    `${productReleasePath} must remain public and expose only non-user release capabilities.`,
+  );
+}
+
 
 const imageProxyPath =
   'apps/api/src/modules/image-proxy/image-proxy.controller.ts';
@@ -518,6 +534,7 @@ for (const phrase of [
   'protected by `JwtAuthGuard`',
   'optional bearer',
   'public platform health',
+  'public release capability metadata',
   'metrics bearer token',
   'policy-bounded public image proxy',
   'npm run qa:api-auth-surface',
