@@ -8,7 +8,7 @@ import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '@features/auth';
 import { getWorkTypeLabel, worksRepository } from '@features/works';
 import { getDisplayImageUrl } from '@shared/utils/image-proxy';
-import { describeCommunityLoadFailure, fetchCommunityFeed, fetchTrendingCommunityWorks, setCommunityTargetReaction, upsertCommunityReview, type CommunityLoadFailure } from '../services/community.api';
+import { describeCommunityLoadFailure, fetchCommunityFeed, fetchTrendingCommunityWorks, setCommunityReaction, setCommunityTargetReaction, upsertCommunityReview, type CommunityLoadFailure } from '../services/community.api';
 import { buildCommunityReviewRequest, createCommunityReviewDraft } from '../services/community-review-share';
 import styles from './CommunityPage.module.css';
 
@@ -129,9 +129,15 @@ export function CommunityPage() {
   }
   async function react(item: CommunityFeedItem) {
     const content = item.kind === 'review' ? item.review : item.post;
-    if (!content || item.kind !== 'review') return;
-    await setCommunityTargetReaction('review', content.id, content.viewerHasReacted);
-    setItems((current) => current.map((entry) => entry.id === item.id && entry.review ? { ...entry, review: { ...entry.review, reactionCount: Math.max(0, entry.review.reactionCount + (entry.review.viewerHasReacted ? -1 : 1)), viewerHasReacted: !entry.review.viewerHasReacted } } : entry));
+    if (!content) return;
+    if (item.kind === 'review') {
+      await setCommunityTargetReaction('review', content.id, content.viewerHasReacted);
+      setItems((current) => current.map((entry) => entry.id === item.id && entry.review ? { ...entry, review: { ...entry.review, reactionCount: Math.max(0, entry.review.reactionCount + (entry.review.viewerHasReacted ? -1 : 1)), viewerHasReacted: !entry.review.viewerHasReacted } } : entry));
+      return;
+    }
+
+    await setCommunityReaction(content.id, content.viewerHasReacted);
+    setItems((current) => current.map((entry) => entry.id === item.id && entry.post ? { ...entry, post: { ...entry.post, reactionCount: Math.max(0, entry.post.reactionCount + (entry.post.viewerHasReacted ? -1 : 1)), viewerHasReacted: !entry.post.viewerHasReacted } } : entry));
   }
   const authors = Array.from(new Map(items.map((item) => item.review?.author ?? item.post?.author).filter((author) => author?.handle).map((author) => [author!.handle, author!])).values()).slice(0, 5);
 

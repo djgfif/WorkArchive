@@ -448,8 +448,15 @@ export class AuthService {
         tierBoardCards,
         tierBoardAssets,
         catalogSubmissions,
+        communityProfiles,
         communityPosts,
+        communityReviews,
         communityReactions,
+        communityReviewReactions,
+        communityComments,
+        communityCommentReactions,
+        communityFollows,
+        communityNotifications,
         communityReports,
         securityEvents,
       ] = await this.prisma.$transaction([
@@ -663,6 +670,29 @@ export class AuthService {
             updatedAt: true,
           },
         }),
+        this.prisma.userCommunityProfile.findMany({
+          where: {
+            userId: user.userId,
+          },
+          select: {
+            id: true,
+            visibility: true,
+            bio: true,
+            favoriteGenres: true,
+            favoriteCatalogTitleIds: true,
+            showTasteSummary: true,
+            showRatings: true,
+            showReviews: true,
+            showBoardPosts: true,
+            showFollowers: true,
+            allowFollowers: true,
+            notifyInCommunity: true,
+            notifyGlobalBadge: true,
+            notifyBrowser: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
         this.prisma.communityPost.findMany({
           where: {
             authorId: user.userId,
@@ -672,16 +702,43 @@ export class AuthService {
           },
           select: {
             id: true,
+            surface: true,
+            category: true,
+            catalogTitleId: true,
             body: true,
             reactionCount: true,
+            commentCount: true,
             spoiler: true,
             status: true,
             workTitle: true,
             workType: true,
             workThumbnailUrl: true,
+            deletedAt: true,
             hiddenAt: true,
             createdAt: true,
             updatedAt: true,
+          },
+        }),
+        this.prisma.communityReview.findMany({
+          where: {
+            authorId: user.userId,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            id: true,
+            catalogTitleId: true,
+            rating: true,
+            body: true,
+            spoiler: true,
+            reactionCount: true,
+            commentCount: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            deletedAt: true,
+            hiddenAt: true,
           },
         }),
         this.prisma.communityReaction.findMany({
@@ -697,6 +754,87 @@ export class AuthService {
             createdAt: true,
           },
         }),
+        this.prisma.communityReviewReaction.findMany({
+          where: {
+            userId: user.userId,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            id: true,
+            reviewId: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.communityComment.findMany({
+          where: {
+            authorId: user.userId,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            id: true,
+            postId: true,
+            reviewId: true,
+            parentId: true,
+            body: true,
+            spoiler: true,
+            reactionCount: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            deletedAt: true,
+          },
+        }),
+        this.prisma.communityCommentReaction.findMany({
+          where: {
+            userId: user.userId,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            id: true,
+            commentId: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.communityFollow.findMany({
+          where: {
+            OR: [
+              { followerId: user.userId },
+              { followingId: user.userId },
+            ],
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            id: true,
+            followerId: true,
+            followingId: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.communityNotification.findMany({
+          where: {
+            recipientId: user.userId,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            id: true,
+            actorId: true,
+            type: true,
+            targetType: true,
+            targetId: true,
+            createdAt: true,
+            readAt: true,
+          },
+        }),
         this.prisma.communityReport.findMany({
           where: {
             reporterId: user.userId,
@@ -707,6 +845,8 @@ export class AuthService {
           select: {
             id: true,
             postId: true,
+            reviewId: true,
+            commentId: true,
             reason: true,
             detail: true,
             status: true,
@@ -746,9 +886,16 @@ export class AuthService {
             'updatedAt',
           ]),
         ),
+        communityComments,
+        communityCommentReactions,
+        communityFollows,
+        communityNotifications,
         communityPosts,
+        communityProfiles,
         communityReactions,
         communityReports,
+        communityReviewReactions,
+        communityReviews,
         contributors,
         externalApiCredentials,
         notionPullPreviewSnapshots: notionPullPreviewSnapshots.map((snapshot) =>

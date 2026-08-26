@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
@@ -646,6 +646,73 @@ describe('Auth flow', () => {
     );
     expect(readStoredAuthTokens()).toEqual({
       accessToken: 'recovered-access-token',
+    });
+  });
+
+  it('retries a transient online restore failure without another network event', async () => {
+    writeStoredArchiveIdentity(sessionBody().user as AuthUser);
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Startup network failure'))
+      .mockRejectedValueOnce(new TypeError('Transient recovery failure'))
+      .mockResolvedValueOnce(
+        jsonResponse(sessionBody('retried-access-token')),
+      )
+      .mockResolvedValue(
+        jsonResponse({
+          changes: [],
+          nextSince: null,
+          pulledAt: '2026-08-27T00:00:00.000Z',
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('status', { name: /오프라인/ }),
+    ).toBeInTheDocument();
+
+    let scheduledRetry: TimerHandler | null = null;
+    const setTimeoutSpy = vi
+      .spyOn(window, 'setTimeout')
+      .mockImplementation((handler: TimerHandler) => {
+        scheduledRetry = handler;
+        return 1;
+      });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 1_000);
+    expect(typeof scheduledRetry).toBe('function');
+    setTimeoutSpy.mockRestore();
+
+    await act(async () => {
+      (scheduledRetry as () => void)();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', { name: /오프라인/ }),
+      ).not.toBeInTheDocument();
+    });
+    expect(readStoredAuthTokens()).toEqual({
+      accessToken: 'retried-access-token',
     });
   });
 

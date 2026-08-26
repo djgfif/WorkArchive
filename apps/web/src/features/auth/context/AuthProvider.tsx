@@ -34,6 +34,8 @@ import {
 
 const GOOGLE_RETURN_TO_STORAGE_KEY = 'work-archive.auth.googleReturnTo';
 const GOOGLE_AUTH_COMPLETE_PATH = '/auth/google/complete';
+const OFFLINE_RESTORE_INITIAL_RETRY_MS = 1_000;
+const OFFLINE_RESTORE_MAX_RETRY_MS = 30_000;
 
 function isGoogleAuthCompletePath() {
   return window.location.pathname === GOOGLE_AUTH_COMPLETE_PATH;
@@ -252,8 +254,49 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     const restoreGeneration = sessionGenerationRef.current;
+    let disposed = false;
+    let restoreInFlight = false;
+    let retryAttempt = 0;
+    let retryTimer: number | undefined;
 
-    async function handleOnline() {
+    function clearRetryTimer() {
+      if (retryTimer !== undefined) {
+        window.clearTimeout(retryTimer);
+        retryTimer = undefined;
+      }
+    }
+
+    function scheduleRetry() {
+      if (
+        disposed ||
+        retryTimer !== undefined ||
+        sessionGenerationRef.current !== restoreGeneration ||
+        !window.navigator.onLine
+      ) {
+        return;
+      }
+
+      const delay = Math.min(
+        OFFLINE_RESTORE_INITIAL_RETRY_MS * 2 ** retryAttempt,
+        OFFLINE_RESTORE_MAX_RETRY_MS,
+      );
+      retryAttempt += 1;
+      retryTimer = window.setTimeout(() => {
+        retryTimer = undefined;
+        void tryRestoreSession();
+      }, delay);
+    }
+
+    async function tryRestoreSession() {
+      if (
+        disposed ||
+        restoreInFlight ||
+        sessionGenerationRef.current !== restoreGeneration
+      ) {
+        return;
+      }
+
+      restoreInFlight = true;
       try {
         const result = await restoreStoredSession({ force: true });
 
@@ -274,13 +317,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
         ) {
           clearStoredAuthTokens();
           retainAccountArchive('expired');
+          return;
         }
+
+        scheduleRetry();
+      } finally {
+        restoreInFlight = false;
       }
     }
 
+    function handleOnline() {
+      retryAttempt = 0;
+      clearRetryTimer();
+      void tryRestoreSession();
+    }
+
     window.addEventListener('online', handleOnline);
+    scheduleRetry();
 
     return () => {
+      disposed = true;
+      clearRetryTimer();
       window.removeEventListener('online', handleOnline);
     };
   }, [activateAuthenticatedArchive, retainAccountArchive, sessionStatus]);

@@ -1,11 +1,13 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthContext, type AuthContextValue } from '@features/auth';
+import { worksRepository } from '@features/works';
 import { ApiRequestError } from '@shared/services/api-client';
 import { renderWithProviders } from '@test/render-with-providers';
-import { fetchCommunityFeed } from '../services/community.api';
+import { fetchCommunityFeed, setCommunityReaction } from '../services/community.api';
 import type * as CommunityApiModule from '../services/community.api';
 import { CommunityPage } from './CommunityPage';
 
@@ -13,6 +15,7 @@ vi.mock('../services/community.api', async (importOriginal) => ({
   ...(await importOriginal<typeof CommunityApiModule>()),
   fetchCommunityFeed: vi.fn(async () => ({ items: [], nextCursor: null })),
   fetchTrendingCommunityWorks: vi.fn(async () => []),
+  setCommunityReaction: vi.fn(),
   setCommunityTargetReaction: vi.fn(),
   upsertCommunityReview: vi.fn(),
 }));
@@ -27,10 +30,81 @@ const guestSession: AuthContextValue = {
 };
 
 const fetchCommunityFeedMock = vi.mocked(fetchCommunityFeed);
+const setCommunityReactionMock = vi.mocked(setCommunityReaction);
+const listActiveWorksMock = vi.spyOn(worksRepository, 'listActive');
+
+const authenticatedSession: AuthContextValue = {
+  ...guestSession,
+  archiveScopeKey: 'work-archive-db-user-user-1',
+  mode: 'authenticated',
+  sessionStatus: 'authenticated',
+  user: {
+    avatarUrl: '',
+    authAccounts: [],
+    email: 'reader@example.com',
+    handle: 'reader',
+    id: 'user-1',
+    nickname: 'Reader',
+    role: 'user',
+  },
+};
 
 describe('CommunityPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    listActiveWorksMock.mockResolvedValue([]);
     fetchCommunityFeedMock.mockResolvedValue({ items: [], nextCursor: null });
+  });
+
+  it('sends and reflects reactions for board posts in the mixed feed', async () => {
+    const user = userEvent.setup();
+    fetchCommunityFeedMock.mockResolvedValueOnce({
+      items: [
+        {
+          createdAt: '2026-08-26T00:00:00.000Z',
+          id: 'feed-post-1',
+          kind: 'post',
+          post: {
+            author: {
+              avatarUrl: '',
+              displayName: '독자',
+              handle: 'reader-two',
+            },
+            body: '이번 분기 추천작을 나눠요.',
+            category: 'recommendation',
+            commentCount: 0,
+            createdAt: '2026-08-26T00:00:00.000Z',
+            id: 'post-1',
+            reactionCount: 2,
+            spoiler: false,
+            surface: 'board',
+            updatedAt: '2026-08-26T00:00:00.000Z',
+            viewerCanDelete: false,
+            viewerHasReacted: false,
+            work: null,
+          },
+          review: null,
+        },
+      ],
+      nextCursor: null,
+    });
+
+    renderWithProviders(
+      <AuthContext.Provider value={authenticatedSession}>
+        <MemoryRouter initialEntries={['/community']}>
+          <CommunityPage />
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+
+    const reactionButton = await screen.findByRole('button', { name: '공감 2' });
+    await user.click(reactionButton);
+
+    expect(setCommunityReactionMock).toHaveBeenCalledWith('post-1', false);
+    expect(await screen.findByRole('button', { name: '공감 3' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('uses native same-page anchors for review discovery', async () => {

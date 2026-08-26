@@ -440,6 +440,28 @@ function createUserDataExportPrismaMock() {
         },
       ]),
     },
+    userCommunityProfile: {
+      findMany: findMany([
+        {
+          allowFollowers: true,
+          bio: '마법 여행 기록을 좋아합니다.',
+          createdAt: now,
+          favoriteCatalogTitleIds: ['catalog-title-1'],
+          favoriteGenres: ['fantasy'],
+          id: 'community-profile-1',
+          notifyBrowser: false,
+          notifyGlobalBadge: true,
+          notifyInCommunity: true,
+          showBoardPosts: true,
+          showFollowers: true,
+          showRatings: true,
+          showReviews: true,
+          showTasteSummary: true,
+          updatedAt: now,
+          visibility: 'public',
+        },
+      ]),
+    },
     communityPost: {
       findMany: findMany([
         {
@@ -457,6 +479,24 @@ function createUserDataExportPrismaMock() {
         },
       ]),
     },
+    communityReview: {
+      findMany: findMany([
+        {
+          body: '오래 남는 여정',
+          catalogTitleId: 'catalog-title-1',
+          commentCount: 1,
+          createdAt: now,
+          deletedAt: null,
+          hiddenAt: null,
+          id: 'community-review-1',
+          rating: 4.5,
+          reactionCount: 3,
+          spoiler: false,
+          status: 'published',
+          updatedAt: now,
+        },
+      ]),
+    },
     communityReaction: {
       findMany: findMany([
         {
@@ -466,13 +506,73 @@ function createUserDataExportPrismaMock() {
         },
       ]),
     },
+    communityReviewReaction: {
+      findMany: findMany([
+        {
+          createdAt: now,
+          id: 'community-review-reaction-1',
+          reviewId: 'community-review-2',
+        },
+      ]),
+    },
+    communityComment: {
+      findMany: findMany([
+        {
+          body: '동의합니다.',
+          createdAt: now,
+          deletedAt: null,
+          id: 'community-comment-1',
+          parentId: null,
+          postId: null,
+          reactionCount: 1,
+          reviewId: 'community-review-2',
+          spoiler: false,
+          status: 'published',
+          updatedAt: now,
+        },
+      ]),
+    },
+    communityCommentReaction: {
+      findMany: findMany([
+        {
+          commentId: 'community-comment-2',
+          createdAt: now,
+          id: 'community-comment-reaction-1',
+        },
+      ]),
+    },
+    communityFollow: {
+      findMany: findMany([
+        {
+          createdAt: now,
+          followerId: 'user-1',
+          followingId: 'user-2',
+          id: 'community-follow-1',
+        },
+      ]),
+    },
+    communityNotification: {
+      findMany: findMany([
+        {
+          actorId: 'user-2',
+          createdAt: now,
+          id: 'community-notification-1',
+          readAt: null,
+          targetId: 'community-review-1',
+          targetType: 'review',
+          type: 'reaction',
+        },
+      ]),
+    },
     communityReport: {
       findMany: findMany([
         {
           createdAt: now,
           detail: '스팸 링크',
           id: 'community-report-1',
+          commentId: null,
           postId: 'community-post-3',
+          reviewId: null,
           reason: 'spam',
           resolvedAt: null,
           status: 'pending',
@@ -1393,9 +1493,16 @@ describe('AuthService', () => {
     expect(exported.counts).toEqual(
       expect.objectContaining({
         catalogSubmissions: 1,
+        communityComments: 1,
+        communityCommentReactions: 1,
+        communityFollows: 1,
+        communityNotifications: 1,
         communityPosts: 1,
+        communityProfiles: 1,
         communityReactions: 1,
         communityReports: 1,
+        communityReviewReactions: 1,
+        communityReviews: 1,
         externalApiCredentials: 1,
         notionPullPreviewSnapshots: 1,
         syncAppliedMutations: 1,
@@ -1408,6 +1515,18 @@ describe('AuthService', () => {
         current: true,
         id: 'session-1',
         ipAddress: '203.0.113.x',
+      }),
+    ]);
+    expect(exported.data.communityProfiles).toEqual([
+      expect.objectContaining({
+        id: 'community-profile-1',
+        visibility: 'public',
+      }),
+    ]);
+    expect(exported.data.communityNotifications).toEqual([
+      expect.objectContaining({
+        id: 'community-notification-1',
+        targetType: 'review',
       }),
     ]);
     expect(JSON.stringify(exported)).not.toMatch(
@@ -1425,6 +1544,13 @@ describe('AuthService', () => {
         }),
         where: {
           userId: 'user-1',
+        },
+      }),
+    );
+    expect(prisma.communityFollow.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [{ followerId: 'user-1' }, { followingId: 'user-1' }],
         },
       }),
     );
