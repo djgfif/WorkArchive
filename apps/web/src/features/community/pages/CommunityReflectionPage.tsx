@@ -463,7 +463,9 @@ export function CommunityReflectionPage() {
                       {t('community.retry')}
                     </AppButton>
                   )}
-                  <AppLinkButton to="/works" tone="secondary">내 서재로</AppLinkButton>
+                  <AppLinkButton to="/works" tone="secondary">
+                    {t('community.social.backToLibrary')}
+                  </AppLinkButton>
                 </Group>
               }
               description={feedError.description}

@@ -20,6 +20,7 @@ import type {
   UpsertCommunityReviewRequest,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { readStoredAuthTokens } from '@features/auth';
 import {
   ApiRequestError,
@@ -41,19 +42,18 @@ export function describeCommunityLoadFailure(
 ): CommunityLoadFailure {
   if (error instanceof ApiRequestError && error.status === 404) {
     return {
-      description:
-        '운영자가 공개 기능을 중단했거나 현재 배포에서 제공하지 않습니다. 내 서재와 개인 기록은 그대로 사용할 수 있습니다.',
+      description: appI18n.t('community.releaseDisabledDescription'),
       retryable: false,
-      title: '커뮤니티가 현재 비활성화되었습니다',
+      title: appI18n.t('community.releaseDisabledTitle'),
     };
   }
 
   const message = error instanceof Error ? error.message : fallbackMessage;
 
   return {
-    description: `${message} 내 서재와 개인 기록은 그대로 사용할 수 있습니다.`,
+    description: appI18n.t('community.releaseFailureDescription', { message }),
     retryable: true,
-    title: '커뮤니티에 연결하지 못했습니다',
+    title: appI18n.t('community.releaseFailureTitle'),
   };
 }
 

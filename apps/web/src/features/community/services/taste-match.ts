@@ -5,6 +5,8 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
+
 const WEIGHTS = {
   catalogRatings: 0.25,
   genres: 0.35,
@@ -86,10 +88,26 @@ export function rankTasteCandidates(
         ) * WEIGHTS.types +
         cosine(local.tags, candidate.fingerprint.tags) * WEIGHTS.tags;
       const reasons: string[] = [];
-      if (commonGenres.length) reasons.push(`${commonGenres[0]} 취향이 비슷해요`);
-      if (commonWorks.length) reasons.push(`공통 평가 작품 ${commonWorks.length}개`);
-      if (commonTags.length) reasons.push(`공통 태그 ${commonTags.length}개`);
-      if (!reasons.length) reasons.push('공개된 작품 유형 취향이 닮았어요');
+      if (commonGenres.length) {
+        reasons.push(
+          appI18n.t('community.tasteReasonGenre', { genre: commonGenres[0] }),
+        );
+      }
+      if (commonWorks.length) {
+        reasons.push(
+          appI18n.t('community.tasteReasonWorks', {
+            count: commonWorks.length,
+          }),
+        );
+      }
+      if (commonTags.length) {
+        reasons.push(
+          appI18n.t('community.tasteReasonTags', {
+            count: commonTags.length,
+          }),
+        );
+      }
+      if (!reasons.length) reasons.push(appI18n.t('community.tasteReasonTypes'));
       return {
         author: candidate.author,
         reasons,
