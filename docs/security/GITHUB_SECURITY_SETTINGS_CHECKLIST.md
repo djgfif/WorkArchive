@@ -3,7 +3,7 @@
 Gate 1 블로커 항목. 아래 설정은 코드가 아닌 **GitHub 웹 UI**에서 활성화해야 한다.
 각 항목을 완료하면 `PUBLIC_BETA_GATE_1_EVIDENCE.md`의 GitHub Controls 섹션에 결과를 기록한다.
 
-마지막 검토: 2026-05-29 — 워크플로 파일은 저장소에 있으나 GitHub Settings 활성화 미확인.
+마지막 검토: 2026-08-31 — `master` 보호와 필수 검사는 GitHub API로 적용·확인했으며, 나머지 Security 설정은 운영자 확인이 필요하다.
 
 ---
 
@@ -16,13 +16,13 @@ Gate 1 블로커 항목. 아래 설정은 코드가 아닌 **GitHub 웹 UI**에�
 | Require a pull request before merging | ✓ |
 | Required approving reviews | 1 이상 (솔로 개발이면 0 허용, 명시적 waiver 기록) |
 | Require status checks to pass | ✓ |
-| Required status checks | `validate` (CI 워크플로 이름) |
+| Required status checks | `verify`, `integration`, `CodeQL` |
 | Require branches to be up to date | ✓ |
 | Do not allow bypassing the above settings | ✓ |
 
 완료 후 Evidence 기록:
 ```
-- Branch protection enabled for `master`: ENABLED — required checks: validate
+- Branch protection enabled for `master`: ENABLED — required checks: verify, integration, CodeQL
 ```
 
 ---
@@ -105,7 +105,7 @@ high or critical 프로덕션 런타임 취약점에 대한 만료일 있는 wai
 
 2. github.com/<owner>/WorkArchive/settings/branches
    → Add rule for `master`
-   → Require status checks: validate
+   → Require status checks: verify, integration, CodeQL
 
 3. github.com/<owner>/WorkArchive/security/code-scanning
    → 최근 실행 확인, alert 검토
@@ -124,8 +124,8 @@ high or critical 프로덕션 런타임 취약점에 대한 만료일 있는 wai
 `PUBLIC_BETA_GATE_1_EVIDENCE.md` GitHub Controls 섹션에 아래 형식으로 기록:
 
 ```markdown
-- Branch protection enabled for `master`: ENABLED — required checks: validate, 1 approving review (or waived: solo project)
-- Required checks: validate
+- Branch protection enabled for `master`: ENABLED — required checks: verify, integration, CodeQL, 1 approving review (or waived: solo project)
+- Required checks: verify, integration, CodeQL
 - CodeQL result: PASS — 0 open alerts as of YYYY-MM-DD
 - Dependabot enabled: ENABLED — N open alerts, all reviewed
 - Secret scanning enabled: ENABLED
