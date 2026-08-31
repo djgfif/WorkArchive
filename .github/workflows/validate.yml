@@ -66,6 +66,9 @@ jobs:
       - name: API v2 compatibility contract
         run: npm run qa:api-v2-contract
 
+      - name: Community service boundaries
+        run: npm run qa:community-service-boundaries
+
       - name: Test
         run: env TMPDIR=/tmp npm run test
 

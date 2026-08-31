@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                  |
 | Role                  | `architecture boundary guide`                                                |
 | Source of truth       | Current `apps/web`, `apps/api`, and `packages/*` layout                      |
-| Last verified against | `2026-08-25` Community alpha domain and local snapshot boundary               |
+| Last verified against | `2026-08-31` Community role services, API v2, and local snapshot boundary    |
 | When to update        | Feature folders, module boundaries, or cross-feature dependency rules change |
 
 Work Archive uses a feature-first monorepo layout. The root keeps operational
@@ -104,10 +104,18 @@ Large modules are split by responsibility:
   into entity handlers, link handlers, validation helpers, result builders, and
   Prisma data builders so relationship ownership and parent validation stay
   isolated.
-- `community`: public post reads plus authenticated publication, reaction,
+- `community`: public post reads plus authenticated publication, interaction,
   report, and moderation behavior. It owns only explicit community rows and
   public work snapshots. It must not import `UserRecordsService`, `SyncService`,
   provider credential services, or private archive models.
+  Query, publication, interaction, profile, moderation, and discovery
+  (notification/taste) services own their Prisma behavior directly. Shared
+  identity, visibility, moderator, cursor, and public read-model rules live in
+  `community-service-base.ts`. `CommunityService` is a deprecated compatibility
+  facade only; controllers must inject the role-specific services. New behavior
+  must not be added to the facade. `npm run qa:community-service-boundaries`
+  enforces these ownership rules and prevents a role service from delegating
+  back to the compatibility facade.
 - `common`, `config`, `prisma`, and `security` are platform layers and may be
   used by feature modules.
 

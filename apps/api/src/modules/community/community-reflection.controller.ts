@@ -39,7 +39,10 @@ import {
   CommunityReleaseGuard,
   RequireCommunityRelease,
 } from './community-release-policy';
-import { CommunityService } from './community.service';
+import { CommunityInteractionService } from './services/community-interaction.service';
+import { CommunityModerationService } from './services/community-moderation.service';
+import { CommunityPublicationService } from './services/community-publication.service';
+import { CommunityQueryService } from './services/community-query.service';
 
 @ApiTags('community-reflections')
 @Controller('community/reflections')
@@ -48,8 +51,14 @@ import { CommunityService } from './community.service';
 export class CommunityReflectionController {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
-    @Inject(CommunityService)
-    private readonly communityService: CommunityService,
+    @Inject(CommunityInteractionService)
+    private readonly interactions: CommunityInteractionService,
+    @Inject(CommunityModerationService)
+    private readonly moderation: CommunityModerationService,
+    @Inject(CommunityPublicationService)
+    private readonly publication: CommunityPublicationService,
+    @Inject(CommunityQueryService)
+    private readonly queries: CommunityQueryService,
   ) {}
 
   @Get()
@@ -59,7 +68,7 @@ export class CommunityReflectionController {
     @Query() query: CommunityPostsQueryDto,
   ) {
     const user = await this.getOptionalUser(authorizationHeader);
-    return this.communityService.listPosts(
+    return this.queries.listPosts(
       query,
       user?.userId ?? null,
       CommunityPostSurface.reflection,
@@ -76,7 +85,7 @@ export class CommunityReflectionController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: CreateCommunityPostDto,
   ) {
-    return this.communityService.createPost(
+    return this.publication.createPost(
       user.userId,
       input,
       CommunityPostSurface.reflection,
@@ -90,7 +99,7 @@ export class CommunityReflectionController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.communityService.deletePost(
+    return this.publication.deletePost(
       user.userId,
       id,
       CommunityPostSurface.reflection,
@@ -105,7 +114,7 @@ export class CommunityReflectionController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.communityService.addReaction(
+    return this.interactions.addReaction(
       user.userId,
       id,
       CommunityPostSurface.reflection,
@@ -119,7 +128,7 @@ export class CommunityReflectionController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.communityService.removeReaction(
+    return this.interactions.removeReaction(
       user.userId,
       id,
       CommunityPostSurface.reflection,
@@ -135,7 +144,7 @@ export class CommunityReflectionController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CreateCommunityReportDto,
   ) {
-    return this.communityService.reportPost(
+    return this.moderation.reportPost(
       user.userId,
       id,
       input,
@@ -147,7 +156,7 @@ export class CommunityReflectionController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   listReports(@CurrentUser() user: AuthenticatedUser) {
-    return this.communityService.listReports(user, 'reflection');
+    return this.moderation.listReports(user, 'reflection');
   }
 
   @Post('moderation/:id/hide')
@@ -160,7 +169,7 @@ export class CommunityReflectionController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CommunityModerationActionDto,
   ) {
-    return this.communityService.hidePost(
+    return this.moderation.hidePost(
       user,
       id,
       input.note,
@@ -178,7 +187,7 @@ export class CommunityReflectionController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CommunityModerationActionDto,
   ) {
-    return this.communityService.restorePost(
+    return this.moderation.restorePost(
       user,
       id,
       input.note,
@@ -196,7 +205,7 @@ export class CommunityReflectionController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: ResolveCommunityReportDto,
   ) {
-    return this.communityService.resolveReport(user, id, input, 'reflection');
+    return this.moderation.resolveReport(user, id, input, 'reflection');
   }
 
   private async getOptionalUser(authorizationHeader?: string) {

@@ -46,6 +46,7 @@ import {
   UpdateCommunityProfileDto,
   UpsertCommunityReviewDto,
 } from './dto/community.dto';
+import { CommunityDiscoveryService } from './services/community-discovery.service';
 import { CommunityInteractionService } from './services/community-interaction.service';
 import { CommunityModerationService } from './services/community-moderation.service';
 import { CommunityProfileService } from './services/community-profile.service';
@@ -72,6 +73,8 @@ import {
 export class CommunityController {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
+    @Inject(CommunityDiscoveryService)
+    private readonly discovery: CommunityDiscoveryService,
     @Inject(CommunityInteractionService)
     private readonly interactions: CommunityInteractionService,
     @Inject(CommunityModerationService)
@@ -338,7 +341,7 @@ export class CommunityController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   listTasteCandidates(@CurrentUser() user: AuthenticatedUser) {
-    return this.interactions.listTasteCandidates(user.userId);
+    return this.discovery.listTasteCandidates(user.userId);
   }
 
   @Get('notifications')
@@ -346,7 +349,7 @@ export class CommunityController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   listNotifications(@CurrentUser() user: AuthenticatedUser) {
-    return this.interactions.listNotifications(user.userId);
+    return this.discovery.listNotifications(user.userId);
   }
 
   @Post('notifications/read')
@@ -355,7 +358,7 @@ export class CommunityController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   markNotificationsRead(@CurrentUser() user: AuthenticatedUser) {
-    return this.interactions.markNotificationsRead(user.userId);
+    return this.discovery.markNotificationsRead(user.userId);
   }
 
   @Delete('posts/:id')
