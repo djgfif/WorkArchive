@@ -298,6 +298,9 @@ fi
 
 echo "Running production environment preflight for $ENV_FILE"
 validate_unique_env_keys
+BETA_RELEASE_MODE="${BETA_RELEASE_MODE:-launch}" \
+  bash "$ROOT_DIR/scripts/deploy/beta-release-profile-preflight.sh" \
+  "$ENV_FILE"
 
 required_values=(
   POSTGRES_DB

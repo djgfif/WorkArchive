@@ -122,10 +122,10 @@ release runner, restore target, or disposable account evidence is required.
 
 ## Host Preflight And Smoke
 
-- scripts/deploy/beta-preflight.sh: pending — beta host required. Run `ENV_FILE=.env.prod COMPOSE_FILE=compose.prod.yml scripts/deploy/beta-preflight.sh`; expected evidence is PASS/FAIL, timestamp, release commit, env file name only, and any blocker without secret values.
+- scripts/deploy/beta-preflight.sh: pending — beta host required. Repository preflight now accepts only explicit `PRODUCT_RELEASE_PROFILE=community-core` for launch and `BETA_RELEASE_MODE=rollback` plus `PRODUCT_RELEASE_PROFILE=personal-archive` for rollback; `community-full`, aliases, missing values, and typos fail before Docker starts. Run `ENV_FILE=.env.prod COMPOSE_FILE=compose.prod.yml scripts/deploy/beta-preflight.sh`; expected evidence is PASS/FAIL, timestamp, release commit, env file name only, and any blocker without secret values.
 - Migration command: pending — run either `BETA_BASE_URL=<beta-url> scripts/deploy/commercial-beta-rehearsal.sh .env.prod` or targeted `docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate`; expected evidence is exit status, migration profile, and rollback/previous-image command if used.
 - API/web startup: pending — from the rehearsal `docker compose ... up -d --build` and `scripts/deploy/prod-healthcheck.sh`; expected evidence is API/web container health, release image refs or digests, and startup PASS/FAIL.
-- scripts/deploy/beta-smoke.sh: pending — run `BETA_BASE_URL=<beta-url> EXPECT_GOOGLE_OAUTH_CONFIGURED=true scripts/deploy/beta-smoke.sh`; expected evidence is redacted PASS/FAIL summary only.
+- scripts/deploy/beta-smoke.sh: pending — run `BETA_BASE_URL=<beta-url> EXPECT_GOOGLE_OAUTH_CONFIGURED=true scripts/deploy/beta-smoke.sh`; expected evidence includes API/web profile agreement, core feed availability, full-capability `404`, and a redacted PASS/FAIL summary only. Repeat with `EXPECTED_PRODUCT_RELEASE_PROFILE=personal-archive` during rollback and require Community `404` without a database rollback.
 - /health: pending — beta smoke must record HTTP status and `Cache-Control: no-store`.
 - /livez: pending — beta smoke must record HTTP status and `Cache-Control: no-store`.
 - /readyz: pending — beta smoke must record HTTP status, `Cache-Control: no-store`, and readiness body status without secrets.

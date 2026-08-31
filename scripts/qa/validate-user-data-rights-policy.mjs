@@ -115,11 +115,30 @@ requireIncludes(servicePath, service, 'pickFields(');
 requireIncludes(servicePath, service, 'securityEvent.updateMany');
 requireIncludes(servicePath, service, 'catalogSubmission.updateMany');
 requireIncludes(servicePath, service, 'catalogAuditLog.updateMany');
+requireIncludes(servicePath, service, 'communityNotification.updateMany');
 requireIncludes(servicePath, service, 'communityReport.updateMany');
 requireIncludes(servicePath, service, 'communityModerationAuditLog.updateMany');
 requireIncludes(servicePath, service, 'communityPost.findMany');
+requireIncludes(servicePath, service, 'communityReview.findMany');
+requireIncludes(servicePath, service, 'communityComment.findMany');
+requireIncludes(servicePath, service, 'communityFollow.findMany');
+requireIncludes(servicePath, service, 'communityNotification.findMany');
 requireIncludes(servicePath, service, 'communityReaction.findMany');
 requireIncludes(servicePath, service, 'communityReport.findMany');
+for (const model of [
+  'userCommunityProfile',
+  'communityPost',
+  'communityReview',
+  'communityReaction',
+  'communityReviewReaction',
+  'communityComment',
+  'communityCommentReaction',
+  'communityFollow',
+  'communityNotification',
+  'communityReport',
+]) {
+  requireIncludes(servicePath, service, `${model}.count`);
+}
 requireIncludes(servicePath, service, 'recordUserDataRights');
 requireIncludes(metricsPath, metrics, 'work_archive_user_data_rights_total');
 requireIncludes(metricsPath, metrics, 'operation');
@@ -241,6 +260,17 @@ requireIncludes(policyPath, policy, 'sync mutation result payloads');
 requireIncludes(policyPath, policy, 'Notion preview change payloads');
 requireIncludes(policyPath, policy, 'catalog submission payloads and notes');
 requireIncludes(policyPath, policy, 'community posts authored by the user');
+requireIncludes(
+  policyPath,
+  policy,
+  'Community profile, reviews, comments, reactions',
+);
+requireIncludes(policyPath, policy, 'follows, and notifications');
+requireIncludes(
+  policyPath,
+  policy,
+  'Community notification actor references keep',
+);
 requireIncludes(policyPath, policy, '`moderatorId` to `null`');
 requireIncludes(policyPath, policy, 'Community moderation audit logs keep');
 requireIncludes(policyPath, policy, '`actorId`');

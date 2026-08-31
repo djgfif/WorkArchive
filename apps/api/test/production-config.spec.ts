@@ -23,19 +23,17 @@ const commercialBetaRehearsal = join(
   'scripts/deploy/commercial-beta-rehearsal.sh',
 );
 const betaPreflight = join(repoRoot, 'scripts/deploy/beta-preflight.sh');
+const betaReleaseProfilePreflight = join(
+  repoRoot,
+  'scripts/deploy/beta-release-profile-preflight.sh',
+);
 const betaSmoke = join(repoRoot, 'scripts/deploy/beta-smoke.sh');
 const prodBuild = join(repoRoot, 'scripts/deploy/prod-build.sh');
-const prodBackupVerify = join(
-  repoRoot,
-  'scripts/deploy/prod-backup-verify.sh',
-);
+const prodBackupVerify = join(repoRoot, 'scripts/deploy/prod-backup-verify.sh');
 const prodDown = join(repoRoot, 'scripts/deploy/prod-down.sh');
 const prodHealthcheck = join(repoRoot, 'scripts/deploy/prod-healthcheck.sh');
 const prodLogs = join(repoRoot, 'scripts/deploy/prod-logs.sh');
-const prodRestoreDrill = join(
-  repoRoot,
-  'scripts/deploy/prod-restore-drill.sh',
-);
+const prodRestoreDrill = join(repoRoot, 'scripts/deploy/prod-restore-drill.sh');
 const prodUp = join(repoRoot, 'scripts/deploy/prod-up.sh');
 const qaScriptPaths = {
   accountDeletionRehearsal: join(
@@ -95,6 +93,7 @@ function productionEnvFixture(overrides: Record<string, string> = {}) {
     METRICS_INTERNAL_ACCESS_REVIEWED: 'true',
     NODE_ENV: 'production',
     PASSWORD_RESET_DEV_LINKS_ENABLED: 'false',
+    PRODUCT_RELEASE_PROFILE: 'community-core',
     RATE_LIMIT_STORE: 'redis',
     READINESS_CHECK_TIMEOUT_MS: '1500',
     REDIS_URL: 'redis://redis:6379',
@@ -193,11 +192,12 @@ function runBetaPreflightForTest(envPath: string): CommandResult {
   const duplicateMessages = [...nodeResult.stderr.matchAll(/^ERROR (.+)$/gm)]
     .flatMap((match) => (match[1] === undefined ? [] : [match[1]]))
     .filter((message) => message.endsWith(' is defined more than once.'))
-    .map((message) =>
-      `ERROR ${message.replace(
-        ' is defined more than once.',
-        ` is defined more than once in ${envPath}.`,
-      )}`,
+    .map(
+      (message) =>
+        `ERROR ${message.replace(
+          ' is defined more than once.',
+          ` is defined more than once in ${envPath}.`,
+        )}`,
     );
 
   return {
@@ -208,6 +208,20 @@ function runBetaPreflightForTest(envPath: string): CommandResult {
         : nodeResult.stderr,
     stdout: nodeResult.stdout,
   };
+}
+
+function runBetaReleaseProfilePreflightForTest(
+  envPath: string,
+  mode = 'launch',
+): CommandResult {
+  return runCommandForTest('bash', [betaReleaseProfilePreflight, envPath], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      BETA_RELEASE_MODE: mode,
+    },
+  });
 }
 
 function runBetaSmokeForTest(env: Record<string, string>): CommandResult {
@@ -250,7 +264,9 @@ function runProdHealthcheckForTest(env: Record<string, string>): CommandResult {
     : result;
 }
 
-function runProdBackupVerifyForTest(env: Record<string, string>): CommandResult {
+function runProdBackupVerifyForTest(
+  env: Record<string, string>,
+): CommandResult {
   const result = runCommandForTest('bash', [prodBackupVerify], {
     cwd: repoRoot,
     encoding: 'utf8',
@@ -426,7 +442,10 @@ function writePerformanceSmokeRateLimitReport(reportDir: string) {
     ],
     status: 'PASS',
   };
-  const reportPath = join(reportDir, 'performance-smoke-ratelimit-fallback.json');
+  const reportPath = join(
+    reportDir,
+    'performance-smoke-ratelimit-fallback.json',
+  );
   const markdownPath = join(
     reportDir,
     'performance-smoke-ratelimit-fallback.md',
@@ -830,7 +849,9 @@ describe('production deployment config', () => {
       const combinedOutput = `${result.stdout}\n${result.stderr}`;
 
       expect(result.status).toBe(1);
-      expect(combinedOutput).toContain('https://[REDACTED]@ops.workarchive.test');
+      expect(combinedOutput).toContain(
+        'https://[REDACTED]@ops.workarchive.test',
+      );
       expect(combinedOutput).toContain('token=[REDACTED]');
       expect(combinedOutput).toContain('nonce=[REDACTED]');
       expect(combinedOutput).not.toContain('operator:secret-password');
@@ -844,11 +865,73 @@ describe('production deployment config', () => {
     const script = readFileSync(commercialBetaRehearsal, 'utf8');
 
     expect(script).toContain('redact_output()');
-    expect(script).toContain('--profile release run --rm api-migrate 2>&1 | redact_output');
+    expect(script).toContain(
+      '--profile release run --rm api-migrate 2>&1 | redact_output',
+    );
     expect(script).toContain('up -d --build 2>&1 | redact_output');
     expect(script).toContain(
       '--profile maintenance run --rm -e RETENTION_CLEANUP_DRY_RUN=true retention-cleanup 2>&1 | redact_output',
     );
+  });
+
+  it('allows only community-core launch and personal-archive rollback in beta profile preflight', () => {
+    const cases = [
+      {
+        mode: 'launch',
+        profile: 'community-core',
+        status: 0,
+      },
+      {
+        mode: 'rollback',
+        profile: 'personal-archive',
+        status: 0,
+      },
+      {
+        mode: 'launch',
+        profile: 'community-full',
+        status: 1,
+      },
+      {
+        mode: 'launch',
+        profile: 'community-reflection-alpha',
+        status: 1,
+      },
+      {
+        mode: 'rollback',
+        profile: 'community-core',
+        status: 1,
+      },
+      {
+        mode: 'launch',
+        profile: '',
+        status: 1,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const { cleanup, envPath } = writeEnvFile({
+        PRODUCT_RELEASE_PROFILE: testCase.profile,
+      });
+
+      try {
+        const result = runBetaReleaseProfilePreflightForTest(
+          envPath,
+          testCase.mode,
+        );
+        const output = `${result.stdout}\n${result.stderr}`;
+
+        expect(result.status).toBe(testCase.status);
+        if (testCase.status === 0) {
+          expect(output).toContain(
+            `mode=${testCase.mode} profile=${testCase.profile}`,
+          );
+        } else {
+          expect(output).toContain('FAIL');
+        }
+      } finally {
+        cleanup();
+      }
+    }
   });
 
   it('sends the production client header for authenticated beta sync smoke requests', () => {
@@ -1076,7 +1159,8 @@ describe('production deployment config', () => {
     const { cleanup, envPath } = writeEnvFile(
       productionEnvFixture({
         HOST: 'https://api.beta.workarchive.test',
-        METRICS_BEARER_TOKEN: 'production metrics bearer token minimum 32 chars',
+        METRICS_BEARER_TOKEN:
+          'production metrics bearer token minimum 32 chars',
         POSTGRES_DB: 'work_archive',
         POSTGRES_PASSWORD: FIXTURE_DATABASE_PASSWORD,
         POSTGRES_USER: 'work_archive',
@@ -1365,15 +1449,21 @@ describe('production deployment config', () => {
     expect(script).toContain(
       'expect_status GET "/api/auth/google/start?return_origin=${ALLOWED_ORIGIN}" 302',
     );
-    expect(script).toContain("header_contains '^set-cookie:.*wa_google_oauth_flow='");
+    expect(script).toContain(
+      "header_contains '^set-cookie:.*wa_google_oauth_flow='",
+    );
     expect(script).toContain("header_contains '^set-cookie:.*httponly'");
     expect(script).toContain("header_contains '^set-cookie:.*secure'");
     expect(script).toContain("header_contains '^set-cookie:.*samesite=lax'");
     expect(script).toContain(
       "header_contains '^set-cookie:.*path=/api/auth/google'",
     );
-    expect(script).toContain("header_absent '^set-cookie:.*wa_google_oauth_state='");
-    expect(script).toContain("header_absent '^set-cookie:.*wa_google_oauth_nonce='");
+    expect(script).toContain(
+      "header_absent '^set-cookie:.*wa_google_oauth_state='",
+    );
+    expect(script).toContain(
+      "header_absent '^set-cookie:.*wa_google_oauth_nonce='",
+    );
   });
 
   it('redacts URL credentials and sensitive query values in production healthcheck diagnostics', () => {
@@ -1404,7 +1494,9 @@ describe('production deployment config', () => {
     const combinedOutput = `${result.stdout}\n${result.stderr}`;
 
     expect(result.status).toBe(1);
-    expect(combinedOutput).toContain('https://[REDACTED]@backup.workarchive.test');
+    expect(combinedOutput).toContain(
+      'https://[REDACTED]@backup.workarchive.test',
+    );
     expect(combinedOutput).toContain('token=[REDACTED]');
     expect(combinedOutput).toContain('refresh_token=[REDACTED]');
     expect(combinedOutput).not.toContain('operator');
@@ -1565,7 +1657,9 @@ describe('production deployment config', () => {
 
       expect(result.status).toBe(0);
       expect(markdownReports).toContain('RateLimit headers');
-      expect(markdownReports).toContain('Standard `RateLimit-*`, `RateLimit`, and `Retry-After` headers');
+      expect(markdownReports).toContain(
+        'Standard `RateLimit-*`, `RateLimit`, and `Retry-After` headers',
+      );
       expect(jsonReports).toContain('rateLimitHeaders');
     } finally {
       rmSync(dir, { force: true, recursive: true });

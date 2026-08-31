@@ -6,15 +6,15 @@
 | Status | `canonical` |
 | Role | `default-private public feature boundary` |
 | Source of truth | current API routes, Prisma visibility enums, BOLA matrix, commercial Gate 1 scope |
-| Last verified against | `2026-08-25` Community alpha API, schema, web route, and focused authorization tests |
+| Last verified against | `2026-08-31` Community core API, release profiles, split services, and focused authorization tests |
 | When to update | any public/share/community route, tier-board visibility semantic, catalog-publication flow, moderation role, or owner-scope rule changes |
 
-Work Archive's personal archive remains private and local-first. Community alpha
-is a separate public-read, authenticated-write service surface. Public profiles,
-public archive records, comments, follows, recommendations, and public tier
-boards remain unavailable.
+Work Archive's personal archive remains private and local-first. Community is a
+separate public-read, authenticated-write data plane. `community-core` includes
+public profiles, posts, reviews, comments, reports, and moderation;
+`community-full` alone adds follows, taste discovery, and notifications.
 
-This document defines the active Community alpha boundary and remains the review
+This document defines the active Community public boundary and remains the review
 gate for any later public or share expansion.
 
 ## Gate 1 Rule
@@ -23,7 +23,7 @@ Gate 1 is default-private:
 
 - User-owned archive records are private to the authenticated owner.
 - Sync payloads are accepted only in the authenticated user's scope.
-- Community alpha accepts only an explicit community publication payload; it
+- Community accepts only an explicit, allowlisted publication payload; it
   cannot read or publish private server records or sync payloads.
 - Tier boards may store `private`, `link_only`, and `exported` visibility
   values for schema/sync compatibility, but Gate 1 user-facing settings expose
@@ -63,7 +63,39 @@ Catalog metadata and private user records remain separate. A future catalog
 contribution flow may promote public metadata, but it must not publish the
 contributor's private archive state.
 
-## Community Alpha Permission Semantics
+Community request DTOs and web publication builders must never accept or copy
+personal record IDs, progress, personal tags, private reflections, sync IDs, or
+timeline fields. The only work identity allowed in a Community request is a
+confirmed `catalogTitleId`; a post may instead carry an explicitly reviewed
+title/type/HTTPS-thumbnail snapshot.
+
+## Community Public Plane Permission Semantics
+
+| Operation                                            | Access                           | Required scope                                         |
+| ---------------------------------------------------- | -------------------------------- | ------------------------------------------------------ |
+| list published posts, reviews, comments, profiles    | public                           | published, public, and not deleted/hidden only         |
+| create post/review/comment                           | authenticated with unique handle | current user plus allowlisted publication fields only  |
+| update/delete own review or comment; delete own post | authenticated                    | author only; content delete is soft delete             |
+| add/remove reaction                                  | authenticated                    | current user's own reaction only                       |
+| report post/review/comment                           | authenticated                    | current reporter only; authors cannot self-report      |
+| list reports                                         | moderator/admin                  | Community reports only                                 |
+| hide/restore post/review/comment                     | moderator/admin                  | explicit action plus immutable audit row               |
+| resolve/dismiss report                               | moderator/admin                  | explicit action plus immutable audit row               |
+| follow, taste, notification, following feed          | authenticated                    | `community-full` only; unavailable in `community-core` |
+
+`personal-archive` registers no Community surface. `community-core` is the
+single-instance beta profile and serves the public-read/core-write rows above.
+`community-full` adds only the listed later social capabilities after its Gate.
+The deprecated `community-reflection-alpha` and
+`community-social-experiment` aliases retain their previous narrow capability
+sets for one quarter and never auto-promote to a broader profile.
+
+`CommunityPost.surface = reflection` remains scoped to the compatibility route;
+board posts stay on the core controller. Supplying an otherwise valid ID from a
+different surface or a disabled capability returns `404` rather than crossing
+the release boundary.
+
+## Deprecated Alias Permission Semantics
 
 | Operation              | Access          | Required scope                                                  |
 | ---------------------- | --------------- | --------------------------------------------------------------- |
@@ -84,15 +116,15 @@ contributor's private archive state.
 `CommunityPost.surface = reflection`인 행만 이 feed, reaction, report,
 delete, moderation 경로에서 읽거나 변경할 수 있다. 이전 migration에서 생성된
 게시물은 `board`로 분류하며 좁은 alpha에 자동 노출하지 않는다.
-`/community/posts`, combined feed, reviews, comments, public profiles,
-follows, notifications, taste/trending은 별도
-`community-social-experiment` capability 없이는 접근할 수 없다.
+이 alias 표는 `community-core`를 축소하지 않는다. Core는 posts, combined
+feed, reviews, comments, public profiles, reports, and moderation을 열며,
+follows, notifications, taste, following feed만 `community-full`에 남긴다.
 
 Public author views contain display name, optional handle, and avatar URL. They
-never contain email or raw user ID. Public post views contain only the newly
-entered body, spoiler flag, optional title/type/thumbnail snapshot, timestamps,
-and aggregate reaction count. No endpoint accepts a local work ID or private
-record fields.
+never contain email or raw user ID. Public content views contain only explicitly
+entered public text, spoiler/rating fields where applicable, confirmed catalog
+identity or an optional title/type/thumbnail snapshot, timestamps, and aggregate
+counts. Global API validation rejects non-allowlisted request fields.
 
 ## Abuse, Takedown, And Audit
 

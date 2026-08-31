@@ -7,6 +7,7 @@ COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/compose.prod.yml}"
 RUN_CONTAINER_FS_SMOKE="${RUN_CONTAINER_FS_SMOKE:-1}"
 EXPECT_GOOGLE_OAUTH_CONFIGURED="${EXPECT_GOOGLE_OAUTH_CONFIGURED:-true}"
 SMOKE_METRICS_BEARER_TOKEN="${SMOKE_METRICS_BEARER_TOKEN:-}"
+EXPECTED_PRODUCT_RELEASE_PROFILE="${EXPECTED_PRODUCT_RELEASE_PROFILE:-}"
 
 failures=()
 warnings=()
@@ -312,6 +313,19 @@ fi
 
 BASE_URL="$(resolve_base_url)"
 ALLOWED_ORIGIN="$(resolve_allowed_origin)"
+if [[ -z "$EXPECTED_PRODUCT_RELEASE_PROFILE" && -f "$ENV_FILE" ]]; then
+  EXPECTED_PRODUCT_RELEASE_PROFILE="$(read_env_value PRODUCT_RELEASE_PROFILE)"
+fi
+if [[ -z "$EXPECTED_PRODUCT_RELEASE_PROFILE" ]]; then
+  EXPECTED_PRODUCT_RELEASE_PROFILE="community-core"
+fi
+case "$EXPECTED_PRODUCT_RELEASE_PROFILE" in
+  community-core|personal-archive) ;;
+  *)
+    echo "EXPECTED_PRODUCT_RELEASE_PROFILE must be community-core or personal-archive for beta smoke tests." >&2
+    exit 1
+    ;;
+esac
 echo "Running beta smoke tests against $(redact_text "$BASE_URL")"
 
 expect_status GET /health 200
@@ -329,6 +343,20 @@ json_assert 'data.service === "work-archive-api" && data.status === "ok"' "/read
 json_assert 'data.checks && data.checks.config === "ok" && data.checks.postgres === "ok" && data.checks.migrations === "ok"' "/readyz reports dependency checks"
 header_contains '^cache-control:.*no-store' "/readyz is not cached"
 assert_api_security_headers "/readyz"
+
+expect_status GET /api/product-release 200
+json_assert "data.profile === '${EXPECTED_PRODUCT_RELEASE_PROFILE}'" "API release profile matches the beta mode"
+header_contains '^cache-control:.*no-store' "/api/product-release is not cached"
+assert_api_security_headers "/api/product-release"
+
+if [[ "$EXPECTED_PRODUCT_RELEASE_PROFILE" == "community-core" ]]; then
+  expect_status GET /api/community/posts 200
+  expect_status GET /api/community/taste/candidates 404
+  echo "OK community-core exposes core and withholds full capabilities"
+else
+  expect_status GET /api/community/posts 404
+  echo "OK personal-archive removes Community API routes"
+fi
 
 expect_status GET /api/auth/google/status 200
 json_assert 'typeof data.configured === "boolean"' "Google OAuth status shape is exposed"
@@ -350,6 +378,7 @@ body_contains '<div id="root"></div>' "web static index is served"
 
 expect_status GET /work-archive-config.js 200
 body_contains '__WORK_ARCHIVE_CONFIG__' "runtime web config is served"
+body_contains "productReleaseProfile = '${EXPECTED_PRODUCT_RELEASE_PROFILE}'" "web runtime release profile matches the API"
 header_contains '^cache-control:.*no-store' "runtime web config is not cached"
 
 expect_status POST /api/auth/refresh "$(expected_refresh_guard_status)"

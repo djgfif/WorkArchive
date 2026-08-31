@@ -39,6 +39,7 @@ function requirePattern(path, content, pattern, message) {
 }
 
 const shellScripts = [
+  'scripts/deploy/beta-release-profile-preflight.sh',
   'scripts/deploy/beta-preflight.sh',
   'scripts/deploy/beta-smoke.sh',
   'scripts/deploy/commercial-beta-rehearsal.sh',
@@ -62,8 +63,7 @@ const localEvidencePath = 'scripts/qa/gate1-evidence-local.sh';
 const gate1ValidatorPath = 'scripts/qa/validate-gate1-evidence.mjs';
 const gate1ValidatorSelfTestPath =
   'scripts/qa/validate-gate1-evidence.self-test.mjs';
-const gate1MissingEvidencePath =
-  'scripts/qa/gate1-missing-evidence-report.mjs';
+const gate1MissingEvidencePath = 'scripts/qa/gate1-missing-evidence-report.mjs';
 const commercialReadinessPath =
   'docs/commercial/COMMERCIAL_LAUNCH_READINESS.md';
 const evidencePath = 'docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md';
@@ -156,6 +156,36 @@ for (const needle of [
   requireIncludes('scripts/deploy/beta-smoke.sh', betaSmoke, needle);
 }
 
+for (const needle of [
+  'EXPECTED_PRODUCT_RELEASE_PROFILE="${EXPECTED_PRODUCT_RELEASE_PROFILE:-}"',
+  'expect_status GET /api/product-release 200',
+  'data.profile ===',
+  'expect_status GET /api/community/posts 200',
+  'expect_status GET /api/community/posts 404',
+  'expect_status GET /api/community/taste/candidates 404',
+  'productReleaseProfile =',
+]) {
+  requireIncludes('scripts/deploy/beta-smoke.sh', betaSmoke, needle);
+}
+
+const betaReleaseProfilePreflight =
+  scriptContents.get('scripts/deploy/beta-release-profile-preflight.sh') ?? '';
+for (const needle of [
+  'BETA_RELEASE_MODE="${BETA_RELEASE_MODE:-launch}"',
+  'launch)',
+  'expected_profile="community-core"',
+  'rollback)',
+  'expected_profile="personal-archive"',
+  'PRODUCT_RELEASE_PROFILE must be explicit',
+  'configured profile is not permitted',
+]) {
+  requireIncludes(
+    'scripts/deploy/beta-release-profile-preflight.sh',
+    betaReleaseProfilePreflight,
+    needle,
+  );
+}
+
 const prodHealthcheck =
   scriptContents.get('scripts/deploy/prod-healthcheck.sh') ?? '';
 for (const needle of [
@@ -170,10 +200,14 @@ for (const needle of [
   'redact_output <"$error_file" >&2',
   'access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token',
   '([^[:space:]&;,]+)',
-  "curl -sS -D",
+  'curl -sS -D',
   'docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps',
 ]) {
-  requireIncludes('scripts/deploy/prod-healthcheck.sh', prodHealthcheck, needle);
+  requireIncludes(
+    'scripts/deploy/prod-healthcheck.sh',
+    prodHealthcheck,
+    needle,
+  );
 }
 
 const prodLogs = scriptContents.get('scripts/deploy/prod-logs.sh') ?? '';
@@ -219,33 +253,80 @@ for (const needle of [
   'BETA_BASE_URL="$BETA_BASE_URL"',
   'RETENTION_CLEANUP_DRY_RUN=true retention-cleanup 2>&1 | redact_output',
 ]) {
-  requireIncludes('scripts/deploy/commercial-beta-rehearsal.sh', betaRehearsal, needle);
+  requireIncludes(
+    'scripts/deploy/commercial-beta-rehearsal.sh',
+    betaRehearsal,
+    needle,
+  );
 }
 
 for (const [path, content] of [
-  ['scripts/deploy/prod-build.sh', scriptContents.get('scripts/deploy/prod-build.sh') ?? ''],
-  ['scripts/deploy/prod-up.sh', scriptContents.get('scripts/deploy/prod-up.sh') ?? ''],
-  ['scripts/deploy/prod-down.sh', scriptContents.get('scripts/deploy/prod-down.sh') ?? ''],
+  [
+    'scripts/deploy/prod-build.sh',
+    scriptContents.get('scripts/deploy/prod-build.sh') ?? '',
+  ],
+  [
+    'scripts/deploy/prod-up.sh',
+    scriptContents.get('scripts/deploy/prod-up.sh') ?? '',
+  ],
+  [
+    'scripts/deploy/prod-down.sh',
+    scriptContents.get('scripts/deploy/prod-down.sh') ?? '',
+  ],
 ]) {
   requireIncludes(path, content, 'ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env.prod}"');
-  requireIncludes(path, content, 'COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/compose.prod.yml}"');
+  requireIncludes(
+    path,
+    content,
+    'COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/compose.prod.yml}"',
+  );
   requireIncludes(path, content, 'redact_output()');
   requireIncludes(path, content, 'printf \'%s\\n\' "$1" | redact_output >&2');
-  requireIncludes(path, content, 'access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token');
+  requireIncludes(
+    path,
+    content,
+    'access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token',
+  );
   requireIncludes(path, content, '([^[:space:]&;,]+)');
   requireIncludes(path, content, 'DATABASE_URL|REDIS_URL');
-  requireIncludes(path, content, 'docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE"');
+  requireIncludes(
+    path,
+    content,
+    'docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE"',
+  );
 }
 for (const [path, content] of [
-  ['scripts/deploy/prod-build.sh', scriptContents.get('scripts/deploy/prod-build.sh') ?? ''],
-  ['scripts/deploy/prod-up.sh', scriptContents.get('scripts/deploy/prod-up.sh') ?? ''],
+  [
+    'scripts/deploy/prod-build.sh',
+    scriptContents.get('scripts/deploy/prod-build.sh') ?? '',
+  ],
+  [
+    'scripts/deploy/prod-up.sh',
+    scriptContents.get('scripts/deploy/prod-up.sh') ?? '',
+  ],
 ]) {
   requireIncludes(path, content, 'commercial-env-preflight.mjs');
 }
-requireIncludes('scripts/deploy/prod-build.sh', scriptContents.get('scripts/deploy/prod-build.sh') ?? '', 'build "$@" 2>&1 | redact_output');
-requireIncludes('scripts/deploy/prod-up.sh', scriptContents.get('scripts/deploy/prod-up.sh') ?? '', 'up -d "$@" 2>&1 | redact_output');
-requireIncludes('scripts/deploy/prod-up.sh', scriptContents.get('scripts/deploy/prod-up.sh') ?? '', 'ps 2>&1 | redact_output');
-requireIncludes('scripts/deploy/prod-down.sh', scriptContents.get('scripts/deploy/prod-down.sh') ?? '', 'down "$@" 2>&1 | redact_output');
+requireIncludes(
+  'scripts/deploy/prod-build.sh',
+  scriptContents.get('scripts/deploy/prod-build.sh') ?? '',
+  'build "$@" 2>&1 | redact_output',
+);
+requireIncludes(
+  'scripts/deploy/prod-up.sh',
+  scriptContents.get('scripts/deploy/prod-up.sh') ?? '',
+  'up -d "$@" 2>&1 | redact_output',
+);
+requireIncludes(
+  'scripts/deploy/prod-up.sh',
+  scriptContents.get('scripts/deploy/prod-up.sh') ?? '',
+  'ps 2>&1 | redact_output',
+);
+requireIncludes(
+  'scripts/deploy/prod-down.sh',
+  scriptContents.get('scripts/deploy/prod-down.sh') ?? '',
+  'down "$@" 2>&1 | redact_output',
+);
 
 requirePattern(
   packagePath,
@@ -277,18 +358,42 @@ requirePattern(
   /"qa:gate1:missing":\s*"node scripts\/qa\/gate1-missing-evidence-report\.mjs"/,
   'package.json must expose qa:gate1:missing.',
 );
-requireIncludes(gatesPath, gates, 'node --check scripts/qa/validate-deploy-scripts.mjs');
-requireIncludes(gatesPath, gates, 'node --check scripts/qa/validate-gate1-evidence.self-test.mjs');
-requireIncludes(gatesPath, gates, 'node --check scripts/qa/gate1-missing-evidence-report.mjs');
-requireIncludes(gatesPath, gates, 'node --check scripts/qa/docker-runtime-preflight.mjs');
-requireIncludes(gatesPath, gates, 'node --check scripts/qa/docker-runtime-preflight.self-test.mjs');
+requireIncludes(
+  gatesPath,
+  gates,
+  'node --check scripts/qa/validate-deploy-scripts.mjs',
+);
+requireIncludes(
+  gatesPath,
+  gates,
+  'node --check scripts/qa/validate-gate1-evidence.self-test.mjs',
+);
+requireIncludes(
+  gatesPath,
+  gates,
+  'node --check scripts/qa/gate1-missing-evidence-report.mjs',
+);
+requireIncludes(
+  gatesPath,
+  gates,
+  'node --check scripts/qa/docker-runtime-preflight.mjs',
+);
+requireIncludes(
+  gatesPath,
+  gates,
+  'node --check scripts/qa/docker-runtime-preflight.self-test.mjs',
+);
 requireIncludes(gatesPath, gates, 'npm run qa:deploy-scripts');
 requireIncludes(gatesPath, gates, 'npm run qa:gate1:evidence:self-test');
 requireIncludes(gatesPath, gates, 'npm run qa:gate1:missing');
 requireIncludes(gatesPath, gates, 'npm run qa:docker-runtime:self-test');
 requireIncludes(gatesPath, gates, 'npm run qa:docker-runtime');
 requireIncludes(gatesPath, gates, 'npm run qa:import-search');
-requireIncludes(gatesPath, gates, 'SYNC_LOAD_DRY_RUN=true npm run qa:sync-load');
+requireIncludes(
+  gatesPath,
+  gates,
+  'SYNC_LOAD_DRY_RUN=true npm run qa:sync-load',
+);
 requireIncludes(
   gatesPath,
   gates,
@@ -299,13 +404,33 @@ requireIncludes(
   gates,
   'MONITORING_EVIDENCE_DRY_RUN=true npm run qa:monitoring',
 );
-requireIncludes(localEvidencePath, localEvidence, 'node --check scripts/qa/validate-deploy-scripts.mjs');
-requireIncludes(localEvidencePath, localEvidence, 'node --check scripts/qa/gate1-missing-evidence-report.mjs');
-requireIncludes(localEvidencePath, localEvidence, 'node --check scripts/qa/docker-runtime-preflight.mjs');
-requireIncludes(localEvidencePath, localEvidence, 'node --check scripts/qa/docker-runtime-preflight.self-test.mjs');
+requireIncludes(
+  localEvidencePath,
+  localEvidence,
+  'node --check scripts/qa/validate-deploy-scripts.mjs',
+);
+requireIncludes(
+  localEvidencePath,
+  localEvidence,
+  'node --check scripts/qa/gate1-missing-evidence-report.mjs',
+);
+requireIncludes(
+  localEvidencePath,
+  localEvidence,
+  'node --check scripts/qa/docker-runtime-preflight.mjs',
+);
+requireIncludes(
+  localEvidencePath,
+  localEvidence,
+  'node --check scripts/qa/docker-runtime-preflight.self-test.mjs',
+);
 requireIncludes(localEvidencePath, localEvidence, 'npm run qa:deploy-scripts');
 requireIncludes(localEvidencePath, localEvidence, 'npm run qa:gate1:missing');
-requireIncludes(localEvidencePath, localEvidence, 'npm run qa:docker-runtime:self-test');
+requireIncludes(
+  localEvidencePath,
+  localEvidence,
+  'npm run qa:docker-runtime:self-test',
+);
 requireIncludes(localEvidencePath, localEvidence, 'npm run qa:docker-runtime');
 requireIncludes(localEvidencePath, localEvidence, 'npm run qa:import-search');
 requireIncludes(
@@ -323,8 +448,16 @@ requireIncludes(
   localEvidence,
   'env MONITORING_EVIDENCE_DRY_RUN=true npm run qa:monitoring',
 );
-requireIncludes(localEvidencePath, localEvidence, 'REPORT_DIR_INPUT="${GATE1_EVIDENCE_DIR:-$ROOT_DIR/tmp/gate1-evidence}"');
-requireIncludes(localEvidencePath, localEvidence, 'REPORT_DIR="$ROOT_DIR/$REPORT_DIR_INPUT"');
+requireIncludes(
+  localEvidencePath,
+  localEvidence,
+  'REPORT_DIR_INPUT="${GATE1_EVIDENCE_DIR:-$ROOT_DIR/tmp/gate1-evidence}"',
+);
+requireIncludes(
+  localEvidencePath,
+  localEvidence,
+  'REPORT_DIR="$ROOT_DIR/$REPORT_DIR_INPUT"',
+);
 requireIncludes(localEvidencePath, localEvidence, 'REDIS_URL');
 requireIncludes(localEvidencePath, localEvidence, '(Basic )');
 requireIncludes(localEvidencePath, localEvidence, '(rediss?://)');
@@ -335,8 +468,16 @@ requireIncludes(
   'access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token',
 );
 requireIncludes(localEvidencePath, localEvidence, '([^[:space:]&;,]+)');
-requireIncludes(gate1ValidatorPath, gate1Validator, 'npm run qa:deploy-scripts');
-requireIncludes(gate1ValidatorPath, gate1Validator, 'npm run qa:docker-runtime:self-test');
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'npm run qa:deploy-scripts',
+);
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'npm run qa:docker-runtime:self-test',
+);
 requireIncludes(
   gate1ValidatorPath,
   gate1Validator,
@@ -352,71 +493,241 @@ requireIncludes(
   gate1Validator,
   'DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime',
 );
-requireIncludes(gate1ValidatorPath, gate1Validator, 'function validateReportContent');
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'function validateReportContent',
+);
 requireIncludes(gate1ValidatorPath, gate1Validator, 'overall PASS status');
 requireIncludes(gate1ValidatorPath, gate1Validator, 'config-and-build mode');
-requireIncludes(gate1ValidatorPath, gate1Validator, 'production image build PASS check');
-requireIncludes(gate1ValidatorPath, gate1Validator, 'live provider quality PASS check');
-requireIncludes(gate1ValidatorPath, gate1Validator, 'oversized push batch DTO rejection');
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'production image build PASS check',
+);
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'live provider quality PASS check',
+);
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'oversized push batch DTO rejection',
+);
 requireIncludes(gate1ValidatorPath, gate1Validator, 'dry-run mode marker');
 requireIncludes(gate1ValidatorPath, gate1Validator, 'blocked scenario marker');
 requireIncludes(gate1ValidatorPath, gate1Validator, 'function readBooleanEnv');
-requireIncludes(gate1ValidatorPath, gate1Validator, 'must be true or false when set.');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'references missing report');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'references empty report');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'references symbolic link report');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'references oversized report');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'that appears to contain a bearer token');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'blocked docker runtime report');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'offline import search report');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'dry-run sync load report');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'dry-run monitoring report');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'dry-run performance report');
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'must be true or false when set.',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'references missing report',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'references empty report',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'references symbolic link report',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'references oversized report',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'that appears to contain a bearer token',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'blocked docker runtime report',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'offline import search report',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'dry-run sync load report',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'dry-run monitoring report',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'dry-run performance report',
+);
 requireIncludes(
   gate1ValidatorSelfTestPath,
   gate1ValidatorSelfTest,
   'without overall PASS status',
 );
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'unsafe or non-workspace report path');
-requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, "process.env.GATE1_EVIDENCE_STRICT = 'treu'");
-requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'runGate1EvidenceValidation');
-requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Release Metadata And Approval');
-requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Beta Host Preflight And Smoke');
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'unsafe or non-workspace report path',
+);
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  "process.env.GATE1_EVIDENCE_STRICT = 'treu'",
+);
+requireIncludes(
+  gate1MissingEvidencePath,
+  gate1MissingEvidence,
+  'runGate1EvidenceValidation',
+);
+requireIncludes(
+  gate1MissingEvidencePath,
+  gate1MissingEvidence,
+  'Release Metadata And Approval',
+);
+requireIncludes(
+  gate1MissingEvidencePath,
+  gate1MissingEvidence,
+  'Beta Host Preflight And Smoke',
+);
 requireIncludes(
   gate1MissingEvidencePath,
   gate1MissingEvidence,
   'Docker Runtime Release-Runner Evidence',
 );
-requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Live Import/Search QA');
-requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Live Sync Load QA');
-requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Backup And Restore Drill');
-requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Smoke Performance Baseline');
-requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'does not approve a release candidate');
+requireIncludes(
+  gate1MissingEvidencePath,
+  gate1MissingEvidence,
+  'Live Import/Search QA',
+);
+requireIncludes(
+  gate1MissingEvidencePath,
+  gate1MissingEvidence,
+  'Live Sync Load QA',
+);
+requireIncludes(
+  gate1MissingEvidencePath,
+  gate1MissingEvidence,
+  'Backup And Restore Drill',
+);
+requireIncludes(
+  gate1MissingEvidencePath,
+  gate1MissingEvidence,
+  'Smoke Performance Baseline',
+);
+requireIncludes(
+  gate1MissingEvidencePath,
+  gate1MissingEvidence,
+  'does not approve a release candidate',
+);
 requireIncludes(runbookPath, runbook, 'npm run qa:gate1:missing');
-requireIncludes(commercialReadinessPath, commercialReadiness, 'gate1-missing-evidence-report.mjs');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, '/^[1-9]\\d*$/.test(actual)');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'must be a safe integer');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'expectOptionalPositiveInteger');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'expectOptionalPositiveIntegerMax');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'PRISMA_CONNECT_TIMEOUT_MS');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'expectLogLevel');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'LOG_LEVEL');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'expectOptionalPort');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'expectOptionalHost');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'expectOptionalNoWhitespace');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'expectOptionalClientHeaderGuardMode');
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, "expectBoolean('METRICS_INTERNAL_ACCESS_REVIEWED')");
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, "expectExact('VITE_API_BASE_URL', '/api')");
+requireIncludes(
+  commercialReadinessPath,
+  commercialReadiness,
+  'gate1-missing-evidence-report.mjs',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  '/^[1-9]\\d*$/.test(actual)',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'must be a safe integer',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'expectOptionalPositiveInteger',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'expectOptionalPositiveIntegerMax',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'PRISMA_CONNECT_TIMEOUT_MS',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'expectLogLevel',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'LOG_LEVEL',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'expectOptionalPort',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'expectOptionalHost',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'expectOptionalNoWhitespace',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'expectOptionalClientHeaderGuardMode',
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  "expectBoolean('METRICS_INTERNAL_ACCESS_REVIEWED')",
+);
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  "expectExact('VITE_API_BASE_URL', '/api')",
+);
 requireIncludes(
   productionConfigTestPath,
   productionConfigTest,
   'rejects commercial env preflight when production web build points away from the API proxy',
 );
-requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, 'is defined more than once.');
+requireIncludes(
+  commercialEnvPreflightPath,
+  commercialEnvPreflight,
+  'is defined more than once.',
+);
 requireIncludes(
   'scripts/deploy/beta-preflight.sh',
   scriptContents.get('scripts/deploy/beta-preflight.sh') ?? '',
   'validate_unique_env_keys',
+);
+requireIncludes(
+  'scripts/deploy/beta-preflight.sh',
+  scriptContents.get('scripts/deploy/beta-preflight.sh') ?? '',
+  'beta-release-profile-preflight.sh',
+);
+requireIncludes(
+  productionConfigTestPath,
+  productionConfigTest,
+  'allows only community-core launch and personal-archive rollback in beta profile preflight',
 );
 requireIncludes(
   productionConfigTestPath,
@@ -436,16 +747,36 @@ requireIncludes(
   'rejects unsupported commercial log levels in env preflight',
 );
 for (const developmentOnlyEnvName of ['PASSWORD_RESET_DEV_LINKS_ENABLED']) {
-  requireIncludes(composeProdPath, composeProd, `${developmentOnlyEnvName}: 'false'`);
-  requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, developmentOnlyEnvName);
-  requireIncludes(apiRuntimeConfigPath, apiRuntimeConfig, developmentOnlyEnvName);
-  requireIncludes(apiRuntimeConfigTestPath, apiRuntimeConfigTest, developmentOnlyEnvName);
+  requireIncludes(
+    composeProdPath,
+    composeProd,
+    `${developmentOnlyEnvName}: 'false'`,
+  );
+  requireIncludes(
+    commercialEnvPreflightPath,
+    commercialEnvPreflight,
+    developmentOnlyEnvName,
+  );
+  requireIncludes(
+    apiRuntimeConfigPath,
+    apiRuntimeConfig,
+    developmentOnlyEnvName,
+  );
+  requireIncludes(
+    apiRuntimeConfigTestPath,
+    apiRuntimeConfigTest,
+    developmentOnlyEnvName,
+  );
   requireIncludes(
     'scripts/deploy/beta-preflight.sh',
     scriptContents.get('scripts/deploy/beta-preflight.sh') ?? '',
     developmentOnlyEnvName,
   );
-  requireIncludes(productionConfigTestPath, productionConfigTest, developmentOnlyEnvName);
+  requireIncludes(
+    productionConfigTestPath,
+    productionConfigTest,
+    developmentOnlyEnvName,
+  );
 }
 for (const [path, content] of qaEvidenceScripts) {
   requireIncludes(path, content, '#!/usr/bin/env node');
@@ -464,18 +795,36 @@ for (const [path, content] of qaEvidenceScripts) {
   requireIncludes(path, content, "url.searchParams.set(key, '[REDACTED]')");
 
   if (content.includes('parseInt(') || content.includes('Number.parseInt(')) {
-    failures.push(`${path} must use strict integer parsing instead of parseInt.`);
+    failures.push(
+      `${path} must use strict integer parsing instead of parseInt.`,
+    );
   }
 }
-requireIncludes(productionConfigTestPath, productionConfigTest, 'SYNC_LOAD_RECORDS:');
-requireIncludes(productionConfigTestPath, productionConfigTest, 'PERF_SMOKE_ITERATIONS:');
-requireIncludes(productionConfigTestPath, productionConfigTest, 'PERF_SMOKE_MAX_P95_MS:');
+requireIncludes(
+  productionConfigTestPath,
+  productionConfigTest,
+  'SYNC_LOAD_RECORDS:',
+);
+requireIncludes(
+  productionConfigTestPath,
+  productionConfigTest,
+  'PERF_SMOKE_ITERATIONS:',
+);
+requireIncludes(
+  productionConfigTestPath,
+  productionConfigTest,
+  'PERF_SMOKE_MAX_P95_MS:',
+);
 requireIncludes(
   productionConfigTestPath,
   productionConfigTest,
   'MONITORING_EVIDENCE_TIMEOUT_MS:',
 );
-requireIncludes(productionConfigTestPath, productionConfigTest, 'IMPORT_SEARCH_QA_TOP_N:');
+requireIncludes(
+  productionConfigTestPath,
+  productionConfigTest,
+  'IMPORT_SEARCH_QA_TOP_N:',
+);
 requireIncludes(
   productionConfigTestPath,
   productionConfigTest,
@@ -540,7 +889,11 @@ requireIncludes(
   productionConfigTest,
   'fails performance smoke when the latency budget is exceeded',
 );
-requireIncludes(productionConfigTestPath, productionConfigTest, 'SYNC_LOAD_DRY_RUN:');
+requireIncludes(
+  productionConfigTestPath,
+  productionConfigTest,
+  'SYNC_LOAD_DRY_RUN:',
+);
 requireIncludes(
   'scripts/qa/sync-load-smoke.mjs',
   qaEvidenceScripts.get('scripts/qa/sync-load-smoke.mjs') ?? '',
@@ -561,7 +914,11 @@ requireIncludes(
   productionConfigTest,
   'MONITORING_EVIDENCE_REQUIRE_GRAFANA:',
 );
-requireIncludes(productionConfigTestPath, productionConfigTest, 'IMPORT_SEARCH_QA_LIVE:');
+requireIncludes(
+  productionConfigTestPath,
+  productionConfigTest,
+  'IMPORT_SEARCH_QA_LIVE:',
+);
 requireIncludes(
   productionConfigTestPath,
   productionConfigTest,
@@ -618,15 +975,27 @@ for (const importGuestEnvName of [
   'KOBIS_HTTP_PROVIDER_ENABLED',
 ]) {
   requireIncludes(composeProdPath, composeProd, importGuestEnvName);
-  requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, importGuestEnvName);
+  requireIncludes(
+    commercialEnvPreflightPath,
+    commercialEnvPreflight,
+    importGuestEnvName,
+  );
   requireIncludes(apiRuntimeConfigPath, apiRuntimeConfig, importGuestEnvName);
-  requireIncludes(apiRuntimeConfigTestPath, apiRuntimeConfigTest, importGuestEnvName);
+  requireIncludes(
+    apiRuntimeConfigTestPath,
+    apiRuntimeConfigTest,
+    importGuestEnvName,
+  );
   requireIncludes(
     'scripts/deploy/beta-preflight.sh',
     scriptContents.get('scripts/deploy/beta-preflight.sh') ?? '',
     importGuestEnvName,
   );
-  requireIncludes(productionConfigTestPath, productionConfigTest, importGuestEnvName);
+  requireIncludes(
+    productionConfigTestPath,
+    productionConfigTest,
+    importGuestEnvName,
+  );
 }
 for (const serverProviderEnvName of [
   'TMDB_API_READ_TOKEN',
@@ -637,7 +1006,11 @@ for (const serverProviderEnvName of [
   'KOBIS_API_KEY',
 ]) {
   requireIncludes(composeProdPath, composeProd, serverProviderEnvName);
-  requireIncludes(productionConfigTestPath, productionConfigTest, serverProviderEnvName);
+  requireIncludes(
+    productionConfigTestPath,
+    productionConfigTest,
+    serverProviderEnvName,
+  );
 }
 requireIncludes(
   commercialEnvPreflightPath,
@@ -665,11 +1038,11 @@ for (const [rateLimitEnvName, maxValue] of [
     commercialEnvPreflight,
     `expectOptionalPositiveIntegerMax('${rateLimitEnvName}', ${maxValue})`,
   );
-requireIncludes(
-  'scripts/deploy/beta-preflight.sh',
-  scriptContents.get('scripts/deploy/beta-preflight.sh') ?? '',
-  `require_optional_positive_integer_max ${rateLimitEnvName} ${maxValue}`,
-);
+  requireIncludes(
+    'scripts/deploy/beta-preflight.sh',
+    scriptContents.get('scripts/deploy/beta-preflight.sh') ?? '',
+    `require_optional_positive_integer_max ${rateLimitEnvName} ${maxValue}`,
+  );
 }
 requireIncludes(
   'scripts/deploy/beta-preflight.sh',
@@ -752,8 +1125,16 @@ for (const rateLimitEnvName of [
   'RATE_LIMIT_WINDOW_MS',
   'SYNC_RATE_LIMIT_MAX',
 ]) {
-  requireIncludes(commercialEnvPreflightPath, commercialEnvPreflight, rateLimitEnvName);
-  requireIncludes(productionConfigTestPath, productionConfigTest, rateLimitEnvName);
+  requireIncludes(
+    commercialEnvPreflightPath,
+    commercialEnvPreflight,
+    rateLimitEnvName,
+  );
+  requireIncludes(
+    productionConfigTestPath,
+    productionConfigTest,
+    rateLimitEnvName,
+  );
 }
 requireIncludes(
   productionConfigTestPath,
@@ -792,7 +1173,11 @@ requireIncludes(
 );
 requireIncludes(productionConfigTestPath, productionConfigTest, "'1e3'");
 requireIncludes(productionConfigTestPath, productionConfigTest, "'15000.0'");
-requireIncludes(productionConfigTestPath, productionConfigTest, "'9007199254740992'");
+requireIncludes(
+  productionConfigTestPath,
+  productionConfigTest,
+  "'9007199254740992'",
+);
 requireIncludes(productionConfigTestPath, productionConfigTest, "'10000ms'");
 requireIncludes(productionConfigTestPath, productionConfigTest, "'120/min'");
 
@@ -820,7 +1205,11 @@ for (const needle of [
   'Set DOCKER_RUNTIME_BUILD=true on a Docker-enabled release runner to build production images.',
   "if (report.reportStatus === 'FAIL')",
 ]) {
-  requireIncludes('scripts/qa/docker-runtime-preflight.mjs', dockerRuntimePreflight, needle);
+  requireIncludes(
+    'scripts/qa/docker-runtime-preflight.mjs',
+    dockerRuntimePreflight,
+    needle,
+  );
 }
 for (const needle of [
   'FAKE_DOCKER_MODE',
