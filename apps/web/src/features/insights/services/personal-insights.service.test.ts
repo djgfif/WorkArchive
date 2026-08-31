@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import type { WorkRecord } from '@work-archive/shared-types';
+import type {
+  TimelineEntryRecord,
+  WorkRecord,
+} from '@work-archive/shared-types';
 
 import { calculatePersonalInsights } from './personal-insights.service';
 
@@ -34,6 +37,25 @@ function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     title: 'Untitled',
     type: 'novel',
     updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function buildTimelineEntry(
+  overrides: Partial<TimelineEntryRecord> = {},
+): TimelineEntryRecord {
+  return {
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    id: crypto.randomUUID(),
+    note: '',
+    occurredAt: '2026-01-02T00:00:00.000Z',
+    serverVersion: 0,
+    source: 'manual',
+    syncStatus: 'local-only',
+    type: 'rewatch',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    workId: 'work-1',
     ...overrides,
   };
 }
@@ -160,5 +182,170 @@ describe('calculatePersonalInsights', () => {
       'Old completed',
       'Recent completed',
     ]);
+  });
+
+  it('aggregates active repeat records only for active works', () => {
+    const insights = calculatePersonalInsights(
+      [
+        buildWork({ id: 'work-1', title: 'Dune' }),
+        buildWork({ id: 'work-2', title: 'Frieren' }),
+        buildWork({
+          deletedAt: '2026-03-01T00:00:00.000Z',
+          id: 'work-deleted',
+          title: 'Deleted',
+        }),
+      ],
+      new Date('2026-04-27T00:00:00.000Z'),
+      [
+        buildTimelineEntry({
+          id: 'repeat-1',
+          occurredAt: '2026-01-02T00:00:00.000Z',
+          workId: 'work-1',
+        }),
+        buildTimelineEntry({
+          id: 'repeat-2',
+          occurredAt: '2026-04-20T00:00:00.000Z',
+          workId: 'work-1',
+        }),
+        buildTimelineEntry({
+          id: 'repeat-3',
+          occurredAt: '2025-12-01T00:00:00.000Z',
+          workId: 'work-2',
+        }),
+        buildTimelineEntry({
+          deletedAt: '2026-04-21T00:00:00.000Z',
+          id: 'repeat-deleted',
+          workId: 'work-1',
+        }),
+        buildTimelineEntry({
+          id: 'repeat-deleted-work',
+          workId: 'work-deleted',
+        }),
+        buildTimelineEntry({
+          id: 'progress-entry',
+          type: 'progress',
+          workId: 'work-1',
+        }),
+      ],
+    );
+
+    expect(insights.repeatRecordCount).toBe(3);
+    expect(insights.repeatedWorkCount).toBe(2);
+    expect(insights.repeatedThisYearCount).toBe(2);
+    expect(insights.topRepeatedWorks).toEqual([
+      expect.objectContaining({
+        count: 2,
+        lastRepeatedAt: '2026-04-20T00:00:00.000Z',
+        work: expect.objectContaining({ id: 'work-1', title: 'Dune' }),
+      }),
+      expect.objectContaining({
+        count: 1,
+        lastRepeatedAt: '2025-12-01T00:00:00.000Z',
+        work: expect.objectContaining({ id: 'work-2', title: 'Frieren' }),
+      }),
+    ]);
+  });
+  it('builds a local-calendar activity rhythm from active timeline records', () => {
+    const now = new Date(2026, 7, 3, 12);
+    const occurredAt = (dayOffset: number) =>
+      new Date(2026, 7, 3 + dayOffset, 12).toISOString();
+    const dateKey = (value: Date) =>
+      [
+        value.getFullYear(),
+        String(value.getMonth() + 1).padStart(2, '0'),
+        String(value.getDate()).padStart(2, '0'),
+      ].join('-');
+    const insights = calculatePersonalInsights(
+      [
+        buildWork({ id: 'work-active', title: 'Active work' }),
+        buildWork({
+          deletedAt: occurredAt(-1),
+          id: 'work-deleted',
+          title: 'Deleted work',
+        }),
+      ],
+      now,
+      [
+        buildTimelineEntry({
+          id: 'today-progress',
+          occurredAt: occurredAt(0),
+          type: 'progress',
+          workId: 'work-active',
+        }),
+        buildTimelineEntry({
+          id: 'recent-note',
+          occurredAt: occurredAt(-6),
+          type: 'note',
+          workId: 'work-active',
+        }),
+        buildTimelineEntry({
+          id: 'older-start',
+          occurredAt: occurredAt(-7),
+          type: 'started',
+          workId: 'work-active',
+        }),
+        buildTimelineEntry({
+          id: 'window-edge',
+          occurredAt: occurredAt(-27),
+          type: 'rewatch',
+          workId: 'work-active',
+        }),
+        buildTimelineEntry({
+          id: 'outside-window',
+          occurredAt: occurredAt(-28),
+          type: 'note',
+          workId: 'work-active',
+        }),
+        buildTimelineEntry({
+          id: 'future-entry',
+          occurredAt: occurredAt(1),
+          type: 'note',
+          workId: 'work-active',
+        }),
+        buildTimelineEntry({
+          id: 'invalid-entry',
+          occurredAt: 'not-a-date',
+          type: 'note',
+          workId: 'work-active',
+        }),
+        buildTimelineEntry({
+          deletedAt: occurredAt(0),
+          id: 'deleted-entry',
+          occurredAt: occurredAt(0),
+          type: 'note',
+          workId: 'work-active',
+        }),
+        buildTimelineEntry({
+          id: 'deleted-work-entry',
+          occurredAt: occurredAt(0),
+          type: 'note',
+          workId: 'work-deleted',
+        }),
+      ],
+    );
+
+    expect(insights.activityDays).toHaveLength(28);
+    expect(insights.activityDays[0]?.date).toBe(
+      dateKey(new Date(2026, 7, 3 - 27, 12)),
+    );
+    expect(insights.activityDays.at(-1)?.date).toBe(dateKey(now));
+    expect(insights.activityRecordCount).toBe(4);
+    expect(insights.activityActiveDayCount).toBe(4);
+    expect(insights.activityRecentRecordCount).toBe(2);
+    expect(insights.activityLastRecordedAt).toBe(occurredAt(0));
+  });
+
+  it('returns an empty rhythm when the archive has no timeline activity', () => {
+    const insights = calculatePersonalInsights(
+      [buildWork({ id: 'work-active' })],
+      new Date(2026, 7, 3, 12),
+    );
+
+    expect(insights.activityDays).toHaveLength(28);
+    expect(insights.activityDays.every((day) => day.count === 0)).toBe(true);
+    expect(insights.activityRecordCount).toBe(0);
+    expect(insights.activityActiveDayCount).toBe(0);
+    expect(insights.activityRecentRecordCount).toBe(0);
+    expect(insights.activityLastRecordedAt).toBeNull();
   });
 });

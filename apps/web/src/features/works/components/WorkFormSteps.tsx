@@ -8,6 +8,7 @@ import {
   SectionCard,
 } from '@shared/components/AppPrimitives';
 import {
+  type WorkFormFocusArea,
   type WorkFormInputChangeHandler,
   type WorkFormListFieldName,
   type WorkFormSuggestionProps,
@@ -33,7 +34,7 @@ interface WorkFormStepNavigationProps {
 
 interface WorkFormStepFieldsProps
   extends WorkFormSuggestionProps, WorkFormTitleRefProps, WorkFormValuesProps {
-  focusArea: 'general' | 'review';
+  focusArea: WorkFormFocusArea;
   isSeriesWork: boolean;
   onInputChange: WorkFormInputChangeHandler;
   onRatingChange: (rating: number | null) => void;

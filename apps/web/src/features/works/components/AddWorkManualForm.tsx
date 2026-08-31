@@ -5,10 +5,7 @@ import { Stack } from '@mantine/core';
 import type { ImportCandidate } from '@features/imports';
 import { FeedbackMessage } from '@shared/components/AppPrimitives';
 import { AddWorkManualFields } from './AddWorkManualFields';
-import {
-  AddWorkSaveFooter,
-  type DraftSaveStatus,
-} from './AddWorkSaveFooter';
+import { AddWorkSaveFooter, type DraftSaveStatus } from './AddWorkSaveFooter';
 import { DuplicateWorkCandidatesCard } from './DuplicateWorkCandidatesCard';
 import { ImportedCandidateSummary } from './ImportedCandidateSummary';
 import {
@@ -73,6 +70,15 @@ export function AddWorkManualForm({
   validationError,
   values,
 }: AddWorkManualFormProps) {
+  const saveFooter = (
+    <AddWorkSaveFooter
+      duplicateCount={duplicateCandidates.length}
+      isSubmitting={isSubmitting}
+      saveStatus={saveStatus}
+      {...(onCancel ? { onCancel } : {})}
+    />
+  );
+
   return (
     <form onSubmit={onSubmit}>
       <Stack gap={isDialog ? 'lg' : 'xl'}>
@@ -88,12 +94,12 @@ export function AddWorkManualForm({
 
         <AddWorkManualFields
           duplicateCount={duplicateCandidates.length}
-          isDialog={isDialog}
           onInputChange={onInputChange}
           onRatingChange={onRatingChange}
           onSeriesFieldsClear={onSeriesFieldsClear}
           onStatusChange={onStatusChange}
           onTextListChange={onTextListChange}
+          primaryActions={saveFooter}
           sourceLabel={selectedImportCandidate?.sourceLabel ?? null}
           suggestions={suggestions}
           titleError={titleError}
@@ -108,13 +114,6 @@ export function AddWorkManualForm({
             {validationError ?? submitError}
           </FeedbackMessage>
         )}
-
-        <AddWorkSaveFooter
-          duplicateCount={duplicateCandidates.length}
-          isSubmitting={isSubmitting}
-          saveStatus={saveStatus}
-          {...(onCancel ? { onCancel } : {})}
-        />
       </Stack>
     </form>
   );

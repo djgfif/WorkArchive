@@ -14,6 +14,7 @@ import { FeedbackMessage } from '@shared/components/AppPrimitives';
 import { StarRatingInput } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import {
+  type WorkFormFocusArea,
   type WorkFormInputChangeHandler,
   type WorkFormListFieldName,
 } from './add-work-form.types';
@@ -23,7 +24,7 @@ const REVIEW_FOCUS_DESCRIPTION_ID = 'work-form-review-focus-description';
 const css = styles;
 
 interface WorkFormReviewStepProps {
-  focusArea: 'general' | 'review';
+  focusArea: WorkFormFocusArea;
   normalizedRating: number | null;
   onInputChange: WorkFormInputChangeHandler;
   onRatingChange: (rating: number | null) => void;

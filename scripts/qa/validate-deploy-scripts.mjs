@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from 'node:fs';
+import { accessSync, constants, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
@@ -14,6 +14,16 @@ function readRequired(path) {
   }
 
   return readFileSync(fullPath, 'utf8');
+}
+
+function requireExecutable(path) {
+  const fullPath = join(root, path);
+
+  try {
+    accessSync(fullPath, constants.X_OK);
+  } catch {
+    failures.push(`${path} must be executable.`);
+  }
 }
 
 function requireIncludes(path, content, needle) {
@@ -97,6 +107,7 @@ const qaEvidenceScripts = new Map(
 );
 
 for (const [path, content] of scriptContents) {
+  requireExecutable(path);
   requireIncludes(path, content, '#!/usr/bin/env bash');
   requirePattern(
     path,

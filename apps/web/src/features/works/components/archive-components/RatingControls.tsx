@@ -175,6 +175,7 @@ export function StarRatingInput({
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     const currentValue = value ?? 0;
+    setHoverValue(null);
 
     if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
       event.preventDefault();

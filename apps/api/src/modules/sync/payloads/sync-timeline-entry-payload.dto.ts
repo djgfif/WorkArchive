@@ -37,6 +37,13 @@ export class SyncTimelineEntryPayloadDto {
   @IsEnum(TimelineEntryType)
   type!: TimelineEntryType;
 
+  @ApiPropertyOptional({
+    enum: ['manual', 'automatic'],
+  })
+  @IsOptional()
+  @IsIn(['manual', 'automatic'])
+  source?: 'manual' | 'automatic';
+
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
   })

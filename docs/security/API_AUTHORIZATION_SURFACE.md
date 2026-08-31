@@ -1,7 +1,7 @@
 # API Authorization Surface
 
 Status: canonical.
-Last reviewed: 2026-06-26.
+Last reviewed: 2026-08-26 Community release-profile split.
 
 This document classifies every Nest controller in the API by its intended
 authentication boundary. Update it before adding, renaming, or exposing a
@@ -15,12 +15,16 @@ drift for the public cacheable image surface.
 | --- | --- |
 | `apps/api/src/modules/auth/auth.controller.ts` | Mixed auth surface. Legacy email/password `register` and `login` return `410 Gone`; Google OAuth start/status/callback are public OAuth endpoints; refresh/logout are refresh-cookie mediated; profile, export, account deletion, and session management routes are protected by `JwtAuthGuard`. |
 | `apps/api/src/modules/catalog/catalog.controller.ts` | Class-level protected by `JwtAuthGuard`; catalog reads are authenticated, submissions are current-user scoped, and moderation actions are authorized in `CatalogService`. |
+| `apps/api/src/modules/community/community-reflection.controller.ts` | Approved short-reflection surface, available only with the `reflection` release capability. Published reflection reads are public with strict optional bearer parsing; publication, owner deletion, reactions, reports, and moderation use method-level `JwtAuthGuard`. |
+| `apps/api/src/modules/community/community.controller.ts` | Formal Community public plane, available with the `core` release capability. Public feed/review/profile reads use strict optional bearer parsing; all writes use method-level `JwtAuthGuard`; full-only follow, taste, and notification routes add the `full` capability guard. Role and owner checks are reused through the Community capability services and policy layer. |
 | `apps/api/src/modules/health/health.controller.ts` | Public platform health surface for `/health`, `/livez`, and `/readyz`; do not add user data or secrets. |
 | `apps/api/src/modules/image-proxy/image-proxy.controller.ts` | Policy-bounded public image proxy; requests are constrained by `ImageProxyService` URL policy, content type, byte limits, DNS checks, cache headers, and no-sniff response headers. |
+| `apps/api/src/modules/product-release/product-release.controller.ts` | Public release capability metadata. Returns only the active profile identifier and its boolean capabilities so the web container can detect profile mismatch; it must never include user, secret, or operator data. |
 | `apps/api/src/modules/imports/imports.controller.ts` | Mixed import surface. Provider credential status/save/delete/test and candidate resolve are protected by `JwtAuthGuard`; provider list and search use optional bearer parsing and must not expose stored credentials to guests. |
 | `apps/api/src/modules/notion/notion.controller.ts` | Class-level protected by `JwtAuthGuard`; every connection, test, push, preview, and apply route uses the current authenticated `userId`. |
 | `apps/api/src/modules/sync/sync.controller.ts` | Class-level protected by `JwtAuthGuard`; push and pull both use the current authenticated `userId`. |
 | `apps/api/src/modules/user-records/user-records.controller.ts` | Class-level protected by `JwtAuthGuard`; record, progress, release view, and import-created record routes use the current authenticated `userId`. |
+| `apps/api/src/modules/user-records/user-records-v2.controller.ts` | Class-level protected by `JwtAuthGuard`; additive v2 list, detail, create, and update routes use the current authenticated `userId` and require exactly one catalog, external, or manual identity branch. |
 | `apps/api/src/modules/user-records/user-release-records.controller.ts` | Class-level protected by `JwtAuthGuard`; release record update/delete/restore routes are scoped through owned parent records. |
 | `apps/api/src/modules/works/works.controller.ts` | Class-level protected by `JwtAuthGuard`; list, grouped view, detail, create, update, and delete routes use the current authenticated `userId`. |
 | `apps/api/src/observability/metrics.controller.ts` | Metrics bearer token surface. Unauthorized reads return `404`, successful reads require `MetricsService.canReadMetrics` with exactly one `Bearer <token>` collector token, and responses are `Cache-Control: no-store`. |
@@ -31,6 +35,8 @@ Run `npm run qa:api-auth-surface` with the commercial repository gates. The
 check verifies:
 
 - the controller file list matches this classification;
+- Community writes retain method-level guards, public feed reads use strict
+  optional bearer parsing, and moderation remains role-checked and audited;
 - class-level protected controllers retain `@UseGuards(JwtAuthGuard)`,
   `@ApiBearerAuth()`, and `CurrentUser` use;
 - mixed import/auth route families retain method-level guards or the documented
@@ -55,6 +61,7 @@ check verifies:
   route-specifically rate limited while safe GET/HEAD/OPTIONS requests stay
   outside that mutation bucket;
 - public platform health stays public and data-free;
+- public release capability metadata stays public, data-free, and limited to the profile identifier plus boolean capabilities;
 - `/metrics` remains hidden without exactly one valid metrics bearer token;
 - the policy-bounded public image proxy still delegates URL enforcement to
   `ImageProxyService`.

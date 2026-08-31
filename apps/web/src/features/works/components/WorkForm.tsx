@@ -18,6 +18,7 @@ import { useDuplicateWorkCandidates } from '../hooks/useDuplicateWorkCandidates'
 import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
 import { useWorkFormDraft } from '../hooks/useWorkFormDraft';
 import {
+  type WorkFormFocusArea,
   type WorkFormInputChangeHandler,
   type WorkFormListFieldName,
 } from './add-work-form.types';
@@ -79,7 +80,7 @@ interface WorkFormProps {
   catalogTitleId?: string | null;
   currentWorkId?: string | null;
   draftKey?: string | null;
-  focusArea?: 'general' | 'review';
+  focusArea?: WorkFormFocusArea;
   initialValues?: WorkFormValues;
   isSubmitting: boolean;
   onSubmit: (input: UpsertWorkInput) => Promise<void>;

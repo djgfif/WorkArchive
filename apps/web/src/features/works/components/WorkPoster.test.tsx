@@ -35,7 +35,7 @@ describe('WorkPoster', () => {
     );
   });
 
-  it('uses the shared proxy fallback sequence', () => {
+  it('uses the shared private-first proxy failure policy', () => {
     renderWithProviders(
       <WorkPoster
         thumbnailUrl="https://covers.openlibrary.org/b/id/123-L.jpg"
@@ -46,9 +46,7 @@ describe('WorkPoster', () => {
 
     fireEvent.error(screen.getByAltText('Dune 포스터'));
 
-    expect(screen.getByAltText('Dune 포스터')).toHaveAttribute(
-      'src',
-      'https://covers.openlibrary.org/b/id/123-L.jpg',
-    );
+    expect(screen.getByLabelText('Dune 포스터 대체 표지')).toBeInTheDocument();
+    expect(screen.queryByAltText('Dune 포스터')).not.toBeInTheDocument();
   });
 });

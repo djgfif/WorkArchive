@@ -38,7 +38,7 @@ let prisma: PrismaService;
 
 function configureIntegrationEnvironment() {
   process.env.NODE_ENV = 'test';
-process.env.CORS_ORIGIN ??= 'http://localhost:18730';
+  process.env.CORS_ORIGIN ??= 'http://localhost:18730';
   process.env.EXTERNAL_API_KEY_ENCRYPTION_SECRET ??=
     'integration-external-api-key-secret-minimum-32-chars';
   process.env.JWT_ACCESS_SECRET ??=
@@ -46,7 +46,7 @@ process.env.CORS_ORIGIN ??= 'http://localhost:18730';
   process.env.JWT_REFRESH_SECRET ??=
     'integration-refresh-secret-minimum-32-chars';
   process.env.SWAGGER_ENABLED ??= 'false';
-process.env.WEB_BASE_URL ??= 'http://localhost:18730';
+  process.env.WEB_BASE_URL ??= 'http://localhost:18730';
 
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL must be set for API integration tests.');
@@ -86,9 +86,9 @@ async function requestJson<TBody = unknown>(
     headers,
   });
   const setCookie =
-    (response.headers as Headers & { getSetCookie?: () => string[] })
-      .getSetCookie?.()[0] ??
-    response.headers.get('set-cookie');
+    (
+      response.headers as Headers & { getSetCookie?: () => string[] }
+    ).getSetCookie?.()[0] ?? response.headers.get('set-cookie');
   const text = await response.text();
 
   return {
@@ -195,7 +195,11 @@ describe('API PostgreSQL integration', () => {
     expect(createdSessions).toHaveLength(1);
     expect(createdSessions[0]?.tokenHash).toEqual(expect.any(String));
 
-    const meResponse = await requestJson('/api/auth/me', undefined, registered.accessToken);
+    const meResponse = await requestJson(
+      '/api/auth/me',
+      undefined,
+      registered.accessToken,
+    );
 
     expect(meResponse.status).toBe(200);
     expect(meResponse.body).toEqual(
@@ -276,7 +280,9 @@ describe('API PostgreSQL integration', () => {
   });
 
   it('manages multiple refresh sessions and revokes all on token reuse', async () => {
-    const firstSession = await createAuthenticatedUser('session-db@example.com');
+    const firstSession = await createAuthenticatedUser(
+      'session-db@example.com',
+    );
     const secondSession = await createAuthenticatedUser(
       'session-db@example.com',
       false,
@@ -350,6 +356,15 @@ describe('API PostgreSQL integration', () => {
     );
 
     expect(refreshResponse.status).toBe(200);
+
+    await prisma.userRefreshSession.update({
+      where: {
+        id: activeSessions[1]!.id,
+      },
+      data: {
+        previousRotatedAt: new Date(Date.now() - 16_000),
+      },
+    });
 
     const staleReuseResponse = await requestJson(
       '/api/auth/refresh',

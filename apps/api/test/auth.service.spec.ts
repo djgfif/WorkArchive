@@ -440,6 +440,146 @@ function createUserDataExportPrismaMock() {
         },
       ]),
     },
+    userCommunityProfile: {
+      findMany: findMany([
+        {
+          allowFollowers: true,
+          bio: '마법 여행 기록을 좋아합니다.',
+          createdAt: now,
+          favoriteCatalogTitleIds: ['catalog-title-1'],
+          favoriteGenres: ['fantasy'],
+          id: 'community-profile-1',
+          notifyBrowser: false,
+          notifyGlobalBadge: true,
+          notifyInCommunity: true,
+          showBoardPosts: true,
+          showFollowers: true,
+          showRatings: true,
+          showReviews: true,
+          showTasteSummary: true,
+          updatedAt: now,
+          visibility: 'public',
+        },
+      ]),
+    },
+    communityPost: {
+      findMany: findMany([
+        {
+          body: '공개한 감상',
+          createdAt: now,
+          hiddenAt: null,
+          id: 'community-post-1',
+          reactionCount: 2,
+          spoiler: false,
+          status: 'published',
+          updatedAt: now,
+          workThumbnailUrl: '',
+          workTitle: '장송의 프리렌',
+          workType: 'anime',
+        },
+      ]),
+    },
+    communityReview: {
+      findMany: findMany([
+        {
+          body: '오래 남는 여정',
+          catalogTitleId: 'catalog-title-1',
+          commentCount: 1,
+          createdAt: now,
+          deletedAt: null,
+          hiddenAt: null,
+          id: 'community-review-1',
+          rating: 4.5,
+          reactionCount: 3,
+          spoiler: false,
+          status: 'published',
+          updatedAt: now,
+        },
+      ]),
+    },
+    communityReaction: {
+      findMany: findMany([
+        {
+          createdAt: now,
+          id: 'community-reaction-1',
+          postId: 'community-post-2',
+        },
+      ]),
+    },
+    communityReviewReaction: {
+      findMany: findMany([
+        {
+          createdAt: now,
+          id: 'community-review-reaction-1',
+          reviewId: 'community-review-2',
+        },
+      ]),
+    },
+    communityComment: {
+      findMany: findMany([
+        {
+          body: '동의합니다.',
+          createdAt: now,
+          deletedAt: null,
+          id: 'community-comment-1',
+          parentId: null,
+          postId: null,
+          reactionCount: 1,
+          reviewId: 'community-review-2',
+          spoiler: false,
+          status: 'published',
+          updatedAt: now,
+        },
+      ]),
+    },
+    communityCommentReaction: {
+      findMany: findMany([
+        {
+          commentId: 'community-comment-2',
+          createdAt: now,
+          id: 'community-comment-reaction-1',
+        },
+      ]),
+    },
+    communityFollow: {
+      findMany: findMany([
+        {
+          createdAt: now,
+          followerId: 'user-1',
+          followingId: 'user-2',
+          id: 'community-follow-1',
+        },
+      ]),
+    },
+    communityNotification: {
+      findMany: findMany([
+        {
+          actorId: 'user-2',
+          createdAt: now,
+          id: 'community-notification-1',
+          readAt: null,
+          targetId: 'community-review-1',
+          targetType: 'review',
+          type: 'reaction',
+        },
+      ]),
+    },
+    communityReport: {
+      findMany: findMany([
+        {
+          createdAt: now,
+          detail: '스팸 링크',
+          id: 'community-report-1',
+          commentId: null,
+          postId: 'community-post-3',
+          reviewId: null,
+          reason: 'spam',
+          resolvedAt: null,
+          status: 'pending',
+          updatedAt: now,
+        },
+      ]),
+    },
     securityEvent: { findMany: findMany([{ id: 'event-1' }]) },
   };
 
@@ -458,6 +598,12 @@ function createAccountDeletionPrismaMock() {
     },
     catalogSubmission: {
       updateMany: updateMany(2),
+    },
+    communityModerationAuditLog: {
+      updateMany: updateMany(6),
+    },
+    communityReport: {
+      updateMany: updateMany(5),
     },
     securityEvent: {
       updateMany: updateMany(4),
@@ -482,6 +628,21 @@ function createAccountDeletionPreviewPrismaMock() {
     },
     catalogSubmission: {
       count: count(2),
+    },
+    communityModerationAuditLog: {
+      count: count(26),
+    },
+    communityPost: {
+      count: count(22),
+    },
+    communityReaction: {
+      count: count(23),
+    },
+    communityReport: {
+      count: jest
+        .fn<(...args: unknown[]) => Promise<number>>()
+        .mockResolvedValueOnce(24)
+        .mockResolvedValueOnce(25),
     },
     externalApiCredential: {
       count: count(4),
@@ -1051,9 +1212,9 @@ describe('AuthService', () => {
     await expect(
       authService.validateAccessToken(accessTokenWithUnsafeSubject),
     ).rejects.toThrow('Invalid or expired token.');
-    await expect(authService.refresh(refreshTokenWithUnsafeEmail)).rejects.toThrow(
-      'Invalid or expired token.',
-    );
+    await expect(
+      authService.refresh(refreshTokenWithUnsafeEmail),
+    ).rejects.toThrow('Invalid or expired token.');
   });
 
   it('rejects tokens whose lifetime exceeds the issued policy', async () => {
@@ -1332,6 +1493,16 @@ describe('AuthService', () => {
     expect(exported.counts).toEqual(
       expect.objectContaining({
         catalogSubmissions: 1,
+        communityComments: 1,
+        communityCommentReactions: 1,
+        communityFollows: 1,
+        communityNotifications: 1,
+        communityPosts: 1,
+        communityProfiles: 1,
+        communityReactions: 1,
+        communityReports: 1,
+        communityReviewReactions: 1,
+        communityReviews: 1,
         externalApiCredentials: 1,
         notionPullPreviewSnapshots: 1,
         syncAppliedMutations: 1,
@@ -1344,6 +1515,18 @@ describe('AuthService', () => {
         current: true,
         id: 'session-1',
         ipAddress: '203.0.113.x',
+      }),
+    ]);
+    expect(exported.data.communityProfiles).toEqual([
+      expect.objectContaining({
+        id: 'community-profile-1',
+        visibility: 'public',
+      }),
+    ]);
+    expect(exported.data.communityNotifications).toEqual([
+      expect.objectContaining({
+        id: 'community-notification-1',
+        targetType: 'review',
       }),
     ]);
     expect(JSON.stringify(exported)).not.toMatch(
@@ -1361,6 +1544,13 @@ describe('AuthService', () => {
         }),
         where: {
           userId: 'user-1',
+        },
+      }),
+    );
+    expect(prisma.communityFollow.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [{ followerId: 'user-1' }, { followingId: 'user-1' }],
         },
       }),
     );
@@ -1410,6 +1600,25 @@ describe('AuthService', () => {
         }),
       }),
     );
+    expect(prisma.communityPost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { authorId: 'user-1' },
+      }),
+    );
+    expect(prisma.communityReaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 'user-1' },
+      }),
+    );
+    expect(prisma.communityReport.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.not.objectContaining({
+          moderatorId: true,
+          moderatorNote: true,
+        }),
+        where: { reporterId: 'user-1' },
+      }),
+    );
     expect(exported.omittedSensitiveFields).toEqual(
       expect.arrayContaining([
         'refresh token hashes',
@@ -1452,6 +1661,8 @@ describe('AuthService', () => {
         anonymizedRecords: {
           catalogAuditLogs: 3,
           catalogSubmissionReviews: 2,
+          communityModerationAuditLogs: 6,
+          communityReportAssignments: 5,
           securityEvents: 4,
         },
       }),
@@ -1474,6 +1685,30 @@ describe('AuthService', () => {
       },
     });
     expect(prisma.catalogAuditLog.updateMany).toHaveBeenCalledWith({
+      where: {
+        actorId: 'user-1',
+      },
+      data: {
+        actorId: null,
+      },
+    });
+    expect(prisma.communityReport.updateMany).toHaveBeenCalledWith({
+      where: {
+        moderatorId: 'user-1',
+        post: {
+          authorId: {
+            not: 'user-1',
+          },
+        },
+        reporterId: {
+          not: 'user-1',
+        },
+      },
+      data: {
+        moderatorId: null,
+      },
+    });
+    expect(prisma.communityModerationAuditLog.updateMany).toHaveBeenCalledWith({
       where: {
         actorId: 'user-1',
       },
@@ -1555,10 +1790,15 @@ describe('AuthService', () => {
         anonymizedRecords: {
           catalogAuditLogs: 3,
           catalogSubmissionReviews: 2,
+          communityModerationAuditLogs: 26,
+          communityReportAssignments: 25,
           securityEvents: 7,
         },
         cascadeDeletedRecords: expect.objectContaining({
           authAccounts: 1,
+          communityPosts: 22,
+          communityReactions: 23,
+          communityReports: 24,
           externalApiCredentials: 4,
           refreshSessions: 9,
           workRecords: 19,
@@ -1611,6 +1851,29 @@ describe('AuthService', () => {
     expect(prisma.catalogSubmission.count).toHaveBeenCalledWith({
       where: {
         reviewerId: 'user-1',
+      },
+    });
+    expect(prisma.communityReaction.count).toHaveBeenCalledWith({
+      where: {
+        OR: [{ userId: 'user-1' }, { post: { authorId: 'user-1' } }],
+      },
+    });
+    expect(prisma.communityReport.count).toHaveBeenNthCalledWith(1, {
+      where: {
+        OR: [{ reporterId: 'user-1' }, { post: { authorId: 'user-1' } }],
+      },
+    });
+    expect(prisma.communityReport.count).toHaveBeenNthCalledWith(2, {
+      where: {
+        moderatorId: 'user-1',
+        post: {
+          authorId: {
+            not: 'user-1',
+          },
+        },
+        reporterId: {
+          not: 'user-1',
+        },
       },
     });
   });

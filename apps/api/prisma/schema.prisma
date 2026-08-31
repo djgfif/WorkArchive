@@ -187,22 +187,77 @@ enum CatalogSubmissionStatus {
   rejected
 }
 
+enum CommunityPostStatus {
+  published
+  hidden
+  deleted
+}
+
+enum CommunityReportStatus {
+  pending
+  resolved
+  dismissed
+}
+
+enum CommunityReportReason {
+  spoiler
+  harassment
+  hate
+  spam
+  other
+}
+
+enum CommunityModerationAction {
+  post_hidden
+  post_restored
+  review_hidden
+  review_restored
+  comment_hidden
+  comment_restored
+  report_resolved
+  report_dismissed
+}
+
+enum CommunityBoardCategory {
+  free
+  recommendation
+  question
+  information
+  spoiler
+}
+
+enum CommunityPostSurface {
+  reflection
+  board
+}
+
+enum CommunityProfileVisibility {
+  private
+  public
+}
+
+enum CommunityNotificationType {
+  comment
+  reaction
+  follow
+}
+
 model User {
-  id                         String                      @id @default(uuid())
-  email                      String                      @unique
-  handle                     String?                     @unique
-  avatarUrl                  String                      @default("") @db.Text
-  nickname                   String                      @default("")
-  role                       UserRole                    @default(user)
-  createdAt                  DateTime                    @default(now())
-  updatedAt                  DateTime                    @updatedAt
+  id                         String                        @id @default(uuid())
+  email                      String                        @unique
+  handle                     String?                       @unique
+  avatarUrl                  String                        @default("") @db.Text
+  nickname                   String                        @default("")
+  role                       UserRole                      @default(user)
+  createdAt                  DateTime                      @default(now())
+  updatedAt                  DateTime                      @updatedAt
   authAccounts               UserAuthAccount[]
   workRecords                UserWorkRecord[]
   timelineEntries            UserTimelineEntry[]
   externalApiCredentials     ExternalApiCredential[]
   refreshSessions            UserRefreshSession[]
-  catalogSubmissions         CatalogSubmission[]         @relation("CatalogSubmissionSubmitter")
-  reviewedSubmissions        CatalogSubmission[]         @relation("CatalogSubmissionReviewer")
+  catalogSubmissions         CatalogSubmission[]           @relation("CatalogSubmissionSubmitter")
+  reviewedSubmissions        CatalogSubmission[]           @relation("CatalogSubmissionReviewer")
   catalogAuditLogs           CatalogAuditLog[]
   syncAppliedMutations       UserSyncAppliedMutation[]
   notionSyncMappings         NotionSyncMapping[]
@@ -211,6 +266,20 @@ model User {
   contributors               UserContributor[]
   workRelations              UserWorkRelation[]
   tierBoards                 UserTierBoard[]
+  communityPosts             CommunityPost[]               @relation("CommunityPostAuthor")
+  communityReactions         CommunityReaction[]
+  communityReports           CommunityReport[]             @relation("CommunityReportReporter")
+  moderatedCommunityReports  CommunityReport[]             @relation("CommunityReportModerator")
+  communityModerationActions CommunityModerationAuditLog[] @relation("CommunityModerationActor")
+  communityProfile           UserCommunityProfile?
+  communityReviews           CommunityReview[]              @relation("CommunityReviewAuthor")
+  communityReviewReactions   CommunityReviewReaction[]
+  communityComments          CommunityComment[]             @relation("CommunityCommentAuthor")
+  communityCommentReactions  CommunityCommentReaction[]
+  communityFollowing         CommunityFollow[]              @relation("CommunityFollowFollower")
+  communityFollowers         CommunityFollow[]              @relation("CommunityFollowFollowing")
+  communityNotifications     CommunityNotification[]        @relation("CommunityNotificationRecipient")
+  communityNotificationActs  CommunityNotification[]        @relation("CommunityNotificationActor")
 
   @@map("users")
 }
@@ -235,21 +304,21 @@ model UserAuthAccount {
 }
 
 model UserRefreshSession {
-  id                  String    @id @default(uuid())
-  userId              String
-  tokenHash           String    @db.Text
-  previousTokenHash   String?   @db.Text
-  previousRotatedAt   DateTime?
-  rememberMe          Boolean   @default(true)
-  userAgent           String?   @db.Text
-  ipAddress           String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  lastUsedAt          DateTime?
-  rotatedAt           DateTime?
-  expiresAt           DateTime
-  revokedAt           DateTime?
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @default(uuid())
+  userId            String
+  tokenHash         String    @db.Text
+  previousTokenHash String?   @db.Text
+  previousRotatedAt DateTime?
+  rememberMe        Boolean   @default(true)
+  userAgent         String?   @db.Text
+  ipAddress         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastUsedAt        DateTime?
+  rotatedAt         DateTime?
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt])
   @@index([expiresAt])
@@ -319,6 +388,8 @@ model CatalogTitle {
   incomingRelations  CatalogRelation[]         @relation("CatalogRelationTarget")
   externalRefs       CatalogExternalRef[]
   userRecords        UserWorkRecord[]
+  communityPosts     CommunityPost[]
+  communityReviews   CommunityReview[]
 
   @@index([franchiseId])
   @@index([mediumType, updatedAt])
@@ -586,6 +657,7 @@ model UserTimelineEntry {
   userId           String
   userWorkRecordId String
   type             TimelineEntryType @default(note)
+  source           String            @default("manual")
   occurredAt       DateTime
   note             String            @default("") @db.Text
   createdAt        DateTime          @default(now())
@@ -812,27 +884,263 @@ model UserTierBoardCard {
 }
 
 model UserTierBoardAsset {
-  id           String                    @id @default(uuid())
-  boardId      String
-  cardId       String?
-  kind         TierBoardAssetKind        @default(image)
-  storageType  TierBoardAssetStorageType
-  objectUrl    String                    @db.Text
-  originalName String                    @default("")
-  mimeType     String                    @default("")
-  sizeBytes    Int                       @default(0)
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
-  deletedAt    DateTime?
+  id            String                    @id @default(uuid())
+  boardId       String
+  cardId        String?
+  kind          TierBoardAssetKind        @default(image)
+  storageType   TierBoardAssetStorageType
+  objectUrl     String                    @db.Text
+  originalName  String                    @default("")
+  mimeType      String                    @default("")
+  sizeBytes     Int                       @default(0)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  deletedAt     DateTime?
   syncStatus    WorkSyncStatus            @default(synced)
   serverVersion Int                       @default(1)
-  board        UserTierBoard             @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  card         UserTierBoardCard?        @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  board         UserTierBoard             @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  card          UserTierBoardCard?        @relation(fields: [cardId], references: [id], onDelete: SetNull)
 
   @@index([boardId, deletedAt])
   @@index([cardId, deletedAt])
   @@index([updatedAt, id])
   @@map("user_tier_board_assets")
+}
+
+model CommunityPost {
+  id               String                        @id @default(uuid())
+  authorId         String
+  catalogTitleId   String?
+  body             String                        @db.Text
+  category         CommunityBoardCategory        @default(free)
+  commentCount     Int                           @default(0)
+  spoiler          Boolean                       @default(false)
+  workTitle        String                        @default("")
+  workType         WorkType?
+  workThumbnailUrl String                        @default("") @db.Text
+  reactionCount    Int                           @default(0)
+  surface          CommunityPostSurface          @default(reflection)
+  status           CommunityPostStatus           @default(published)
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+  deletedAt        DateTime?
+  hiddenAt         DateTime?
+  author           User                          @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  catalogTitle     CatalogTitle?                 @relation(fields: [catalogTitleId], references: [id], onDelete: SetNull)
+  reactions        CommunityReaction[]
+  comments         CommunityComment[]
+  reports          CommunityReport[]
+  moderationLogs   CommunityModerationAuditLog[]
+
+  @@index([surface, status, createdAt, id])
+  @@index([surface, status, reactionCount(sort: Desc), createdAt(sort: Desc), id(sort: Desc)])
+  @@index([authorId, surface, status, createdAt])
+  @@index([surface, category, status, createdAt, id])
+  @@index([catalogTitleId, surface, status, createdAt, id])
+  @@map("community_posts")
+}
+
+model UserCommunityProfile {
+  id                      String                     @id @default(uuid())
+  userId                  String                     @unique
+  visibility              CommunityProfileVisibility @default(private)
+  bio                     String                     @default("") @db.Text
+  favoriteGenres          String[]                   @default([])
+  favoriteCatalogTitleIds String[]                   @default([])
+  showTasteSummary        Boolean                    @default(false)
+  showRatings             Boolean                    @default(false)
+  showReviews             Boolean                    @default(false)
+  showBoardPosts          Boolean                    @default(false)
+  showFollowers           Boolean                    @default(false)
+  allowFollowers          Boolean                    @default(true)
+  notifyInCommunity       Boolean                    @default(true)
+  notifyGlobalBadge       Boolean                    @default(false)
+  notifyBrowser           Boolean                    @default(false)
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  user                    User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([visibility, updatedAt])
+  @@map("user_community_profiles")
+}
+
+model CommunityReview {
+  id             String              @id @default(uuid())
+  authorId       String
+  catalogTitleId String
+  rating         Float?
+  body           String              @default("") @db.Text
+  spoiler        Boolean             @default(false)
+  reactionCount  Int                 @default(0)
+  commentCount   Int                 @default(0)
+  status         CommunityPostStatus @default(published)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  deletedAt      DateTime?
+  hiddenAt       DateTime?
+  author         User                @relation("CommunityReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  catalogTitle   CatalogTitle        @relation(fields: [catalogTitleId], references: [id], onDelete: Cascade)
+  reactions      CommunityReviewReaction[]
+  comments       CommunityComment[]
+  reports        CommunityReport[]
+  moderationLogs CommunityModerationAuditLog[]
+
+  @@unique([authorId, catalogTitleId])
+  @@index([catalogTitleId, status, createdAt, id])
+  @@index([status, reactionCount(sort: Desc), createdAt(sort: Desc), id(sort: Desc)])
+  @@index([authorId, status, createdAt, id])
+  @@map("community_reviews")
+}
+
+model CommunityReviewReaction {
+  id        String          @id @default(uuid())
+  reviewId  String
+  userId    String
+  createdAt DateTime        @default(now())
+  review    CommunityReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([userId, createdAt])
+  @@map("community_review_reactions")
+}
+
+model CommunityComment {
+  id            String              @id @default(uuid())
+  authorId      String
+  postId        String?
+  reviewId      String?
+  parentId      String?
+  body          String              @db.Text
+  spoiler       Boolean             @default(false)
+  reactionCount Int                 @default(0)
+  status        CommunityPostStatus @default(published)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  deletedAt     DateTime?
+  author        User                @relation("CommunityCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  post          CommunityPost?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  review        CommunityReview?    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  parent        CommunityComment?   @relation("CommunityCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       CommunityComment[]  @relation("CommunityCommentReplies")
+  reactions     CommunityCommentReaction[]
+  reports       CommunityReport[]
+  moderationLogs CommunityModerationAuditLog[]
+
+  @@index([postId, status, createdAt, id])
+  @@index([reviewId, status, createdAt, id])
+  @@index([parentId, status, createdAt, id])
+  @@index([authorId, status, createdAt, id])
+  @@map("community_comments")
+}
+
+model CommunityCommentReaction {
+  id        String           @id @default(uuid())
+  commentId String
+  userId    String
+  createdAt DateTime         @default(now())
+  comment   CommunityComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([userId, createdAt])
+  @@map("community_comment_reactions")
+}
+
+model CommunityFollow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("CommunityFollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("CommunityFollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId, createdAt])
+  @@map("community_follows")
+}
+
+model CommunityNotification {
+  id          String                    @id @default(uuid())
+  recipientId String
+  actorId     String?
+  type        CommunityNotificationType
+  targetType  String
+  targetId    String
+  createdAt   DateTime                  @default(now())
+  readAt      DateTime?
+  recipient   User                      @relation("CommunityNotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User?                     @relation("CommunityNotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, readAt, createdAt])
+  @@index([targetType, targetId])
+  @@map("community_notifications")
+}
+
+model CommunityReaction {
+  id        String        @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime      @default(now())
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, createdAt])
+  @@map("community_reactions")
+}
+
+model CommunityReport {
+  id             String                        @id @default(uuid())
+  postId         String?
+  reviewId       String?
+  commentId      String?
+  reporterId     String
+  moderatorId    String?
+  reason         CommunityReportReason
+  detail         String                        @default("") @db.Text
+  status         CommunityReportStatus         @default(pending)
+  moderatorNote  String                        @default("") @db.Text
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+  resolvedAt     DateTime?
+  post           CommunityPost?                @relation(fields: [postId], references: [id], onDelete: Cascade)
+  review         CommunityReview?              @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  comment        CommunityComment?             @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter       User                          @relation("CommunityReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  moderator      User?                         @relation("CommunityReportModerator", fields: [moderatorId], references: [id], onDelete: SetNull)
+  moderationLogs CommunityModerationAuditLog[]
+
+  @@unique([postId, reporterId])
+  @@unique([reviewId, reporterId])
+  @@unique([commentId, reporterId])
+  @@index([status, createdAt])
+  @@index([moderatorId, resolvedAt])
+  @@map("community_reports")
+}
+
+model CommunityModerationAuditLog {
+  id        String                    @id @default(uuid())
+  actorId   String?
+  postId    String?
+  reviewId  String?
+  commentId String?
+  reportId  String?
+  action    CommunityModerationAction
+  note      String                    @default("") @db.Text
+  createdAt DateTime                  @default(now())
+  actor     User?                     @relation("CommunityModerationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  post      CommunityPost?            @relation(fields: [postId], references: [id], onDelete: SetNull)
+  review    CommunityReview?          @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  comment   CommunityComment?         @relation(fields: [commentId], references: [id], onDelete: SetNull)
+  report    CommunityReport?          @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([postId, createdAt])
+  @@index([reviewId, createdAt])
+  @@index([commentId, createdAt])
+  @@index([reportId, createdAt])
+  @@map("community_moderation_audit_logs")
 }
 
 model ExternalApiCredential {

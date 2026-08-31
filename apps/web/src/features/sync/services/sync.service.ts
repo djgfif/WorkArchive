@@ -8,6 +8,10 @@ import {
   type TimelineEntriesRepository,
   type WorksRepository,
 } from '@features/works/data';
+import {
+  getWorkArchiveDb,
+  type WorkArchiveDatabase,
+} from '@features/works/storage';
 import { appI18n } from '@app/i18n';
 import {
   tierBoardRepository,
@@ -22,6 +26,7 @@ import {
   type SyncQueueRepository,
 } from './sync-queue.repository';
 import { SyncAutoMergeService } from './sync-auto-merge.service';
+import { SyncConflictRecoveryService } from './sync-conflict-recovery.service';
 import { SyncConflictResolutionService } from './sync-conflict-resolution.service';
 import { SyncLeaseService } from './sync-lease.service';
 import { SyncPullService, type PullCycleResult } from './sync-pull.service';
@@ -46,6 +51,7 @@ export interface ManualSyncResult {
 
 export class SyncService {
   private readonly conflictService: SyncConflictResolutionService;
+  private readonly conflictRecoveryService: SyncConflictRecoveryService;
   private readonly pullService: SyncPullService;
   private readonly pushService: SyncPushService;
 
@@ -57,6 +63,7 @@ export class SyncService {
     timelineEntriesRepo: TimelineEntriesRepository = timelineEntriesRepository,
     graphRepo: GraphRepository = graphRepository,
     tierBoardRepo: TierBoardRepository = tierBoardRepository,
+    getDb: () => WorkArchiveDatabase = getWorkArchiveDb,
   ) {
     const leaseService = new SyncLeaseService(metaRepo);
     const stalePolicyService = new SyncStalePolicyService(metaRepo);
@@ -70,6 +77,16 @@ export class SyncService {
       graphRepo,
       tierBoardRepo,
     );
+    this.conflictRecoveryService = new SyncConflictRecoveryService(
+      this.conflictService,
+      queueRepo,
+      worksRepo,
+      releaseRecordsRepo,
+      timelineEntriesRepo,
+      graphRepo,
+      tierBoardRepo,
+      getDb,
+    );
     this.pullService = new SyncPullService(
       worksRepo,
       releaseRecordsRepo,
@@ -82,6 +99,7 @@ export class SyncService {
       stalePolicyService,
       autoMergeService,
       this.conflictService,
+      getDb,
     );
     this.pushService = new SyncPushService(
       worksRepo,
@@ -95,6 +113,7 @@ export class SyncService {
       this.pullService,
       autoMergeService,
       this.conflictService,
+      metaRepo,
     );
   }
 
@@ -142,21 +161,25 @@ export class SyncService {
   }
 
   resolveConflictWithLocal(queueItemId: string) {
-    return this.conflictService.resolveConflictWithLocal(queueItemId);
+    return this.conflictRecoveryService.resolveConflictWithLocal(queueItemId);
   }
 
   resolveConflictWithRemote(queueItemId: string) {
-    return this.conflictService.resolveConflictWithRemote(queueItemId);
+    return this.conflictRecoveryService.resolveConflictWithRemote(queueItemId);
   }
 
   resolveConflictWithMergedFields(
     queueItemId: string,
     selectedFields: readonly string[],
   ) {
-    return this.conflictService.resolveConflictWithMergedFields(
+    return this.conflictRecoveryService.resolveConflictWithMergedFields(
       queueItemId,
       selectedFields,
     );
+  }
+
+  undoConflictResolution(queueItemId: string) {
+    return this.conflictRecoveryService.undoConflictResolution(queueItemId);
   }
 }
 

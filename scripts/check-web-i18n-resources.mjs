@@ -15,6 +15,7 @@ const localeFileNames = new Map([
   ['ja', 'ja.ts'],
   ['zh-CN', 'zh-CN.ts'],
 ]);
+const auxiliaryResourceFileNames = new Set(['community.ts']);
 
 function toRepoPath(path) {
   return relative(root, path).replaceAll('\\', '/');
@@ -45,7 +46,10 @@ function getExportedArray(sourceFile, name) {
     }
 
     for (const declaration of statement.declarationList.declarations) {
-      if (!ts.isIdentifier(declaration.name) || declaration.name.text !== name) {
+      if (
+        !ts.isIdentifier(declaration.name) ||
+        declaration.name.text !== name
+      ) {
         continue;
       }
 
@@ -81,7 +85,11 @@ function unwrapExpression(node) {
 }
 
 function getPropertyName(name) {
-  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
+  if (
+    ts.isIdentifier(name) ||
+    ts.isStringLiteral(name) ||
+    ts.isNumericLiteral(name)
+  ) {
     return name.text;
   }
 
@@ -116,6 +124,25 @@ function getExportedResourceObject(path) {
   throw new Error(`${toRepoPath(path)} must export a resource object literal.`);
 }
 
+function getObjectProperty(object, name) {
+  for (const property of object.properties) {
+    if (
+      !ts.isPropertyAssignment(property) ||
+      getPropertyName(property.name) !== name
+    ) {
+      continue;
+    }
+
+    const value = unwrapExpression(property.initializer);
+
+    if (value && ts.isObjectLiteralExpression(value)) {
+      return value;
+    }
+  }
+
+  throw new Error(`Expected object property ${name}.`);
+}
+
 function collectShape(node, prefix = '') {
   const shape = new Map();
 
@@ -131,7 +158,10 @@ function collectShape(node, prefix = '') {
       return;
     }
 
-    if (ts.isStringLiteral(unwrapped) || ts.isNoSubstitutionTemplateLiteral(unwrapped)) {
+    if (
+      ts.isStringLiteral(unwrapped) ||
+      ts.isNoSubstitutionTemplateLiteral(unwrapped)
+    ) {
       add(path, 'string');
       return;
     }
@@ -220,7 +250,10 @@ function collectStrings(node, prefix = '') {
       return;
     }
 
-    if (ts.isStringLiteral(unwrapped) || ts.isNoSubstitutionTemplateLiteral(unwrapped)) {
+    if (
+      ts.isStringLiteral(unwrapped) ||
+      ts.isNoSubstitutionTemplateLiteral(unwrapped)
+    ) {
       add(path, unwrapped.text);
       return;
     }
@@ -245,7 +278,10 @@ function collectStrings(node, prefix = '') {
         const unwrappedElement = unwrapExpression(element);
         const arrayPath = `${path}[${index}]`;
 
-        if (unwrappedElement && ts.isObjectLiteralExpression(unwrappedElement)) {
+        if (
+          unwrappedElement &&
+          ts.isObjectLiteralExpression(unwrappedElement)
+        ) {
           visit(unwrappedElement, `${path}[]`);
           return;
         }
@@ -283,7 +319,9 @@ function compareStringContracts(locale, baselineStrings, localeStrings) {
     const baselineInterpolation = collectInterpolationNames(baselineValue);
     const localizedInterpolation = collectInterpolationNames(localizedValue);
 
-    if (baselineInterpolation.join('\0') !== localizedInterpolation.join('\0')) {
+    if (
+      baselineInterpolation.join('\0') !== localizedInterpolation.join('\0')
+    ) {
       findings.push(
         `${locale}: interpolation mismatch at ${path}; expected {${baselineInterpolation.join(
           ', ',
@@ -296,7 +334,9 @@ function compareStringContracts(locale, baselineStrings, localeStrings) {
 }
 
 function sortedEntries(map) {
-  return [...map.entries()].sort(([left], [right]) => left.localeCompare(right));
+  return [...map.entries()].sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
 }
 
 function compareShape(locale, baselineShape, localeShape) {
@@ -311,7 +351,9 @@ function compareShape(locale, baselineShape, localeShape) {
     }
 
     if (actualKind !== kind) {
-      findings.push(`${locale}: key ${path} has ${actualKind}, expected ${kind}`);
+      findings.push(
+        `${locale}: key ${path} has ${actualKind}, expected ${kind}`,
+      );
     }
   }
 
@@ -338,10 +380,16 @@ const resourceLocales = new Map();
 const findings = [];
 
 for (const file of resourceFiles) {
+  if (auxiliaryResourceFileNames.has(file)) {
+    continue;
+  }
+
   const locale = localeByFile.get(file);
 
   if (!locale) {
-    findings.push(`Unexpected resource file apps/web/src/app/i18n/resources/${file}`);
+    findings.push(
+      `Unexpected resource file apps/web/src/app/i18n/resources/${file}`,
+    );
     continue;
   }
 
@@ -355,7 +403,9 @@ for (const file of resourceFiles) {
 
 for (const locale of enabledLocales) {
   if (!resourceLocales.has(locale)) {
-    findings.push(`${locale}: enabled locale is missing ${localeFileNames.get(locale)}`);
+    findings.push(
+      `${locale}: enabled locale is missing ${localeFileNames.get(locale)}`,
+    );
   }
 }
 
@@ -376,9 +426,35 @@ if (!baselinePath) {
     const localeObject = getExportedResourceObject(path);
     findings.push(
       ...compareShape(locale, baselineShape, collectShape(localeObject)),
-      ...compareStringContracts(locale, baselineStrings, collectStrings(localeObject)),
+      ...compareStringContracts(
+        locale,
+        baselineStrings,
+        collectStrings(localeObject),
+      ),
     );
   }
+}
+
+const communityResourcePath = resolve(resourcesDir, 'community.ts');
+const communityObject = getExportedResourceObject(communityResourcePath);
+const communityBaselineObject = getObjectProperty(communityObject, 'ko');
+const communityBaselineShape = collectShape(communityBaselineObject);
+const communityBaselineStrings = collectStrings(communityBaselineObject);
+
+for (const [locale, property] of [
+  ['en', 'en'],
+  ['ja', 'ja'],
+  ['zh-CN', 'zhCN'],
+]) {
+  const localeObject = getObjectProperty(communityObject, property);
+  findings.push(
+    ...compareShape(locale, communityBaselineShape, collectShape(localeObject)),
+    ...compareStringContracts(
+      locale,
+      communityBaselineStrings,
+      collectStrings(localeObject),
+    ),
+  );
 }
 
 if (findings.length > 0) {

@@ -94,7 +94,7 @@ requireIncludes(secureSdlcPath, secureSdlc, 'owner');
 requireIncludes(secureSdlcPath, secureSdlc, 'expiry');
 
 requireIncludes(packagePath, packageJson, '"multer": "2.2.0"');
-requireIncludes(packagePath, packageJson, '"js-yaml": "5.1.0"');
+requireIncludes(packagePath, packageJson, '"js-yaml": "5.4.0"');
 requirePattern(
   packageLockPath,
   packageLock,
@@ -104,18 +104,18 @@ requirePattern(
 requirePattern(
   packageLockPath,
   packageLock,
-  /"node_modules\/js-yaml":\s*\{\s*"version":\s*"5\.1\.0"/,
-  'package-lock.json must resolve node_modules/js-yaml to 5.1.0.',
+  /"node_modules\/js-yaml":\s*\{\s*"version":\s*"5\.4\.0"/,
+  'package-lock.json must resolve node_modules/js-yaml to 5.4.0.',
 );
 requirePattern(
   packageLockPath,
   packageLock,
-  /"node_modules\/undici":\s*\{\s*"version":\s*"7\.28\.0"/,
-  'package-lock.json must resolve node_modules/undici to 7.28.0.',
+  /"node_modules\/undici":\s*\{\s*"version":\s*"7\.29\.0"/,
+  'package-lock.json must resolve node_modules/undici to 7.29.0.',
 );
 requireIncludes(scanResultsPath, scanResults, 'multer@2.2.0');
-requireIncludes(scanResultsPath, scanResults, 'undici@7.28.0');
-requireIncludes(scanResultsPath, scanResults, 'js-yaml@5.1.0');
+requireIncludes(scanResultsPath, scanResults, 'undici@7.29.0');
+requireIncludes(scanResultsPath, scanResults, 'js-yaml@5.4.0');
 requireIncludes(scanResultsPath, scanResults, 'found 0 vulnerabilities');
 requireIncludes(scanResultsPath, scanResults, 'public beta release status: high gate passed');
 

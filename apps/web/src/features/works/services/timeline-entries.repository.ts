@@ -1,6 +1,7 @@
 import Dexie from 'dexie';
 import type {
   TimelineEntryRecord,
+  TimelineEntrySource,
   TimelineEntryType,
 } from '@work-archive/shared-types';
 
@@ -16,10 +17,50 @@ export interface CreateTimelineEntryInput {
   type: TimelineEntryType;
   occurredAt: string;
   note: string;
+  source?: TimelineEntrySource;
+}
+
+function normalizeTimelineEntry(entry: TimelineEntryRecord) {
+  return {
+    ...entry,
+    source: entry.source ?? 'manual',
+  } satisfies TimelineEntryRecord;
 }
 
 export class TimelineEntriesRepository {
   constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
+
+  async getLatestActiveForWorkIdsBefore(
+    workIds: ReadonlySet<string>,
+    occurredAtExclusive: string,
+  ) {
+    if (workIds.size === 0) {
+      return null;
+    }
+
+    const entry = await this.getDb()
+      .timelineEntries.where('occurredAt')
+      .below(occurredAtExclusive)
+      .reverse()
+      .filter(
+        (candidate) =>
+          candidate.deletedAt === null && workIds.has(candidate.workId),
+      )
+      .first();
+
+    return entry ? normalizeTimelineEntry(entry) : null;
+  }
+
+  async listActiveSince(occurredAtInclusive: string) {
+    const entries = await this.getDb()
+      .timelineEntries.where('occurredAt')
+      .aboveOrEqual(occurredAtInclusive)
+      .toArray();
+
+    return entries
+      .filter((entry) => entry.deletedAt === null)
+      .map(normalizeTimelineEntry);
+  }
 
   async listByWorkId(workId: string) {
     const entries = await this.getDb()
@@ -28,11 +69,25 @@ export class TimelineEntriesRepository {
       .reverse()
       .toArray();
 
-    return entries.filter((entry) => entry.deletedAt === null);
+    return entries
+      .filter((entry) => entry.deletedAt === null)
+      .map(normalizeTimelineEntry);
+  }
+
+  async listActiveByType(type: TimelineEntryType) {
+    const entries = await this.getDb()
+      .timelineEntries.where('type')
+      .equals(type)
+      .toArray();
+
+    return entries
+      .filter((entry) => entry.deletedAt === null)
+      .map(normalizeTimelineEntry);
   }
 
   async getById(id: string) {
-    return (await this.getDb().timelineEntries.get(id)) ?? null;
+    const entry = await this.getDb().timelineEntries.get(id);
+    return entry ? normalizeTimelineEntry(entry) : null;
   }
 
   async create(input: CreateTimelineEntryInput) {
@@ -46,6 +101,7 @@ export class TimelineEntriesRepository {
       serverVersion: 0,
       syncStatus: 'local-only',
       type: input.type,
+      source: input.source ?? 'manual',
       updatedAt: now,
       workId: input.workId,
     };

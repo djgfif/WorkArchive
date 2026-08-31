@@ -1,4 +1,11 @@
-import { Checkbox, Group, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import {
+  Checkbox,
+  Group,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
 import type { ChangeEvent } from 'react';
 import { useRef, useState } from 'react';
 
@@ -10,6 +17,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import { downloadBlob } from '@shared/utils/download-file';
 import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import {
   externalRecordsImportService,
@@ -120,7 +128,9 @@ export function ExternalImportSettingsSection() {
 
           return enriched.entries;
         }),
-      t('settings.externalImport.mal.sourceDescription', { fileName: file.name }),
+      t('settings.externalImport.mal.sourceDescription', {
+        fileName: file.name,
+      }),
     );
   }
 
@@ -136,22 +146,21 @@ export function ExternalImportSettingsSection() {
 
     await loadEntries(
       Promise.resolve().then(() => parseRecordsCsv(csvText)),
-      t('settings.externalImport.csv.sourceDescription', { fileName: file.name }),
+      t('settings.externalImport.csv.sourceDescription', {
+        fileName: file.name,
+      }),
     );
   }
 
   function handleDownloadCsvTemplate() {
     // BOM을 붙여야 Excel이 UTF-8 한글을 올바르게 연다.
-    const blob = new Blob([String.fromCharCode(0xfeff), createCsvImportTemplate()], {
-      type: 'text/csv;charset=utf-8',
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-
-    anchor.href = url;
-    anchor.download = 'work-archive-import-template.csv';
-    anchor.click();
-    URL.revokeObjectURL(url);
+    const blob = new Blob(
+      [String.fromCharCode(0xfeff), createCsvImportTemplate()],
+      {
+        type: 'text/csv;charset=utf-8',
+      },
+    );
+    downloadBlob('work-archive-import-template.csv', blob);
   }
 
   async function handleImport() {
@@ -195,8 +204,9 @@ export function ExternalImportSettingsSection() {
   }
 
   const previewTypeBadges = loaded
-    ? formatCountEntries(loaded.preview.typeCounts, (value) =>
-        getWorkTypeLabel(value as WorkType),
+    ? formatCountEntries(
+        loaded.preview.typeCounts,
+        (value) => getWorkTypeLabel(value as WorkType),
         (label, count) =>
           t('settings.externalImport.countLabel', {
             count: formatCount(count),
@@ -205,8 +215,9 @@ export function ExternalImportSettingsSection() {
       )
     : [];
   const previewStatusBadges = loaded
-    ? formatCountEntries(loaded.preview.statusCounts, (value) =>
-        getWorkStatusLabel(value as WorkStatus),
+    ? formatCountEntries(
+        loaded.preview.statusCounts,
+        (value) => getWorkStatusLabel(value as WorkStatus),
         (label, count) =>
           t('settings.externalImport.countLabel', {
             count: formatCount(count),
@@ -239,7 +250,9 @@ export function ExternalImportSettingsSection() {
           <Group align="flex-end" gap="sm" wrap="wrap">
             <TextInput
               label={t('settings.externalImport.aniList.userName')}
-              onChange={(event) => setAniListUserName(event.currentTarget.value)}
+              onChange={(event) =>
+                setAniListUserName(event.currentTarget.value)
+              }
               placeholder={t('settings.externalImport.aniList.placeholder')}
               style={{ flex: 1, minWidth: '12rem' }}
               value={aniListUserName}
@@ -372,7 +385,9 @@ export function ExternalImportSettingsSection() {
                 count: formatCount(loaded.preview.newCount),
               })}
             </AppBadge>
-            <AppBadge tone={loaded.preview.duplicateCount > 0 ? 'warning' : 'muted'}>
+            <AppBadge
+              tone={loaded.preview.duplicateCount > 0 ? 'warning' : 'muted'}
+            >
               {t('settings.externalImport.previewDuplicates', {
                 count: formatCount(loaded.preview.duplicateCount),
               })}

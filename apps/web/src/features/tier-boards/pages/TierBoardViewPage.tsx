@@ -12,10 +12,12 @@ import {
 } from '@shared/components/AppPrimitives';
 import { useAppTranslation } from '@app/i18n';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { downloadUrl } from '@shared/utils/download-file';
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 import { tierBoardService } from '../services/tier-board.service';
 import styles from './TierBoardsPage.module.css';
 import { cn } from '@shared/utils/class-names';
+import { CardImage } from '../components/TierBoardCanvas';
 
 const css = styles;
 
@@ -47,16 +49,14 @@ export function TierBoardViewPage() {
         cacheBust: true,
         pixelRatio: 2,
       });
-      const link = document.createElement('a');
-      link.download = t('tierBoards.viewExportFileName', {
-        title: state?.board.title ?? 'tier-board',
-      });
-      link.href = dataUrl;
-      link.click();
-    } catch {
-      setExportError(
-        t('tierBoards.viewExportError'),
+      downloadUrl(
+        t('tierBoards.viewExportFileName', {
+          title: state?.board.title ?? 'tier-board',
+        }),
+        dataUrl,
       );
+    } catch {
+      setExportError(t('tierBoards.viewExportError'));
     } finally {
       setExporting(false);
     }
@@ -94,9 +94,7 @@ export function TierBoardViewPage() {
 
   if (!boardId || !state) {
     return (
-      <FeedbackMessage tone="info">
-        {t('tierBoards.loading')}
-      </FeedbackMessage>
+      <FeedbackMessage tone="info">{t('tierBoards.loading')}</FeedbackMessage>
     );
   }
 
@@ -167,20 +165,7 @@ export function TierBoardViewPage() {
                       key={card.id}
                       withBorder
                     >
-                      {imageUrl ? (
-                        <img
-                          alt={card.title}
-                          className={cn(css.itemImage)}
-                          crossOrigin="anonymous"
-                          src={imageUrl}
-                        />
-                      ) : (
-                        <Box className={cn(css.itemFallback)}>
-                          <Text fw={800}>
-                            {card.title.slice(0, 1).toUpperCase()}
-                          </Text>
-                        </Box>
-                      )}
+                      <CardImage imageUrl={imageUrl} title={card.title} />
                       <Stack gap={4} p="xs">
                         <Text fw={700} lineClamp={2} size="sm">
                           {card.title}

@@ -115,6 +115,11 @@ requireIncludes(servicePath, service, 'pickFields(');
 requireIncludes(servicePath, service, 'securityEvent.updateMany');
 requireIncludes(servicePath, service, 'catalogSubmission.updateMany');
 requireIncludes(servicePath, service, 'catalogAuditLog.updateMany');
+requireIncludes(servicePath, service, 'communityReport.updateMany');
+requireIncludes(servicePath, service, 'communityModerationAuditLog.updateMany');
+requireIncludes(servicePath, service, 'communityPost.findMany');
+requireIncludes(servicePath, service, 'communityReaction.findMany');
+requireIncludes(servicePath, service, 'communityReport.findMany');
 requireIncludes(servicePath, service, 'recordUserDataRights');
 requireIncludes(metricsPath, metrics, 'work_archive_user_data_rights_total');
 requireIncludes(metricsPath, metrics, 'operation');
@@ -197,7 +202,11 @@ requireIncludes(
   serviceTest,
   '"(encryptedKey|authTag|iv|tokenHash|previousTokenHash|ipHash|userAgentHash)"',
 );
-requireIncludes(serviceTestPath, serviceTest, '"(changes|payload|result|note|reviewNote)"');
+requireIncludes(
+  serviceTestPath,
+  serviceTest,
+  '"(changes|payload|result|note|reviewNote)"',
+);
 
 for (const [path, content] of [
   [policyPath, policy],
@@ -223,10 +232,18 @@ requireIncludes(policyPath, policy, 'acknowledgeIrreversible');
 requireIncludes(policyPath, policy, 'http_400');
 requireIncludes(policyPath, policy, 'set `userId` and `sessionId` to `null`');
 requireIncludes(policyPath, policy, 'Do not use database dumps');
-requireIncludes(policyPath, policy, 'service execution failures are counted by `AuthService`');
+requireIncludes(
+  policyPath,
+  policy,
+  'service execution failures are counted by `AuthService`',
+);
 requireIncludes(policyPath, policy, 'sync mutation result payloads');
 requireIncludes(policyPath, policy, 'Notion preview change payloads');
 requireIncludes(policyPath, policy, 'catalog submission payloads and notes');
+requireIncludes(policyPath, policy, 'community posts authored by the user');
+requireIncludes(policyPath, policy, '`moderatorId` to `null`');
+requireIncludes(policyPath, policy, 'Community moderation audit logs keep');
+requireIncludes(policyPath, policy, '`actorId`');
 requireIncludes(policyPath, policy, 'npm run qa:user-data-rights-smoke');
 requireIncludes(policyPath, policy, 'npm run qa:account-deletion-rehearsal');
 requireIncludes(asvsPath, asvs, 'sensitive auth operation rate limits');
@@ -253,18 +270,54 @@ requireIncludes(smokePath, smoke, 'highRiskPayloadFieldsAbsent');
 requireIncludes(smokePath, smoke, 'rowPayloadAbsent');
 requireIncludes(smokePath, smoke, 'hasHighRiskPayloadField');
 requireIncludes(smokePath, smoke, 'cacheControlNoStore');
-requireIncludes(deletionRehearsalPath, deletionRehearsal, 'ACCOUNT_DELETION_REHEARSAL_LIVE');
-requireIncludes(deletionRehearsalPath, deletionRehearsal, 'ACCOUNT_DELETION_REHEARSAL_DISPOSABLE_ACCOUNT_ACK');
-requireIncludes(deletionRehearsalPath, deletionRehearsal, 'ACCOUNT_DELETION_REHEARSAL_CONFIRM');
-requireIncludes(deletionRehearsalPath, deletionRehearsal, 'delete-disposable-account');
+requireIncludes(
+  deletionRehearsalPath,
+  deletionRehearsal,
+  'ACCOUNT_DELETION_REHEARSAL_LIVE',
+);
+requireIncludes(
+  deletionRehearsalPath,
+  deletionRehearsal,
+  'ACCOUNT_DELETION_REHEARSAL_DISPOSABLE_ACCOUNT_ACK',
+);
+requireIncludes(
+  deletionRehearsalPath,
+  deletionRehearsal,
+  'ACCOUNT_DELETION_REHEARSAL_CONFIRM',
+);
+requireIncludes(
+  deletionRehearsalPath,
+  deletionRehearsal,
+  'delete-disposable-account',
+);
 requireIncludes(deletionRehearsalPath, deletionRehearsal, "method: 'DELETE'");
-requireIncludes(deletionRehearsalPath, deletionRehearsal, "'X-Work-Archive-Client': 'web'");
-requireIncludes(deletionRehearsalPath, deletionRehearsal, 'acknowledgeIrreversible: true');
-requireIncludes(deletionRehearsalPath, deletionRehearsal, '/auth/account/deletion-preview');
+requireIncludes(
+  deletionRehearsalPath,
+  deletionRehearsal,
+  "'X-Work-Archive-Client': 'web'",
+);
+requireIncludes(
+  deletionRehearsalPath,
+  deletionRehearsal,
+  'acknowledgeIrreversible: true',
+);
+requireIncludes(
+  deletionRehearsalPath,
+  deletionRehearsal,
+  '/auth/account/deletion-preview',
+);
 requireIncludes(deletionRehearsalPath, deletionRehearsal, '/auth/account');
 requireIncludes(deletionRehearsalPath, deletionRehearsal, '/auth/data-export');
-requireIncludes(deletionRehearsalPath, deletionRehearsal, 'expectedStatuses: [401]');
-requireIncludes(deletionRehearsalPath, deletionRehearsal, 'Live mode is destructive');
+requireIncludes(
+  deletionRehearsalPath,
+  deletionRehearsal,
+  'expectedStatuses: [401]',
+);
+requireIncludes(
+  deletionRehearsalPath,
+  deletionRehearsal,
+  'Live mode is destructive',
+);
 
 requirePattern(
   packagePath,

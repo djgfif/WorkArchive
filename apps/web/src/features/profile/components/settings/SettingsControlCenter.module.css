@@ -1,16 +1,12 @@
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--mantine-spacing-lg);
   align-items: start;
 }
 
-.sideNav {
-  position: sticky;
-  top: 5.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+.sectionNav {
+  min-width: 0;
 }
 
 .navGroups {
@@ -43,7 +39,13 @@
   gap: 0.5rem;
   overflow-x: auto;
   padding-bottom: 0.2rem;
-  scrollbar-width: thin;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: inline proximity;
+  scrollbar-width: none;
+}
+
+.mobileNav::-webkit-scrollbar {
+  display: none;
 }
 
 .navLink {
@@ -69,6 +71,51 @@
     border-color var(--wa-motion-fast);
 }
 
+.primaryNavList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.primaryNavList .navLink {
+  justify-content: center;
+  text-align: center;
+}
+
+.advancedNav {
+  border-top: 1px solid var(--app-border-subtle);
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+}
+
+.advancedNav > summary {
+  color: var(--app-text-muted);
+  cursor: pointer;
+  font-size: var(--app-type-caption);
+  font-weight: 800;
+  list-style: none;
+  padding: 0.65rem 0.8rem;
+}
+
+.advancedNav > summary::-webkit-details-marker {
+  display: none;
+}
+
+.advancedNav > summary::after {
+  content: ' +';
+}
+
+.advancedNav[open] > summary::after {
+  content: ' −';
+}
+
+.advancedNavList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.35rem;
+  padding-top: 0.35rem;
+}
+
 .navLink:hover,
 .navLink:focus-visible {
   color: var(--app-text-primary);
@@ -80,7 +127,11 @@
 .navLink[aria-current='location'] {
   color: var(--app-text-primary);
   background: color-mix(in srgb, var(--app-accent-primary) 14%, transparent);
-  border-color: color-mix(in srgb, var(--app-accent-primary) 50%, var(--app-border-default));
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-primary) 50%,
+    var(--app-border-default)
+  );
 }
 
 .mobileNav .navLink {
@@ -89,6 +140,7 @@
   border-color: var(--app-border-subtle);
   border-radius: 999px;
   background: var(--app-surface-card);
+  scroll-snap-align: start;
 }
 
 .content {
@@ -241,8 +293,16 @@
 }
 
 .keyProviderButtonActive {
-  border-color: color-mix(in srgb, var(--app-accent-primary) 56%, var(--app-border-default));
-  background: color-mix(in srgb, var(--app-accent-primary) 13%, var(--app-surface-card));
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-primary) 56%,
+    var(--app-border-default)
+  );
+  background: color-mix(
+    in srgb,
+    var(--app-accent-primary) 13%,
+    var(--app-surface-card)
+  );
 }
 
 .keyProviderTitle,
@@ -360,9 +420,89 @@
   display: grid;
   gap: 0.35rem;
   padding: 0.9rem;
-  border: 1px solid color-mix(in srgb, var(--app-accent-teal) 30%, var(--app-border-subtle));
+  border: 1px solid
+    color-mix(in srgb, var(--app-accent-teal) 30%, var(--app-border-subtle));
   border-radius: var(--mantine-radius-md);
   background: color-mix(in srgb, var(--app-accent-teal) 8%, transparent);
+}
+
+.archiveHealthSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--mantine-spacing-sm);
+}
+
+.archiveHealthSummaryCard {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+  padding: 0.9rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-subtle);
+}
+
+.archiveHealthIssueCard {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-bg-elevated) 58%, transparent);
+}
+
+.archiveHealthIssueList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.archiveHealthIssue {
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border-inline-start: 0.2rem solid
+    color-mix(in srgb, var(--app-accent-primary) 42%, var(--app-border-default));
+  border-radius: 0 var(--mantine-radius-sm) var(--mantine-radius-sm) 0;
+  background: var(--app-surface-subtle);
+}
+
+.archiveHealthSafeFixRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.archiveHealthHistoryPanel {
+  padding: 1rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(
+    in srgb,
+    var(--app-accent-primary) 4%,
+    var(--app-surface-subtle)
+  );
+}
+
+.archiveHealthHistoryItem {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--app-bg-elevated);
+}
+
+@media (max-width: 36em) {
+  .archiveHealthSafeFixRow,
+  .archiveHealthHistoryItem {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 
 .duplicateGroupCard {
@@ -400,13 +540,22 @@
 }
 
 .duplicateWorkCardTarget {
-  border-color: color-mix(in srgb, var(--app-accent-primary) 54%, var(--app-border-default));
-  background: color-mix(in srgb, var(--app-accent-primary) 10%, var(--app-surface-card));
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-primary) 54%,
+    var(--app-border-default)
+  );
+  background: color-mix(
+    in srgb,
+    var(--app-accent-primary) 10%,
+    var(--app-surface-card)
+  );
 }
 
 .duplicateMergeSummary {
   padding: 0.8rem;
-  border: 1px solid color-mix(in srgb, var(--app-accent-teal) 32%, var(--app-border-subtle));
+  border: 1px solid
+    color-mix(in srgb, var(--app-accent-teal) 32%, var(--app-border-subtle));
   border-radius: var(--mantine-radius-md);
   background: color-mix(in srgb, var(--app-accent-teal) 8%, transparent);
 }
@@ -419,7 +568,8 @@
   justify-content: space-between;
   gap: var(--mantine-spacing-md);
   padding: var(--mantine-spacing-lg);
-  border: 1px dashed color-mix(in srgb, var(--app-accent-primary) 42%, var(--app-border-default));
+  border: 1px dashed
+    color-mix(in srgb, var(--app-accent-primary) 42%, var(--app-border-default));
   border-radius: var(--mantine-radius-lg);
   background: var(--app-surface-subtle);
   transition:
@@ -443,24 +593,50 @@
   clip-path: inset(50%);
 }
 
+.backupPrimaryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-sm);
+}
+
+.backupOptions,
+.advancedDataSafety {
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-subtle);
+  padding: 0 var(--mantine-spacing-md) var(--mantine-spacing-md);
+}
+
+.backupOptions > summary,
+.advancedDataSafety > summary {
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  font-size: var(--app-type-caption);
+  font-weight: 800;
+  list-style: none;
+  margin: 0 calc(var(--mantine-spacing-md) * -1);
+  padding: var(--mantine-spacing-md);
+}
+
+.backupOptions > summary::-webkit-details-marker,
+.advancedDataSafety > summary::-webkit-details-marker {
+  display: none;
+}
+
 .dangerCard {
-  border-color: color-mix(in srgb, var(--mantine-color-red-6) 42%, var(--app-border-subtle));
-  background: color-mix(in srgb, var(--mantine-color-red-6) 6%, var(--app-surface-card));
+  border-color: color-mix(
+    in srgb,
+    var(--mantine-color-red-6) 42%,
+    var(--app-border-subtle)
+  );
+  background: color-mix(
+    in srgb,
+    var(--mantine-color-red-6) 6%,
+    var(--app-surface-card)
+  );
 }
 
 @media (max-width: 62em) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-
-  .sideNav {
-    display: none;
-  }
-
-  .mobileNav {
-    display: flex;
-  }
-
   .twoColumnPanel {
     grid-template-columns: 1fr;
   }
@@ -475,6 +651,16 @@
 }
 
 @media (max-width: 40em) {
+  .pageBackAction,
+  .primaryNavList .navLink,
+  .advancedNav > summary {
+    min-height: 2.75rem;
+  }
+
+  .primaryNavList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .fileDropzone {
     align-items: stretch;
     flex-direction: column;
@@ -489,5 +675,85 @@
 
   .sectionPanel {
     animation: none;
+  }
+}
+
+.recoveryList {
+  display: grid;
+  gap: var(--mantine-spacing-sm);
+}
+
+.recoveryItem {
+  padding: 0.75rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-surface-muted) 62%, transparent);
+}
+
+.syncConflictList {
+  display: grid;
+  gap: var(--mantine-spacing-md);
+}
+
+.mergeFieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 0.55rem 0.85rem;
+  margin-top: 0.55rem;
+}
+
+.mergeSelectionSummary {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-surface-muted) 72%, transparent);
+}
+
+.mergeDeletionWarning {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-card);
+  color: var(--app-text-primary);
+}
+
+.conflictDiffTable {
+  overflow: hidden;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-card);
+}
+
+.conflictDiffHeader,
+.conflictDiffRow {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.75fr) repeat(2, minmax(0, 1fr));
+  gap: var(--mantine-spacing-sm);
+  padding: 0.65rem 0.75rem;
+}
+
+.conflictDiffHeader {
+  background: var(--app-surface-muted);
+  color: var(--app-text-secondary);
+}
+
+.conflictDiffRow + .conflictDiffRow {
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.conflictDiffRow > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 48rem) {
+  .conflictDiffHeader,
+  .conflictDiffRow {
+    grid-template-columns: minmax(5.5rem, 0.65fr) repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding-inline: 0.55rem;
   }
 }

@@ -17,7 +17,9 @@ function isBrowserOffline() {
 }
 
 function isDocumentHidden() {
-  return typeof document !== 'undefined' && document.visibilityState === 'hidden';
+  return (
+    typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  );
 }
 
 interface UseAutoSyncOptions {
@@ -35,10 +37,14 @@ export function useAutoSync({
   queueRepository = syncQueueRepository,
   service = syncService,
 }: UseAutoSyncOptions = {}) {
-  const { archiveScopeKey, isLoading, mode } = useAuthSession();
+  const { archiveScopeKey, isLoading, mode, sessionStatus } = useAuthSession();
   const activeScopeRef = useRef(archiveScopeKey);
+  const activePullRef = useRef<{
+    promise: Promise<void>;
+    scopeKey: string;
+  } | null>(null);
   const isPushRunningRef = useRef(false);
-  const isPullRunningRef = useRef(false);
+  const isPushRequestedRef = useRef(false);
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pullTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPullAttemptAtRef = useRef(0);
@@ -47,7 +53,11 @@ export function useAutoSync({
   activeScopeRef.current = archiveScopeKey;
 
   useEffect(() => {
-    if (isLoading || mode !== 'authenticated') {
+    if (
+      isLoading ||
+      mode !== 'authenticated' ||
+      sessionStatus !== 'authenticated'
+    ) {
       return undefined;
     }
 
@@ -62,10 +72,25 @@ export function useAutoSync({
     }
 
     async function runPull() {
+      const activePull = activePullRef.current;
+
+      if (activePull) {
+        await activePull.promise;
+
+        if (
+          activePull.scopeKey !== scopeKey &&
+          !isDisposed &&
+          activeScopeRef.current === scopeKey
+        ) {
+          await runPull();
+        }
+
+        return;
+      }
+
       if (
         isDisposed ||
         activeScopeRef.current !== scopeKey ||
-        isPullRunningRef.current ||
         isBrowserOffline() ||
         isDocumentHidden() ||
         Date.now() < pullFailureBackoffUntilRef.current
@@ -73,21 +98,43 @@ export function useAutoSync({
         return;
       }
 
-      isPullRunningRef.current = true;
       lastPullAttemptAtRef.current = Date.now();
+      let shouldRetryPull = false;
+      const pullPromise = (async () => {
+        try {
+          const result = await service.pullRemoteChanges();
+          shouldRetryPull = result.requestFailed;
+
+          pullFailureBackoffUntilRef.current = result.requestFailed
+            ? Date.now() +
+              Math.max(result.retryAfterMs ?? 0, pullFailureBackoffMs)
+            : 0;
+        } catch {
+          shouldRetryPull = true;
+          pullFailureBackoffUntilRef.current =
+            Date.now() + pullFailureBackoffMs;
+        }
+      })();
+
+      activePullRef.current = {
+        promise: pullPromise,
+        scopeKey,
+      };
 
       try {
-        const result = await service.pullRemoteChanges();
-
-        pullFailureBackoffUntilRef.current = result.requestFailed
-          ? Date.now() +
-            Math.max(result.retryAfterMs ?? 0, pullFailureBackoffMs)
-          : 0;
-      } catch {
-        // Pull failures stay quiet; the next focus or reconnect attempts the background pull again.
-        pullFailureBackoffUntilRef.current = Date.now() + pullFailureBackoffMs;
+        await pullPromise;
       } finally {
-        isPullRunningRef.current = false;
+        if (activePullRef.current?.promise === pullPromise) {
+          activePullRef.current = null;
+        }
+
+        if (
+          shouldRetryPull &&
+          !isDisposed &&
+          activeScopeRef.current === scopeKey
+        ) {
+          schedulePull();
+        }
       }
     }
 
@@ -96,17 +143,18 @@ export function useAutoSync({
 
       const elapsedMs = Date.now() - lastPullAttemptAtRef.current;
       const minIntervalDelayMs =
-        elapsedMs >= pullMinIntervalMs
-          ? 0
-          : pullMinIntervalMs - elapsedMs;
+        elapsedMs >= pullMinIntervalMs ? 0 : pullMinIntervalMs - elapsedMs;
       const backoffDelayMs = Math.max(
         0,
         pullFailureBackoffUntilRef.current - Date.now(),
       );
 
-      pullTimerRef.current = setTimeout(() => {
-        void runPull();
-      }, Math.max(minIntervalDelayMs, backoffDelayMs));
+      pullTimerRef.current = setTimeout(
+        () => {
+          void runPull();
+        },
+        Math.max(minIntervalDelayMs, backoffDelayMs),
+      );
     }
 
     schedulePull();
@@ -137,12 +185,17 @@ export function useAutoSync({
     isLoading,
     mode,
     pullFailureBackoffMs,
+    sessionStatus,
     pullMinIntervalMs,
     service,
   ]);
 
   useEffect(() => {
-    if (isLoading || mode !== 'authenticated') {
+    if (
+      isLoading ||
+      mode !== 'authenticated' ||
+      sessionStatus !== 'authenticated'
+    ) {
       return undefined;
     }
 
@@ -156,26 +209,67 @@ export function useAutoSync({
       }
     }
 
-    async function runPush() {
-      if (
-        isDisposed ||
-        activeScopeRef.current !== scopeKey ||
-        isPushRunningRef.current ||
-        isBrowserOffline() ||
-        isDocumentHidden()
-      ) {
+    async function drainPushRequests() {
+      if (isPushRunningRef.current) {
         return;
       }
 
       isPushRunningRef.current = true;
 
       try {
-        await service.pushQueuedChanges();
-      } catch {
-        // Push failures leave queue items pending for the next background retry.
+        while (isPushRequestedRef.current) {
+          if (isDisposed || activeScopeRef.current !== scopeKey) {
+            return;
+          }
+
+          if (isBrowserOffline() || isDocumentHidden()) {
+            return;
+          }
+
+          isPushRequestedRef.current = false;
+          while (activePullRef.current) {
+            const activePull = activePullRef.current;
+            await activePull.promise;
+          }
+
+          if (isDisposed || activeScopeRef.current !== scopeKey) {
+            return;
+          }
+
+          if (isBrowserOffline() || isDocumentHidden()) {
+            isPushRequestedRef.current = true;
+            return;
+          }
+
+          try {
+            const result = await service.pushQueuedChanges();
+
+            if (
+              result.requestFailed &&
+              result.retryAfterMs !== undefined &&
+              Number.isFinite(result.retryAfterMs) &&
+              result.retryAfterMs >= 0
+            ) {
+              schedulePushDrain(Math.max(debounceMs, result.retryAfterMs));
+              return;
+            }
+          } catch {
+            // Push failures leave queue items pending for the next background retry.
+          }
+        }
       } finally {
         isPushRunningRef.current = false;
       }
+    }
+
+    function schedulePushDrain(delayMs: number) {
+      clearPushTimer();
+
+      pushTimerRef.current = setTimeout(() => {
+        pushTimerRef.current = null;
+        isPushRequestedRef.current = true;
+        void drainPushRequests();
+      }, delayMs);
     }
 
     const subscription = liveQuery(() => queueRepository.listAll()).subscribe({
@@ -185,6 +279,7 @@ export function useAutoSync({
         const pushableItems = queueItems.filter((item) => !item.conflict);
 
         if (pushableItems.length === 0) {
+          isPushRequestedRef.current = false;
           return;
         }
 
@@ -206,21 +301,57 @@ export function useAutoSync({
         const earliestRetryAt =
           nextRetryAtTimes.length > 0 ? Math.min(...nextRetryAtTimes) : 0;
         const retryDelayMs =
-          !hasReadyItem && earliestRetryAt > nowMs ? earliestRetryAt - nowMs : 0;
+          !hasReadyItem && earliestRetryAt > nowMs
+            ? earliestRetryAt - nowMs
+            : 0;
 
-        pushTimerRef.current = setTimeout(() => {
-          void runPush();
-        }, Math.max(debounceMs, retryDelayMs));
+        schedulePushDrain(Math.max(debounceMs, retryDelayMs));
       },
       error: () => {
         clearPushTimer();
       },
     });
+    const handlePushAvailability = () => {
+      if (
+        isPushRequestedRef.current &&
+        pushTimerRef.current === null &&
+        !isPushRunningRef.current &&
+        !isBrowserOffline() &&
+        !isDocumentHidden()
+      ) {
+        schedulePushDrain(debounceMs);
+      }
+    };
+
+    const handlePushVisibilityChange = () => {
+      if (!isDocumentHidden()) {
+        handlePushAvailability();
+      }
+    };
+
+    window.addEventListener('focus', handlePushAvailability);
+    window.addEventListener('online', handlePushAvailability);
+    document.addEventListener('visibilitychange', handlePushVisibilityChange);
 
     return () => {
       isDisposed = true;
+      isPushRequestedRef.current = false;
       clearPushTimer();
+      window.removeEventListener('focus', handlePushAvailability);
+      window.removeEventListener('online', handlePushAvailability);
+      document.removeEventListener(
+        'visibilitychange',
+        handlePushVisibilityChange,
+      );
       subscription.unsubscribe();
     };
-  }, [archiveScopeKey, debounceMs, isLoading, mode, queueRepository, service]);
+  }, [
+    archiveScopeKey,
+    debounceMs,
+    isLoading,
+    mode,
+    queueRepository,
+    service,
+    sessionStatus,
+  ]);
 }

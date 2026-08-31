@@ -1,14 +1,11 @@
-﻿import { screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ImportCandidate } from '@features/imports';
 import { AuthContext } from '@features/auth';
-import {
-  clearStoredAuthTokens,
-  writeStoredAuthTokens,
-} from '@features/auth';
+import { clearStoredAuthTokens, writeStoredAuthTokens } from '@features/auth';
 import { syncQueueRepository } from '@features/sync';
 import { renderWithProviders } from '@test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
@@ -23,6 +20,12 @@ function jsonResponse(body: unknown, status = 200) {
       'content-type': 'application/json',
     },
   });
+}
+
+function LocationProbe() {
+  const location = useLocation();
+
+  return <output data-testid="current-location">{location.pathname}</output>;
 }
 
 function buildCandidate(
@@ -167,6 +170,7 @@ function renderAuthenticatedCreatePage() {
           archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'authenticated',
+          sessionStatus: 'authenticated',
           user: {
             avatarUrl: '',
             id: 'user-1',
@@ -177,26 +181,29 @@ function renderAuthenticatedCreatePage() {
         }}
       >
         <WorkCreatePage />
+        <LocationProbe />
       </AuthContext.Provider>
     </MemoryRouter>,
   );
 }
 
-function renderGuestCreatePage() {
+function renderGuestCreatePage(initialEntry = '/works/new?mode=manual') {
   workArchiveDbManager.switchToGuest();
 
   return renderWithProviders(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <AuthContext.Provider
         value={{
           archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'guest',
+          sessionStatus: 'guest',
           user: null,
           signOut: vi.fn(),
         }}
       >
         <WorkCreatePage />
+        <LocationProbe />
       </AuthContext.Provider>
     </MemoryRouter>,
   );
@@ -208,9 +215,9 @@ async function searchAndSelectCandidate(
   candidateTitle: string,
   options: { providerGroup?: 'manual' } = {},
 ) {
-  await user.click(
-    screen.getByLabelText('검색으로 채우기'),
-  );
+  if (!document.getElementById('quickAddSearch')) {
+    await user.click(screen.getByLabelText('검색에서 작품 선택'));
+  }
 
   if (options.providerGroup === 'manual') {
     const manualProviderGroupButton = await waitFor(() => {
@@ -257,10 +264,7 @@ async function searchAndSelectCandidate(
   await user.click(candidateButton);
   await user.click(
     screen.getByRole('button', {
-      name:
-        options.providerGroup === 'manual'
-          ? '직접 추가로 입력 채우기'
-          : '이 후보로 입력 채우기',
+      name: '이 후보로 입력 채우기',
     }),
   );
 }
@@ -275,11 +279,25 @@ async function submitSelectedCandidate(
 
   expect(submitForm).not.toBeNull();
 
-  await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
+  await user.click(screen.getByRole('button', { name: '내 서재에 추가' }));
 }
 
 describe('WorkCreatePage', () => {
+  it('prefills the title from the home quick-capture query', () => {
+    renderGuestCreatePage(
+      '/works/new?mode=manual&title=The%20Left%20Hand%20of%20Darkness',
+    );
+
+    expect(screen.getByLabelText(/^제목$/)).toHaveValue(
+      'The Left Hand of Darkness',
+    );
+    expect(
+      screen.getByText('유형 · 감상 · 상세 정보 더하기'),
+    ).toBeInTheDocument();
+  });
+
   afterEach(() => {
+    cleanup();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     clearStoredAuthTokens();
@@ -312,7 +330,7 @@ describe('WorkCreatePage', () => {
     );
 
     secondView.unmount();
-    renderGuestCreatePage();
+    const thirdView = renderGuestCreatePage();
 
     expect(await screen.findByText('임시작성 있음')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '임시작성 삭제' }));
@@ -322,6 +340,8 @@ describe('WorkCreatePage', () => {
         key.includes('work-form-draft'),
       ),
     ).toBe(false);
+
+    thirdView.unmount();
   });
 
   it('clears the create draft after a successful local save', async () => {
@@ -336,15 +356,21 @@ describe('WorkCreatePage', () => {
     expect(await screen.findByText('임시저장됨')).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole('button', { name: '내 아카이브에 저장' }),
+      screen.getByRole('button', { name: '내 서재에 추가' }),
     );
 
-    expect(await screen.findByText('로컬에 저장됨')).toBeInTheDocument();
-    expect(
-      Object.keys(window.localStorage).some((key) =>
-        key.includes('work-form-draft'),
-      ),
-    ).toBe(false);
+    await waitFor(() => {
+      expect(screen.getByTestId('current-location')).toHaveTextContent(
+        /^\/works\/[^/]+$/,
+      );
+    });
+    await waitFor(() => {
+      expect(
+        Object.keys(window.localStorage).filter((key) =>
+          key.includes('work-form-draft'),
+        ),
+      ).toEqual([]);
+    });
   });
 
   it('warns before internal navigation when a create form has unsaved changes', async () => {
@@ -359,7 +385,8 @@ describe('WorkCreatePage', () => {
     );
     expect(await screen.findByText('임시저장됨')).toBeInTheDocument();
 
-    const backLink = document.querySelector<HTMLAnchorElement>('a[href="/works"]');
+    const backLink =
+      document.querySelector<HTMLAnchorElement>('a[href="/works"]');
 
     expect(backLink).not.toBeNull();
     await user.click(backLink!);
@@ -414,7 +441,7 @@ describe('WorkCreatePage', () => {
       'movie',
     );
     await user.click(
-      screen.getByRole('button', { name: '내 아카이브에 저장' }),
+      screen.getByRole('button', { name: '내 서재에 추가' }),
     );
 
     await waitFor(async () => {
@@ -432,12 +459,11 @@ describe('WorkCreatePage', () => {
       syncStatus: 'local-only',
       serverVersion: 0,
     });
-    expect(
-      await screen.findByText('게스트 직접 추가를 등록했습니다'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: '방금 등록한 작품 보기' }),
-    ).toHaveAttribute('href', expect.stringContaining('/works/'));
+    await waitFor(() => {
+      expect(screen.getByTestId('current-location')).toHaveTextContent(
+        `/works/${savedWork?.id}`,
+      );
+    });
     expect(queueItems).toEqual([
       expect.objectContaining({
         entityId: savedWork?.id,

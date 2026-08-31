@@ -1,7 +1,11 @@
 export { AutoSyncRuntime } from './components/AutoSyncRuntime';
 export { SyncSafetyBadge } from './components/SyncSafetyBadge';
 export { useAutoSync } from './hooks/useAutoSync';
-export { useSyncDashboard } from './hooks/useSyncDashboard';
+export { useArchiveSafetyState } from './hooks/useArchiveSafetyState';
+export {
+  useSyncDashboard,
+  type SyncDashboardItem,
+} from './hooks/useSyncDashboard';
 export {
   appMetaRepository,
   AppMetaRepository,
@@ -11,3 +15,9 @@ export {
   SyncQueueRepository,
 } from './services/sync-queue.repository';
 export { syncService, SyncService } from './services/sync.service';
+export {
+  getArchiveSafetyPresentation,
+  getArchiveSafetyState,
+  type ArchiveSafetyPresentation,
+  type ArchiveSafetyState,
+} from './utils/sync-safety-state';

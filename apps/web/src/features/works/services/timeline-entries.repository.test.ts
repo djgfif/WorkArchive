@@ -57,6 +57,7 @@ describe('TimelineEntriesRepository', () => {
     const newer = await timelineRepository.create({
       note: '2권까지 읽었다.',
       occurredAt: '2026-01-03T00:00:00.000Z',
+      source: 'automatic',
       type: 'progress',
       workId: 'work-1',
     });
@@ -68,8 +69,8 @@ describe('TimelineEntriesRepository', () => {
     });
 
     await expect(timelineRepository.listByWorkId('work-1')).resolves.toEqual([
-      expect.objectContaining({ id: newer.id }),
-      expect.objectContaining({ id: older.id }),
+      expect.objectContaining({ id: newer.id, source: 'automatic' }),
+      expect.objectContaining({ id: older.id, source: 'manual' }),
     ]);
   });
 
@@ -91,6 +92,91 @@ describe('TimelineEntriesRepository', () => {
     );
   });
 
+  it('lists only active entries for a requested timeline type', async () => {
+    const activeRepeat = await timelineRepository.create({
+      note: '',
+      occurredAt: '2026-01-02T00:00:00.000Z',
+      type: 'rewatch',
+      workId: 'work-1',
+    });
+    const deletedRepeat = await timelineRepository.create({
+      note: '',
+      occurredAt: '2026-01-03T00:00:00.000Z',
+      type: 'rewatch',
+      workId: 'work-2',
+    });
+    await timelineRepository.create({
+      note: '',
+      occurredAt: '2026-01-04T00:00:00.000Z',
+      type: 'progress',
+      workId: 'work-1',
+    });
+    await timelineRepository.softDelete(deletedRepeat.id);
+
+    await expect(
+      timelineRepository.listActiveByType('rewatch'),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: activeRepeat.id,
+        source: 'manual',
+        type: 'rewatch',
+      }),
+    ]);
+  });
+
+  it('uses occurredAt indexes for recent and latest active records', async () => {
+    await timelineRepository.create({
+      note: 'old',
+      occurredAt: '2026-01-01T00:00:00.000Z',
+      type: 'note',
+      workId: 'work-1',
+    });
+    const recent = await timelineRepository.create({
+      note: 'recent',
+      occurredAt: '2026-01-04T00:00:00.000Z',
+      type: 'progress',
+      workId: 'work-1',
+    });
+    const deletedLatest = await timelineRepository.create({
+      note: 'deleted',
+      occurredAt: '2026-01-05T00:00:00.000Z',
+      type: 'note',
+      workId: 'work-1',
+    });
+    const otherWork = await timelineRepository.create({
+      note: 'other',
+      occurredAt: '2026-01-05T12:00:00.000Z',
+      type: 'started',
+      workId: 'work-2',
+    });
+    await timelineRepository.softDelete(deletedLatest.id);
+
+    await expect(
+      timelineRepository.listActiveSince('2026-01-03T00:00:00.000Z'),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: recent.id }),
+      expect.objectContaining({ id: otherWork.id }),
+    ]);
+    await expect(
+      timelineRepository.getLatestActiveForWorkIdsBefore(
+        new Set(['work-1']),
+        '2026-01-06T00:00:00.000Z',
+      ),
+    ).resolves.toEqual(expect.objectContaining({ id: recent.id }));
+    await expect(
+      timelineRepository.getLatestActiveForWorkIdsBefore(
+        new Set(['work-2']),
+        '2026-01-06T00:00:00.000Z',
+      ),
+    ).resolves.toEqual(expect.objectContaining({ id: otherWork.id }));
+    await expect(
+      timelineRepository.getLatestActiveForWorkIdsBefore(
+        new Set(),
+        '2026-01-06T00:00:00.000Z',
+      ),
+    ).resolves.toBeNull();
+  });
+
   it('bulk imports entries for archive restore paths', async () => {
     const entry: TimelineEntryRecord = {
       createdAt: '2026-01-01T00:00:00.000Z',
@@ -107,6 +193,8 @@ describe('TimelineEntriesRepository', () => {
 
     await timelineRepository.bulkImport([entry]);
 
-    expect(await timelineRepository.listByWorkId('work-1')).toEqual([entry]);
+    expect(await timelineRepository.listByWorkId('work-1')).toEqual([
+      { ...entry, source: 'manual' },
+    ]);
   });
 });

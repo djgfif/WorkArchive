@@ -2,8 +2,11 @@ import { defineConfig } from 'orval';
 
 export default defineConfig({
   workArchiveApi: {
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
     input: {
-      target: 'http://localhost:3000/docs/openapi.json',
+      target: 'openapi/work-archive-api.json',
     },
     output: {
       clean: true,

@@ -4,6 +4,8 @@ import {
   cachePosterImageFromDisplaySource,
   clearPosterImageCache,
   getCachedPosterImageObjectUrl,
+  isPosterImageCacheExpired,
+  POSTER_IMAGE_CACHE_MAX_AGE_MS,
 } from './poster-image-cache';
 
 const createObjectUrl = vi.fn(() => 'blob:cached-poster');
@@ -28,13 +30,14 @@ describe('poster image cache', () => {
   it('stores successful same-origin image proxy responses as local blobs', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () =>
-        new Response('poster', {
-          headers: {
-            'content-type': 'image/png',
-          },
-          status: 200,
-        }),
+      vi.fn(
+        async () =>
+          new Response('poster', {
+            headers: {
+              'content-type': 'image/png',
+            },
+            status: 200,
+          }),
       ),
     );
 
@@ -55,8 +58,28 @@ describe('poster image cache', () => {
       {
         cache: 'force-cache',
         credentials: 'same-origin',
+        referrerPolicy: 'no-referrer',
       },
     );
+  });
+
+  it('expires locally cached poster images only after 30 days', () => {
+    const cachedAt = Date.parse('2026-01-01T00:00:00.000Z');
+    const updatedAt = new Date(cachedAt).toISOString();
+
+    expect(
+      isPosterImageCacheExpired(
+        updatedAt,
+        cachedAt + POSTER_IMAGE_CACHE_MAX_AGE_MS,
+      ),
+    ).toBe(false);
+    expect(
+      isPosterImageCacheExpired(
+        updatedAt,
+        cachedAt + POSTER_IMAGE_CACHE_MAX_AGE_MS + 1,
+      ),
+    ).toBe(true);
+    expect(isPosterImageCacheExpired('invalid timestamp', cachedAt)).toBe(true);
   });
 
   it('does not fetch arbitrary external image URLs for caching', async () => {

@@ -60,6 +60,12 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: OpenAPI and generated client drift
+        run: npm run api:generate:check
+
+      - name: API v2 compatibility contract
+        run: npm run qa:api-v2-contract
+
       - name: Test
         run: env TMPDIR=/tmp npm run test
 
@@ -74,6 +80,11 @@ jobs:
 
       - name: Web E2E
         run: npm run test:e2e:web
+
+      - name: Verify community-core release profile
+        env:
+          VITE_PRODUCT_RELEASE_PROFILE: community-core
+        run: npx playwright test --grep "community-core"
 
       - name: Production compose config
         env:

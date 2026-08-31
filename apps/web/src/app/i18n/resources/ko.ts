@@ -1,3 +1,5 @@
+import { communityTranslations } from './community';
+
 export const ko = {
   common: {
     account: '계정',
@@ -24,6 +26,7 @@ export const ko = {
     appliedChange: '서버에 변경 사항이 반영되었습니다.',
     appliedTombstone: '서버에 삭제 상태가 반영되었습니다.',
     archiveMigration: '아카이브 이관',
+    archiveHealthFix: '아카이브 건강검진 안전 수정',
     conflictGeneric:
       '자동 백업 중 일부 항목 확인이 필요합니다. 잠시 후 다시 시도해주세요.',
     conflictOwnership:
@@ -76,13 +79,57 @@ export const ko = {
     badgeAria: '동기화 상태: {{label}}',
     badgeConflictReview: '직접 확인 {{count}}',
     badgeGuest: '게스트 로컬 전용',
-    badgePending: '백업 대기 중인 기록 {{count}}',
+    badgePending: 'push 대기 {{count}}건',
     badgeRecent: '최근 백업됨',
     badgeRecentAt: '최근 백업됨 {{date}}',
-    badgeRequeued: '자동 병합 후 재시도 {{count}}',
+    badgeRequeued: '자동 병합 후 push 재시도 {{count}}건',
     badgeStale: '원격 확인 필요',
+    archiveSafety: {
+      badgeLastPush: '마지막 push {{date}}',
+      badgeNoPush: '성공한 push 없음',
+      jsonBackupCurrent: 'JSON 백업 {{date}}',
+      jsonBackupEmpty: '기록 없음 · 백업 불필요',
+      jsonBackupMissing: 'JSON 백업 없음',
+      jsonBackupStale: 'JSON 백업 오래됨 · {{count}}일',
+      none: '없음',
+      storageBestEffort: '임시 저장 · 영구 저장 필요',
+      storagePersistent: '브라우저 영구 저장',
+      storageUnsupported: '브라우저에서 확인 불가',
+      syncGuest: '게스트 · 계정 동기화 안 함',
+      syncLastPush: '마지막 성공 push {{date}}',
+      syncNeedsReview: '실패·충돌 {{count}}건 확인 필요',
+      syncNoPush: '성공한 push 없음',
+      syncPending: 'push 대기 {{count}}건',
+      syncStale: 'pull 재확인 필요',
+      summary: {
+        action: {
+          title: '데이터 안전 확인 필요',
+          description:
+            '백업, 저장소 보호, 실패 또는 충돌 중 확인할 항목이 있습니다.',
+        },
+        empty: {
+          title: '첫 기록 전 안전 설정',
+          description:
+            '기록을 시작하면 JSON 백업과 브라우저 저장소 상태를 함께 확인합니다.',
+        },
+        pending: {
+          title: '변경 사항 처리 중',
+          description:
+            '로컬 기록은 유지되며 push 또는 pull 확인이 남아 있습니다.',
+        },
+        steady: {
+          title: '현재 확인된 위험 없음',
+          description:
+            '표시된 근거 시각과 저장소 상태를 기준으로 확인했습니다.',
+        },
+      },
+    },
     conflictLocalQueue:
       '원격 변경과 로컬 대기열을 자동 병합할 수 없어 직접 확인이 필요합니다.',
+    conflictRecoveryChanged:
+      '해결 후 기록이 변경되어 안전하게 실행 취소할 수 없습니다.',
+    conflictRecoveryExpired: '실행 취소 가능 시간이 지났습니다.',
+    conflictRecoveryMissing: '실행 취소할 충돌 복구 스냅샷이 없습니다.',
     conflictQueueMissing: '해결할 동기화 항목을 찾지 못했습니다.',
     failedApplyAfterSync: '동기화 후 화면에 반영하지 못했습니다.',
     failedApplyAfterSyncWithReason:
@@ -150,12 +197,14 @@ export const ko = {
     newRecordHint: '새 기록',
     noRating: '평가 안 한 작품',
     placeholder: '명령 또는 검색...',
+    resultsLabel: '명령 결과',
     searchLabel: '"{{query}}" 검색',
     searchHint: '제목·작가',
     showCompletedSerial: '완결작만 보기',
     showFavorites: '즐겨찾기',
     showInProgress: '이어볼 작품',
     showInProgressHint: '진행 중',
+    title: '빠른 명령',
     keywords: {
       add: 'add new 추가 등록 기록',
       completedSerial: '완결 completed serial 연재',
@@ -344,6 +393,10 @@ export const ko = {
       skipSuccess:
         '이번 guest 기록은 건너뛰었습니다. 나중에 새 기록이 생기면 다시 검토할 수 있습니다.',
       title: '게스트 기록 검토',
+      actionClearSelection: '선택 해제',
+      actionSelectAll: '전체 선택',
+      skipPreservesGuest:
+        '건너뛰어도 guest 기록은 이 브라우저의 게스트 아카이브에 남습니다. 계정 아카이브로 복사하지 않을 뿐입니다.',
     },
     userProfile: {
       guest: '게스트',
@@ -451,6 +504,7 @@ export const ko = {
     onlySingleLocaleReady: '현재는 {{locale}} UI만 사용할 수 있습니다.',
     title: '언어 설정',
   },
+  community: communityTranslations.ko,
   navigation: {
     accountOverview: '계정 개요',
     accountBrandKicker: '개인 감상 아카이브',
@@ -458,16 +512,34 @@ export const ko = {
     addWork: '작품 추가',
     addNewWork: '새 작품 추가',
     commandPalette: '명령 팔레트 열기 (Ctrl+K)',
+    community: '커뮤니티',
     guest: '게스트',
     guestLocalStorage: '게스트 - 로컬 저장',
     guestMode: '게스트 모드',
+    sitesPocNotice:
+      '비공개 검증 환경 · 이 브라우저에만 저장됩니다. 로그인, 동기화, 외부 검색은 제공되지 않습니다.',
+    sitesPocNoticeAria: '비공개 Sites 검증 환경 안내',
+    archiveScope: {
+      accountOwner: '{{name}}의 계정 보관함',
+      ariaLabel: '현재 보관함: {{owner}}, {{status}}',
+      guestOwner: '이 브라우저의 게스트 보관함',
+      status: {
+        authenticated: '계정 연결됨',
+        expired: '인증 만료 · 이 계정 보관함에 계속 저장',
+        guest: '이 브라우저에만 저장',
+        offline: '오프라인 · 이 계정 보관함에 계속 저장',
+        restoring: '계정 상태 확인 중',
+      },
+    },
     home: '홈',
     insights: '인사이트',
     login: '로그인',
     logout: '로그아웃',
+    closeMenu: '메뉴 닫기',
     mobileNavigation: '모바일 탐색',
     openMenu: '메뉴 열기',
     primaryNavigation: '주요 탐색',
+    secondaryNavigation: '보조 도구',
     settingsBackup: '설정과 백업',
     signedIn: '로그인됨',
     syncPreparingDescription: '개인 기록을 불러오는 동안 잠시만 기다려 주세요.',
@@ -485,6 +557,7 @@ export const ko = {
     homeError: '홈 화면을 복구할 수 없습니다',
     worksError: '작품 목록을 복구할 수 없습니다',
     workCreateError: '작품 추가 화면을 복구할 수 없습니다',
+    communityError: '커뮤니티 화면을 복구할 수 없습니다',
     workDetailError: '작품 상세 화면을 복구할 수 없습니다',
     workEditError: '작품 편집 화면을 복구할 수 없습니다',
     insightsError: '개인 인사이트 화면을 복구할 수 없습니다',
@@ -514,16 +587,37 @@ export const ko = {
       title: '최근 정리한 감상',
     },
     countValue: '{{count}}개',
+    quickCapture: {
+      add: '+ 추가',
+      aria: '빠른 작품 기록',
+      placeholder: '작품을 찾거나 바로 기록하세요',
+      record: '기록 추가',
+    },
+    safety: {
+      accountConnected: '계정 백업 연결됨',
+      description: '작품 {{count}}개가 현재 아카이브 범위에 저장되어 있습니다.',
+      localHealthy: '로컬 저장 정상',
+      settings: '설정',
+      title: '백업 상태',
+    },
+    starter: {
+      archiveCount: '{{count}}개',
+      archiveDescription: '이어볼 작품과 최근 변경 기록을 바로 확인하세요.',
+      archiveEmptyDescription: '작품 하나를 추가하면 오늘의 기록이 시작됩니다.',
+      archiveTitle: '오늘의 기록',
+      startedDescription: '작품을 기록하고 상태와 감상을 천천히 채워 보세요.',
+      startedTitle: '아카이브가 시작되었습니다',
+    },
     empty: {
-      backupDescription: '이전에 내보낸 JSON 기록을 다시 불러옵니다.',
-      backupTitle: '백업 가져오기',
+      backupDescription: 'JSON 내보내기와 가져오기를 한 화면에서 관리합니다.',
+      backupTitle: '백업에서 시작',
       description:
-        '새 작품을 직접 남기거나 검색으로 표지를 채우고, 기존 백업도 이어받을 수 있습니다.',
-      manualDescription: '제목과 짧은 감상으로 첫 선반을 채웁니다.',
+        '제목과 상태만으로 시작할 수 있습니다. 표지와 상세 정보는 나중에 채워도 됩니다.',
+      manualDescription: '계정 연결 없이 제목과 짧은 감상부터 저장합니다.',
       manualTitle: '첫 작품 추가',
       searchDescription: '외부 검색 후보에서 표지와 정보를 가져옵니다.',
       searchTitle: '검색으로 추가',
-      title: '첫 작품을 놓는 방법',
+      title: '아직 기록한 작품이 없습니다',
     },
     error: {
       retry: '다시 불러오기',
@@ -563,16 +657,22 @@ export const ko = {
       continuePrefix: '이어보기',
       openAria: '{{title}} 열기',
       openWithMetaAria: '{{title}} — {{meta}}',
+      quickProgressAria: '{{title}} {{next}}{{unit}}까지 기록',
+      quickProgressButton: '{{next}}{{unit}} 기록',
+      quickProgressError: '진행도를 기록하지 못했습니다.',
+      quickProgressSaved: '{{title}} {{next}}{{unit}}까지 기록했습니다.',
+      quickProgressUnavailable:
+        '지금은 이 작품의 다음 진행도를 기록할 수 없습니다.',
       trackAria: '{{title}} 선반',
       viewAll: '전체 보기 →',
       viewAllAria: '{{title}} 전체 보기',
     },
     shelves: {
-      continueEyebrow: '이어보기',
-      continueTitle: '이어볼 작품',
+      continueEyebrow: '',
+      continueTitle: '이어서 기록',
       highlyRatedTitle: '높게 평가한 작품',
-      recentAddedEyebrow: '최근 추가',
-      recentAddedTitle: '최근 추가한 작품',
+      recentAddedEyebrow: '',
+      recentAddedTitle: '최근 업데이트',
       recentConsumedEyebrow: '최근 감상',
       recentConsumedTitle: '최근 감상한 작품',
       recommendedEyebrow: '추천 선반',
@@ -589,10 +689,13 @@ export const ko = {
     loadingTitle: '계정 설정을 준비하고 있습니다',
     pageDescription:
       '계정 연결, 로컬 백업, 검색 소스, API 키, 세션 보안을 한 곳에서 관리합니다.',
+    pageDescriptionSitesPoc:
+      '이 브라우저의 로컬 기록, JSON 백업, 파일 가져오기와 표시 설정을 관리합니다.',
     pageEyebrow: '설정',
     pageTitle: '설정과 백업',
     sections: {
       account: '계정',
+      archiveHealth: '아카이브 건강검진',
       dataBackup: '데이터와 백업',
       dangerZone: '위험 작업',
       display: '표시 설정',
@@ -617,6 +720,7 @@ export const ko = {
       badgeExcludeSearchKey: '검색 key 제외',
       badgeKeepExisting: '기존 기록 유지',
       badgeWorkRecords: '작품 기록 중심',
+      backupNow: '지금 백업하기',
       confirmImport: '현재 아카이브로 가져오기',
       csv: {
         button: 'CSV 내보내기',
@@ -682,6 +786,8 @@ export const ko = {
       previewUpdateWorks: '수정 작품 {{count}}개',
       selectJson: 'JSON 백업 선택',
       selectJsonAria: 'JSON 백업 파일 선택',
+      optionsTitle: '백업 형식과 가져오기 옵션',
+      restoreBackup: '백업에서 복원',
       title: '로컬 백업과 복구',
     },
     overview: {
@@ -783,7 +889,11 @@ export const ko = {
       title: 'Danger area',
     },
     layout: {
+      advancedTitle: '고급 설정 및 진단',
+      dataSafetyAdvancedTitle: '자동 백업 · 저장소 보호 · 계정 동기화',
+      dataSafetyAdvancedTitleSitesPoc: '자동 백업 · 저장소 보호',
       mobileNavAria: '설정 모바일 섹션 탐색',
+      primaryNavAria: '주요 설정 탐색',
       sideNavAria: '설정 사이드 섹션 탐색',
     },
     security: {
@@ -807,7 +917,7 @@ export const ko = {
       methodEyebrow: '현재 로그인 방식',
       methodGuest:
         '현재 게스트 모드입니다. 로컬 기록은 이 브라우저에 먼저 저장됩니다.',
-      never: 'Never',
+      never: '없음',
       noInfo: '정보 없음',
       noPasswordLogin: '이메일/비밀번호 로그인 없음',
       otherDevice: '다른 기기',
@@ -820,6 +930,8 @@ export const ko = {
       sessionDevice: '기기: {{userAgent}} · IP: {{ip}}',
       thisDevice: '이 기기',
       title: '로그인과 세션',
+      authBadgeGoogleOnly: 'Google 전용 로그인',
+      authBadgeLocalFirstGuest: '로컬 우선 게스트',
     },
     localDataSafety: {
       autoBackupDescription:
@@ -1001,6 +1113,138 @@ export const ko = {
         '이 계정에 개인 API 키를 저장하면 검색 후보 품질이 좋아집니다.',
       userKeyRequiredProviders: '개인 키 필요',
     },
+    archiveHealth: {
+      description:
+        '활성 작품의 진행도, 날짜, 상태 일관성과 표지 보강 필요를 로컬에서 검사합니다. 확실하게 결정할 수 있는 항목만 사용자가 선택하면 안전하게 수정합니다.',
+      editRecord: '기록 수정',
+      reviewComplete:
+        '{{count}}개 기록 검토를 마쳤습니다. 최신 상태로 다시 검사했습니다.',
+      reviewDescription:
+        '자동으로 판단할 수 없는 {{count}}개 기록을 날짜와 상태부터 차례로 확인합니다.',
+      reviewSaved: '기록을 저장하고 최신 상태로 다시 검사했습니다.',
+      reviewStart: '검토 시작 ({{count}})',
+      reviewStartAria: '확인이 필요한 기록 {{count}}개 검토 시작',
+      reviewTitle: '확인이 필요한 기록을 이어서 정리하세요',
+      reviewUnavailable:
+        '검토 세션을 시작하지 못했습니다. 다시 검사한 뒤 재시도해 주세요.',
+      eyebrow: '데이터 품질',
+      filterAria: '건강검진 결과 필터',
+      filters: {
+        all: '전체 {{count}}',
+        attention: '확인 필요 {{count}}',
+        improvement: '보강 제안 {{count}}',
+      },
+      fixApplied:
+        '“{{title}}”의 진행 단위를 설정했습니다: {{unit}}. 아래 변경 이력에서 되돌릴 수 있습니다.',
+      fixError: '안전 수정을 적용하지 못했습니다.',
+      fixErrors: {
+        alreadyUndone: '이미 되돌린 안전 수정입니다.',
+        changedAfterFix:
+          '안전 수정 이후 값이 달라져 자동으로 되돌리지 않았습니다. 기록을 직접 확인해 주세요.',
+        historyMissing: '되돌릴 안전 수정 이력을 찾지 못했습니다.',
+        noLongerAvailable:
+          '기록이 바뀌어 이 안전 수정을 더 이상 적용할 수 없습니다. 다시 검사해 주세요.',
+        workMissing: '대상 기록을 찾을 수 없습니다.',
+      },
+      fixUndone: '“{{title}}”의 안전 수정을 되돌렸습니다.',
+      healthy:
+        '현재 확인된 데이터 문제가 없습니다. 아카이브 상태가 건강합니다.',
+      history: {
+        count: '최근 {{count}}건',
+        description:
+          '최근 수정은 로컬 백업 메타데이터에 최대 20건 보관됩니다. 이후 값이 바뀌지 않은 수정만 되돌릴 수 있습니다.',
+        item: '{{title}} · 진행 단위 {{unit}}',
+        title: '최근 안전 수정',
+        undo: '되돌리기',
+        undoAria: '{{title}} 안전 수정 되돌리기',
+        undone: '되돌림',
+      },
+      issueCount: '{{count}}개 항목',
+      issues: {
+        completed_and_dropped: {
+          description:
+            '완료일과 중단일이 모두 남아 있어 현재 감상 상태를 다시 확인해야 합니다.',
+          title: '완료일과 중단일이 함께 있습니다',
+        },
+        completed_without_date: {
+          description:
+            '완료 상태이지만 완료일이 없어 연간 회고와 완료 통계가 정확하지 않을 수 있습니다.',
+          title: '완료일이 비어 있습니다',
+        },
+        dropped_without_date: {
+          description:
+            '중단 상태이지만 중단일이 없어 감상 이력을 정확히 정렬하기 어렵습니다.',
+          title: '중단일이 비어 있습니다',
+        },
+        invalid_date: {
+          description:
+            '저장된 날짜 값 “{{value}}”을 읽을 수 없습니다. 기록을 열어 날짜를 다시 선택하세요.',
+          title: '읽을 수 없는 날짜가 있습니다',
+        },
+        missing_thumbnail: {
+          description:
+            '표지를 추가하면 작품 목록과 홈 선반에서 기록을 더 빠르게 찾을 수 있습니다.',
+          title: '표지가 비어 있습니다',
+        },
+        negative_progress: {
+          description:
+            '진행도에는 0 이상의 값을 사용해야 합니다. 현재 {{current}} · 전체 {{total}}',
+          title: '진행도가 음수입니다',
+        },
+        progress_over_total: {
+          description:
+            '현재 진행 {{current}}이 전체 분량 {{total}}보다 큽니다.',
+          title: '현재 진행도가 전체 분량보다 큽니다',
+        },
+        progress_unit_missing: {
+          description:
+            '화·권·장 중 진행 단위를 선택하면 목록과 상세 화면에서 진행도를 정확히 표시할 수 있습니다.',
+          title: '진행 단위가 비어 있습니다',
+        },
+        started_after_completed: {
+          description:
+            '시작일이 완료일보다 늦습니다. 두 날짜 중 잘못 입력된 값을 확인하세요.',
+          title: '시작일이 완료일보다 늦습니다',
+        },
+        started_after_dropped: {
+          description:
+            '시작일이 중단일보다 늦습니다. 두 날짜 중 잘못 입력된 값을 확인하세요.',
+          title: '시작일이 중단일보다 늦습니다',
+        },
+        started_after_last_consumed: {
+          description:
+            '시작일이 최근 감상일보다 늦습니다. 감상 이력의 날짜 순서를 확인하세요.',
+          title: '시작일이 최근 감상일보다 늦습니다',
+        },
+      },
+      loadError: '아카이브 건강검진을 실행하지 못했습니다.',
+      rescan: '다시 검사',
+      safeFix: '안전 수정',
+      safeFixAria: '{{title}} 안전 수정',
+      safeFixDescription:
+        '다른 값은 건드리지 않고 작품 유형에 맞는 진행 단위를 채웁니다: {{unit}}.',
+      scanPending: '아카이브를 검사하고 있습니다.',
+      scannedAt: '마지막 검사 {{date}}',
+      scanSummary: '활성 작품 {{total}}개 중 {{affected}}개 확인 필요',
+      severity: {
+        attention: '수정 필요',
+        improvement: '보강 제안',
+        review: '검토 권장',
+      },
+      showMore: '나머지 {{count}}개 더 보기',
+      summary: {
+        attention: '값의 범위나 날짜 순서를 수정해야 합니다.',
+        improvement: '찾기 쉬운 아카이브를 위한 선택 항목입니다.',
+        review: '상태와 기록 날짜를 함께 확인해 주세요.',
+      },
+      title: '아카이브 건강검진',
+      undoError: '안전 수정을 되돌리지 못했습니다.',
+      units: {
+        chapter: '장',
+        episode: '화',
+        volume: '권',
+      },
+    },
     duplicateCleanup: {
       authorMissing: '작가 미입력',
       candidate: '중복 후보',
@@ -1100,6 +1344,213 @@ export const ko = {
       tokenDescription:
         '저장 후에는 값이 다시 표시되지 않습니다. Notion integration을 데이터소스에 공유해야 합니다.',
       yes: '예',
+    },
+    dataSafety: {
+      accountAutoMerged: '자동 병합 후 재시도',
+      accountAutoMergedValue: '{{count}}개',
+      accountBackupChecking: '최신 상태 확인 대기',
+      accountBackupLabel: '계정 백업',
+      accountBackupNeedsReview: '확인 필요 {{count}}개',
+      accountBackupOptional: '계정 백업 선택 사항',
+      accountBackupPending: '백업 대기 {{count}}개',
+      accountBackupReady: '대기 중인 작업 없음',
+      accountBackupRecent: '{{date}} 확인됨',
+      accountBackupRequeued: '자동 병합 후 재시도 {{count}}개',
+      accountDescription:
+        '로그인 상태에서는 이 기기의 변경 사항이 계정 백업으로 전송됩니다. 확인이 필요한 항목은 자동으로 덮어쓰지 않습니다.',
+      accountEyebrow: '계정 백업 상태',
+      accountGuestDescription:
+        '게스트 모드에서는 계정 백업을 사용하지 않습니다. 기록은 이 브라우저에 먼저 저장되며 JSON 백업으로 옮길 수 있습니다.',
+      accountLastChecked: '마지막 확인',
+      accountLastCheckedStale: '다시 확인 필요',
+      accountLoginAction: 'Google 계정 연결',
+      accountNeedsReview: '확인 필요',
+      accountNeedsReviewValue: '{{count}}개',
+      accountPending: '백업 대기',
+      accountPendingValue: '{{count}}개',
+      accountStatusNeedsReview: '확인 필요',
+      accountStatusPending: '백업 대기',
+      accountStatusSafe: '안전함',
+      accountTitle: '계정 백업 상태',
+      actionAccountOptional: '계정 백업은 선택 사항',
+      actionChooseAutoBackup: '자동 폴더 백업 선택',
+      actionCreateJsonBackup: 'JSON 백업 만들기',
+      actionProtectStorage: '저장소 보호 요청',
+      actionReviewAccountBackup: '동기화 충돌 확인',
+      applyRemoteAction: '계정 백업 기록 적용',
+      autoBackupLabel: '자동 폴더 백업',
+      autoBackupManual: '수동 백업 필요',
+      autoBackupNeedsFolder: '폴더 다시 선택 필요',
+      autoBackupOff: '꺼짐',
+      autoBackupReady: '켜짐',
+      conflictBadge: '직접 확인 필요',
+      conflictDescription:
+        '아래 항목은 사용자가 어떤 기록을 유지할지 선택해야 합니다. 자동 병합 규칙은 확장하지 않습니다.',
+      conflictEyebrow: '수동 확인',
+      conflictMessageFallback:
+        '로컬 기록과 계정 백업 기록이 달라 확인이 필요합니다.',
+      conflictTitle: '동기화 충돌 {{count}}개',
+      confirmResolutionDescription:
+        '{{title}}에 “{{action}}” 작업을 적용합니다. 적용 직후 10분 동안만 실행 취소할 수 있습니다.',
+      confirmApplyRemoteImpact:
+        '현재 내 기록 전체를 계정 백업 값으로 바꿉니다.',
+      confirmKeepLocalImpact:
+        '계정 백업 값은 적용하지 않고 내 기록을 다시 백업 대기 상태로 둡니다.',
+      confirmMergeImpact:
+        '선택한 항목({{fields}})만 계정 백업 값으로 바꾸고 나머지는 내 기록을 유지합니다.',
+      confirmResolutionTitle: '충돌 해결을 적용할까요?',
+      conflictDiffDescription:
+        '값이 다른 필드만 표시합니다. 선택 병합에서는 체크한 그룹의 서버 값을 가져옵니다.',
+      conflictDiffTableLabel: '로컬 기록과 서버 기록 필드 비교',
+      conflictDiffTitle: '필드별 차이',
+      conflictFieldLabel: '필드',
+      conflictFields: {
+        author: '작가·제작자',
+        completedAt: '완료일',
+        deletedAt: '삭제 상태',
+        description: '소개',
+        droppedAt: '중단일',
+        favorite: '즐겨찾기',
+        genres: '장르',
+        lastConsumedAt: '마지막 감상일',
+        lastConsumedLabel: '마지막 감상 위치',
+        personalTags: '개인 태그',
+        progressCurrent: '현재 진행',
+        progressTotal: '전체 분량',
+        progressUnit: '진행 단위',
+        rating: '평점',
+        review: '상세 감상',
+        shortReview: '한줄 감상',
+        startedAt: '시작일',
+        status: '상태',
+        thumbnailUrl: '포스터 URL',
+        title: '제목',
+      },
+      conflictValueEmpty: '비어 있음',
+      conflictValueNo: '아니요',
+      conflictValueYes: '예',
+      remoteRecordLabel: '서버 기록',
+      eyebrow: '데이터 안전성',
+      failedDescription:
+        '실패 항목은 다음 동기화에서 재시도됩니다. 반복되면 JSON 백업을 먼저 만든 뒤 원인을 확인하세요.',
+      failedEyebrow: '재시도 대기',
+      failedTitle: '백업 실패 {{count}}개',
+      failedUnknown: '오류 내용 없음',
+      keepLocalAction: '내 기록 유지',
+      lastJsonBackupLabel: '마지막 JSON 백업',
+      lastSuccessfulPushLabel: '마지막 성공 push',
+      lastSuccessfulPullLabel: '마지막 성공 pull',
+      localRecordLabel: '로컬 기록',
+      localRecords: '활성 작품 {{count}}개',
+      localStorageLabel: '로컬 저장소',
+      mergeFieldLabel: '계정 백업 기록에서 가져올 항목',
+      mergeFields: {
+        deletion: '삭제 상태',
+        identity: '제목과 작가·제작자',
+        dates: '시작/완료/중단 날짜',
+        favorite: '즐겨찾기',
+        metadata: '소개와 표지',
+        progress: '진행도',
+        ratingReview: '별점과 감상',
+        status: '상태',
+        tags: '태그와 장르',
+      },
+      mergeSelectedAction: '선택 병합',
+      mergeDeletionWarning:
+        '삭제 상태는 작품의 휴지통 여부를 바꿉니다. 적용 결과를 한 번 더 확인하세요.',
+      mergeSelectionDescription:
+        '선택한 항목은 계정 백업 값으로 바뀌고, 선택하지 않은 항목은 내 기록을 유지합니다.',
+      mergeSelectionEmpty:
+        '아직 계정 백업에서 가져올 항목을 선택하지 않았습니다.',
+      mergeSelectionSummary: '계정 백업에서 가져올 항목: {{fields}}',
+      noActionRequired: '지금 필요한 조치 없음',
+      recoveryCount: '{{count}}개',
+      recoveryDescription:
+        '백업 대기열을 원인별로 묶어 다음 행동을 제안합니다. 원문 오류나 payload는 표시하지 않습니다.',
+      recoveryEyebrow: '복구 도우미',
+      recoveryFilterAll: '전체 원인',
+      recoveryFilteredItemsTitle: '선택한 원인에 해당하는 항목',
+      recoveryItemMeta: '{{operation}} · 재시도 {{retryCount}}회',
+      recoveryOperations: {
+        create: '새 기록',
+        delete: '삭제',
+        update: '수정',
+      },
+      recoveryGroups: {
+        auth: {
+          action: '다시 로그인한 뒤 계정 백업을 재시도하세요.',
+          description: '세션이 만료되었거나 계정 인증이 실패한 항목입니다.',
+          title: '로그인 확인 필요',
+        },
+        conflict: {
+          action:
+            '각 항목에서 내 기록 유지, 계정 백업 적용, 선택 병합 중 하나를 고르세요.',
+          description:
+            '로컬 기록과 계정 백업 기록이 달라 자동으로 덮어쓰지 않습니다.',
+          title: '수동 충돌 검토',
+        },
+        network: {
+          action:
+            '네트워크가 안정된 뒤 다시 열거나 다음 자동 재시도를 기다리세요.',
+          description:
+            '연결 끊김, 시간 초과, 일시적인 요청 실패로 보이는 항목입니다.',
+          title: '네트워크 재시도',
+        },
+        stale: {
+          action: '계정 백업 상태를 수동으로 다시 확인하세요.',
+          description:
+            '최근 원격 상태 확인이 충분히 새롭지 않아 다시 확인이 필요합니다.',
+          title: '최신 상태 확인',
+        },
+        unknown: {
+          action:
+            '먼저 JSON 백업을 만든 뒤 재시도하고, 반복되면 기록 제목과 발생 시각만 공유하세요.',
+          description:
+            '분류할 수 없는 실패입니다. 민감한 오류 원문은 화면에 표시하지 않습니다.',
+          title: '원인 미상 실패',
+        },
+        validation: {
+          action: '문제 기록을 열어 필수값과 형식을 고친 뒤 다시 백업하세요.',
+          description: '서버 검증 규칙과 맞지 않는 값이 포함된 항목입니다.',
+          title: '기록 값 확인',
+        },
+      },
+      recoveryTitle: '동기화 복구가 필요한 항목',
+      noneYet: '아직 없음',
+      requiredActions: '필요한 조치',
+      resolveError: '충돌을 해결하지 못했습니다.',
+      resolveLocalSuccess:
+        '내 기록을 유지하고 다시 백업 대기 상태로 돌렸습니다.',
+      resolveMergeSuccess:
+        '선택한 항목만 병합하고 다시 백업 대기 상태로 돌렸습니다.',
+      resolveRemoteSuccess: '계정 백업 기록을 이 기기에 적용했습니다.',
+      undoResolutionAction: '방금 해결 실행 취소',
+      undoResolutionDescription:
+        '복구 스냅샷은 10분 동안 유지되며, 이후 기록이 바뀌면 실행 취소하지 않습니다.',
+      undoResolutionSuccess: '충돌 해결 전 기록과 대기열을 복원했습니다.',
+      undoResolutionUnavailable:
+        '기록이 바뀌었거나 실행 취소 시간이 지나 복원하지 못했습니다.',
+      storageActionNeeded: '보호 요청 가능',
+      storageManual: '수동 백업 필요',
+      storageProtected: '보호됨',
+      summaryAuthenticatedDescription:
+        '로컬 기록을 우선 저장하고, 계정 백업과 JSON 백업으로 복구 가능성을 유지합니다.',
+      summaryGuestDescription:
+        '게스트 기록은 이 브라우저에 먼저 저장됩니다. JSON 백업을 만들어 두면 계정 없이도 옮길 수 있습니다.',
+      summaryInProgressDescription:
+        '최근 변경 사항을 백업 중입니다. 완료 전에도 로컬 기록은 이 브라우저에 남아 있습니다.',
+      summaryInProgressTitle: '백업 진행 중',
+      summaryNeedsActionDescription:
+        '기록을 잃지 않으려면 아래 조치를 먼저 확인하세요. 자동으로 덮어쓰지 않습니다.',
+      summaryNeedsActionTitle: '확인 필요',
+      summaryReadyTitle: '백업 준비됨',
+      summarySafeTitle: '기록 보호 상태 양호',
+      tone: {
+        info: '진행 중',
+        muted: '준비됨',
+        success: '안전함',
+        warning: '확인 필요',
+      },
     },
   },
   profile: {
@@ -1348,6 +1799,25 @@ export const ko = {
   insights: {
     addedRecentlyDescription: '최근 30일 안에 추가한 작품입니다.',
     addedRecentlyLabel: '최근 추가',
+    activityActiveDays: '활동한 날',
+    activityDayAria: '{{date}} 기록 {{count}}개',
+    activityDayCount: '{{count}} / 28일',
+    activityDescription:
+      '진행도, 상태 변경, 감상 메모가 기록된 날을 모았습니다.',
+    activityEmpty: '최근 28일에는 아직 타임라인 기록이 없습니다.',
+    activityGridAria: '최근 28일 기록 분포',
+    activityGridHint: '색이 진할수록 같은 날 기록이 많습니다.',
+    activityLatest: '최근 기록',
+    activityNoRecord: '아직 없음',
+    activityRange: '{{start}}–{{end}}',
+    activityRecentSevenDays: '최근 7일',
+    activityRecordBadge: '28일 합계 {{count}}개',
+    activityRecordCount: '{{count}}개',
+    activitySectionDescription:
+      '진행도·상태·감상 기록이 쌓인 시점을 로컬 타임라인으로 확인합니다.',
+    activitySectionTitle: '기록 리듬',
+    activityStart: '작품에서 기록 시작하기',
+    activityTitle: '기록이 남은 날',
     archiveModeAuthenticated: '인증된 로컬 아카이브',
     archiveModeGuest: '게스트 로컬 아카이브',
     averageRatingDescription: '별점을 남긴 작품만 평균에 포함합니다.',
@@ -1364,6 +1834,17 @@ export const ko = {
     favoriteLabel: '즐겨찾기',
     gapBadge: '감상 공백 {{percent}}',
     loadingTitle: '개인 인사이트를 계산하는 중입니다',
+    lowData: {
+      addRating: '별점 하나 남기기',
+      addWork: '작품 더 추가하기',
+      description:
+        '작품 {{count}}개를 더 기록하면 상태와 매체 흐름을 의미 있게 보여드려요.',
+      progress: '인사이트 준비 {{current}} / {{target}}',
+      progressAria: '인사이트 준비 진행률 {{current}} / {{target}}',
+      recentTitle: '지금까지 기록한 작품',
+      reviewArchive: '내 아카이브 보기',
+      title: '인사이트를 만드는 중입니다',
+    },
     metaLocalOnly: '내 기기에서만 계산',
     noAverageRating: '미평가',
     pageDescription:
@@ -1375,6 +1856,21 @@ export const ko = {
     recentAddedTitle: '최근 추가한 작품',
     recentUpdatedEmpty: '최근 30일 안에 수정된 작품이 없습니다.',
     recentUpdatedTitle: '최근 수정한 작품',
+    repeatDescription:
+      '재독·재감상 기록을 기준으로 자주 다시 찾은 작품을 모았습니다.',
+    repeatEmpty:
+      '아직 재독·재감상 기록이 없습니다. 완료한 작품의 타임라인에서 오늘 기록을 남겨보세요.',
+    repeatLastRecorded: '최근 {{date}}',
+    repeatRecordBadge: '다시 기록 {{count}}회',
+    repeatSectionDescription:
+      '한 번 끝낸 뒤 다시 찾은 작품과 반복 횟수를 로컬 기록으로만 계산합니다.',
+    repeatSectionTitle: '재독·재감상',
+    repeatStart: '완료한 작품에서 기록하기',
+    repeatTitle: '다시 찾은 작품',
+    repeatWorkAria: '{{title}} 다시 기록 {{count}}회',
+    repeatWorkBadge: '{{count}}개 작품',
+    repeatWorkCount: '{{count}}회',
+    repeatYearBadge: '올해 {{count}}회',
     retry: '다시 계산',
     statusEmpty: '아직 상태별 통계를 만들 작품이 없습니다.',
     statusOnHoldDescription:
@@ -1421,6 +1917,12 @@ export const ko = {
       topGenre: '최애 장르',
       topWorks: '올해의 작품',
       month: '{{month}}월',
+      comparisonCompleted: '{{year}}년 {{count}}편 · 전년 대비 {{delta}}',
+      comparisonRating: '평균 별점 {{rating}} · 전년 대비 {{delta}}',
+      comparisonTitle: '전년 비교',
+      monthlyActivity: '월별 완료 추이',
+      monthCount: '{{month}}월 {{count}}편 완료',
+      selectYear: '결산 연도 선택',
     },
   },
   tierBoards: {
@@ -1451,7 +1953,7 @@ export const ko = {
       laneMoveAria: '{{title}} 행 이동',
       laneUpAria: '{{title}} 위로',
       move: '이동',
-      moveToLane: '{{title}}로 이동',
+      moveToLane: '{{destination}} 이동',
       moveToPool: '미배치로 이동',
     },
     create: '새 티어보드 만들기',
@@ -1590,7 +2092,7 @@ export const ko = {
       templateLabel: '행 템플릿 적용',
       templatePlaceholder: '예: 기본 S/A/B/C/D',
       title: '보드 설정',
-      visibilityLabel: '공개 범위',
+      visibilityLabel: '보관 상태',
     },
     source: {
       addAsCard: '카드로 추가',
@@ -1649,8 +2151,8 @@ export const ko = {
     viewExportFileName: '{{title}}-티어표.png',
     viewPageTitle: '티어보드 보기',
     visibility: {
-      exported: '내보냄',
-      link_only: '링크 공유',
+      exported: '로컬 내보냄',
+      link_only: '공유 보류',
       private: '비공개',
     },
   },
@@ -1677,11 +2179,16 @@ export const ko = {
       fieldShortReview: '한줄평',
       fieldTitle: '제목',
       flowDescription:
-        '제목만으로 시작하고, 필요할 때 검색 후보로 표지와 기본 정보를 채웁니다.',
+        '작품을 검색해 표지와 정보를 고른 뒤 상태와 별점을 정해 서재에 추가합니다.',
+      flowDescriptionSitesPoc:
+        '제목·상태·별점으로 바로 저장합니다. 이 환경에서는 작품 검색 없이 직접 기록합니다.',
       flowTitle: '새 작품 기록',
+      optionalFieldsTitle: '유형 · 감상 · 상세 정보 더하기',
+      optionalFieldsDescription:
+        '제목, 상태, 별점만으로 저장할 수 있습니다. 나머지는 언제든 보완할 수 있어요.',
       modeLabel: '추가 방식',
       modeManual: '직접 입력',
-      modeSearch: '검색으로 채우기',
+      modeSearch: '검색에서 작품 선택',
       savedDescription:
         '방금 저장한 기록을 바로 확인하거나, 같은 흐름에서 다음 작품을 계속 추가할 수 있습니다.',
       savedEyebrow: '저장 완료',
@@ -1691,6 +2198,7 @@ export const ko = {
         aliasPrefix: '별칭 {{aliases}}',
         alreadyInRecord: '이미 내 기록에 있음',
         applyCandidate: '이 후보로 입력 채우기',
+        backToResults: '검색에서 작품 선택',
         applyDescription:
           '이 후보로 제목과 작품 정보를 채우고, 저장은 메인 폼에서 진행합니다.',
         applyManual: '직접 추가로 입력 채우기',
@@ -1712,6 +2220,7 @@ export const ko = {
         emptyInitialDescription:
           '검색은 선택 사항입니다. 제목을 입력해 후보를 찾거나 직접 추가로 돌아가 바로 저장할 수 있습니다.',
         emptyInitialTitle: '검색어를 입력해 후보를 찾아보세요.',
+        editDetails: '상세 정보 편집',
         externalIdentityShow: '외부 식별자 보기',
         format: '형식',
         helperApplyNote:
@@ -1721,6 +2230,7 @@ export const ko = {
         helperTitle: '검색은 직접 입력을 돕는 보조 도구입니다',
         inputMode: '입력 방식',
         manualCandidate: '직접 추가 후보',
+        manualSecondaryAction: '검색 결과가 없나요? 직접 입력',
         manualRecord: '입력한 제목으로 직접 기록',
         manualReviewDescription:
           '제목이나 출처 신호가 약한 후보입니다. 맞는 작품인지 확인한 뒤 사용하거나, 검색을 닫고 직접 입력으로 계속할 수 있습니다.',
@@ -1757,11 +2267,13 @@ export const ko = {
         searchingCandidatesDescription:
           '출처별 결과, 중복 가능성, 적용할 수 있는 정보를 함께 정리하고 있습니다.',
         searchMissingInput: '먼저 작품 제목이나 작가를 검색해주세요.',
-        searchPlaceholder: '제목, 작가, 스튜디오를 입력하세요',
+        searchPlaceholder: '작품 제목을 검색하세요',
         searchSource: '검색 출처',
-        searchSubmit: '후보 검색',
+        searchSubmit: '검색',
         searching: '검색 중...',
         selectCandidateFirst: '검색 결과에서 먼저 작품을 선택해주세요.',
+        saveHint: '저장 후 작품 상세 화면에서 기록을 이어갈 수 있습니다.',
+        selectedWork: '선택한 작품',
         similarRecordsCount: '비슷한 기록 {{count}}개',
         sourcePageOpen: '원본 페이지 열기',
         titleEvidence: '제목 근거',
@@ -1795,7 +2307,7 @@ export const ko = {
       save: {
         duplicateDescription: '비슷한 기록 {{count}}개를 확인한 뒤 저장하세요.',
         duplicateTitle: '기존 기록 확인 필요',
-        submit: '내 아카이브에 저장',
+        submit: '내 서재에 추가',
       },
       quickAdd: {
         typeAll: '자동 선택',
@@ -1898,6 +2410,7 @@ export const ko = {
         '시작일이나 최근 기록일을 남기면 이곳에 요약됩니다.',
       timelineCount: '{{count}}개',
       timelineSourceManual: '직접 기록',
+      timelineSourceAutomatic: '자동 기록',
       timelineSourceSystem: '날짜 기록',
       timelineDelete: '삭제',
       timelineAdvancedAdd: '고급 기록 추가',
@@ -1915,7 +2428,33 @@ export const ko = {
       timelineTypeDropped: '하차',
       timelineTypeRewatch: '재감상',
       timelineTypeProgress: '진행',
+      timelineRepeatActionRead: '오늘 재독 기록',
+      timelineRepeatActionWatch: '오늘 재감상 기록',
+      timelineRepeatActionGeneric: '오늘 다시 기록',
+      timelineRepeatAdvancedHint:
+        '과거 날짜나 메모는 고급 기록 추가에서 남길 수 있어요.',
+      timelineRepeatCount: '다시 기록 {{count}}회',
+      timelineRepeatDescriptionRead:
+        '오늘 다시 읽은 기록을 남기고 재독 이력을 차곡차곡 모아보세요.',
+      timelineRepeatDescriptionWatch:
+        '오늘 다시 본 기록을 남기고 재감상 이력을 차곡차곡 모아보세요.',
+      timelineRepeatDescriptionGeneric:
+        '오늘 다시 경험한 기록을 남기고 반복 이력을 모아보세요.',
+      timelineRepeatLabelRead: '재독',
+      timelineRepeatLabelWatch: '재감상',
+      timelineRepeatLabelGeneric: '다시 기록',
+      timelineRepeatRecordedToday: '오늘 기록됨',
+      timelineRepeatTitleRead: '다시 읽은 기록',
+      timelineRepeatTitleWatch: '다시 본 기록',
+      timelineRepeatTitleGeneric: '다시 경험한 기록',
       timelineStartedDescription: '작품을 보기 시작한 날입니다.',
+      timelineAutomaticDescription:
+        '상태나 진행도를 바꿀 때 자동으로 남긴 기록입니다.',
+      timelineAutomaticStatusChange: '상태 변경: {{previous}} → {{next}}',
+      timelineAutomaticProgressChange: '진행도 변경: {{progress}}',
+      timelineAutomaticProgressCleared: '진행도 기록을 비웠습니다.',
+      timelineAutomaticProgressTotal: '전체 {{total}}{{unit}}',
+      timelineAutomaticProgressUnit: '진행 단위: {{unit}}',
       timelineLastConsumedDescription: '마지막으로 진행을 기록한 날입니다.',
       timelineLastConsumedWithLabel: '마지막으로 남긴 위치: {{label}}',
       timelineCompletedDescription: '끝까지 본 날입니다.',
@@ -2019,6 +2558,19 @@ export const ko = {
       description: '제목, 상태, 감상을 필요한 만큼만 다듬어보세요.',
       error: '작품을 수정하지 못했습니다.',
       fullMode: '전체 수정 모드',
+      healthBack: '건강검진으로 돌아가기',
+      healthDescription:
+        '건강검진에서 찾은 날짜·상태 문제를 확인하고 저장하면 다음 기록으로 이어집니다.',
+      healthIssueCount: '{{count}}개',
+      healthIssueSummary: '이번 기록에서 확인할 항목',
+      healthMode: '건강검진 모드',
+      healthPreviousSaved: '이전 기록을 저장했습니다. 다음 항목을 확인하세요.',
+      healthProgress: '{{current}} / {{total}}',
+      healthProgressLabel: '검토 진행',
+      healthSaveFinish: '저장하고 검토 완료',
+      healthSaveNext: '저장하고 다음 기록',
+      healthSaveReturn: '저장하고 건강검진으로',
+      healthTitle: '{{title}} 건강검진',
       loadingTitle: '작품 정보를 불러오는 중입니다',
       missingDescription: '삭제되었거나 주소가 올바르지 않을 수 있습니다.',
       missingTitle: '수정할 작품을 찾을 수 없습니다.',
@@ -2182,6 +2734,8 @@ export const ko = {
       emptyActiveDescription:
         '제목만 직접 남기거나, 검색으로 기본 정보를 불러오거나, 기존 JSON 백업에서 다시 시작할 수 있습니다.',
       emptyActiveEyebrow: '빈 선반',
+      emptyActiveSitesPocDescription:
+        '제목을 직접 남기거나 기존 JSON 백업에서 다시 시작할 수 있습니다. 모든 기록은 이 브라우저에만 저장됩니다.',
       emptyActiveTitle: '아직 기록한 작품이 없습니다.',
       emptyFilterDescription: '검색어나 필터를 바꿔 다시 찾아보세요.',
       emptyFilterEyebrow: '검색 결과 없음',
@@ -2301,6 +2855,7 @@ export const ko = {
       sortDesc: '내림차순',
       sortDescToggle: '내림차순 — 클릭하면 오름차순',
       sortLabel: '정렬 기준',
+      viewOptions: '보기 옵션',
       trash: '휴지통',
       trashDeleted: '삭제됨',
       trashDeletedDate: ' · 삭제됨 ',
@@ -2449,7 +3004,7 @@ export const ko = {
     },
     form: {
       basicDescription:
-        '제목과 유형만 입력하면 저장할 수 있습니다. 장르는 핵심 분류만 선택하세요.',
+        '제목만 필수입니다. 상태와 별점을 먼저 정하고 나머지는 접힌 영역에서 보완할 수 있어요.',
       basicRequiredBadge: '필수',
       advancedTitle: '상세 정보',
       favoriteLabel: '즐겨찾기로 표시',
@@ -2484,7 +3039,8 @@ export const ko = {
       previewReviewLengthShort: '한줄평 {{count}}자',
       previewUntitled: '제목 없는 작품',
       recordBadge: '내 기록',
-      recordDescription: '상태, 별점, 한줄평만 먼저 남겨도 충분합니다.',
+      recordDescription:
+        '상태와 별점은 지금 정하고 저장 후에도 언제든 바꿀 수 있습니다.',
       recordLongReviewHelp:
         '긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수 있습니다.',
       relationCheckboxDescription:

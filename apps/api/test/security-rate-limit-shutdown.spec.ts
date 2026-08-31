@@ -7,6 +7,19 @@ const mockRedisPing = jest.fn<() => Promise<string>>();
 const mockRedisQuit = jest.fn<() => Promise<string>>();
 const mockRedisCall = jest.fn<(...args: string[]) => Promise<unknown>>();
 
+const mockSuccessfulRedisRateLimitCommand = async (...args: string[]) => {
+  const [command, subcommand, script = ''] = args;
+
+  if (command === 'SCRIPT' && subcommand === 'LOAD') {
+    return `sha:${script.length}`;
+  }
+
+  if (command === 'EVALSHA') {
+    return [1, 60_000];
+  }
+
+  return null;
+};
 jest.mock('ioredis', () =>
   jest.fn().mockImplementation(() => ({
     call: mockRedisCall,
@@ -80,7 +93,7 @@ describe('security rate-limit Redis shutdown', () => {
     mockRedisConnect.mockResolvedValue(undefined);
     mockRedisPing.mockResolvedValue('PONG');
     mockRedisQuit.mockResolvedValue('OK');
-    mockRedisCall.mockResolvedValue(null);
+    mockRedisCall.mockImplementation(mockSuccessfulRedisRateLimitCommand);
   });
 
   it('quits every Redis-backed rate-limit store client during shutdown', async () => {

@@ -1,4 +1,5 @@
 import { AppButton, AppLinkButton } from '@shared/components/AppPrimitives';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import { useAppTranslation } from '@app/i18n';
 import type { WorksCollectionScope } from '../services/works.service';
 import { ArchiveEmptyState } from './ArchiveComponents';
@@ -20,6 +21,7 @@ export function WorksListEmptyState({
 }: WorksListEmptyStateProps) {
   const { t } = useAppTranslation();
   const isTrashScope = collectionScope === 'trash';
+  const sitesGuestPoc = isSitesGuestPoc();
 
   return (
     <ArchiveEmptyState
@@ -34,22 +36,27 @@ export function WorksListEmptyState({
               <AppButton onClick={onClearFilters} type="button">
                 {t('works.list.resetFilters')}
               </AppButton>
-              <AppLinkButton to="/works/new" tone="secondary">
+              <AppLinkButton to="/works/new?mode=manual" tone="secondary">
                 {t('works.list.directAdd')}
               </AppLinkButton>
             </>
           ) : (
             <>
-              <AppLinkButton to="/works/new" tone="primary">
+              {!sitesGuestPoc && (
+                <AppButton
+                  onClick={onOpenAddDialog}
+                  tone="primary"
+                  type="button"
+                >
+                  {t('works.list.searchAdd')}
+                </AppButton>
+              )}
+              <AppLinkButton
+                to="/works/new?mode=manual"
+                tone={sitesGuestPoc ? 'primary' : 'secondary'}
+              >
                 {t('works.list.directAdd')}
               </AppLinkButton>
-              <AppButton
-                onClick={onOpenAddDialog}
-                tone="secondary"
-                type="button"
-              >
-                {t('works.list.searchAdd')}
-              </AppButton>
               <AppLinkButton to="/account/settings" tone="quiet">
                 {t('works.list.importJsonBackup')}
               </AppLinkButton>
@@ -62,7 +69,11 @@ export function WorksListEmptyState({
           ? t('works.list.emptyTrashDescription')
           : hasActiveFilters
             ? t('works.list.emptyFilterDescription')
-            : t('works.list.emptyActiveDescription')
+            : t(
+                sitesGuestPoc
+                  ? 'works.list.emptyActiveSitesPocDescription'
+                  : 'works.list.emptyActiveDescription',
+              )
       }
       eyebrow={
         isTrashScope

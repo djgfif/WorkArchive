@@ -1,10 +1,16 @@
 import { appI18n, formatAppNumber } from '@app/i18n';
+import {
+  JSON_BACKUP_MISSING_RECORD_THRESHOLD,
+  JSON_BACKUP_STALE_DAYS,
+} from '@shared/constants/archive-metadata';
 
-export const LAST_JSON_EXPORT_AT_META_KEY = 'archive.lastJsonExportAt';
-export const LAST_JSON_BACKUP_SUMMARY_META_KEY =
-  'archive.lastJsonBackupSummary';
-export const JSON_BACKUP_REMINDER_WORK_THRESHOLD = 20;
-export const JSON_BACKUP_STALE_DAYS = 30;
+export {
+  JSON_BACKUP_STALE_DAYS,
+  LAST_JSON_BACKUP_SUMMARY_META_KEY,
+  LAST_JSON_EXPORT_AT_META_KEY,
+} from '@shared/constants/archive-metadata';
+export const JSON_BACKUP_REMINDER_WORK_THRESHOLD =
+  JSON_BACKUP_MISSING_RECORD_THRESHOLD;
 
 export type JsonBackupReminderReason = 'missing' | 'none' | 'stale';
 

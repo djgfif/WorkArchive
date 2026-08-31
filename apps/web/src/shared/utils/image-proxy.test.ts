@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDisplayImageUrl, getDisplayImageUrlCandidates } from './image-proxy';
+import {
+  getDisplayImageUrl,
+  getDisplayImageUrlCandidates,
+} from './image-proxy';
 
 describe('getDisplayImageUrl', () => {
   it('routes known external image hosts through the same-origin image proxy', () => {
@@ -30,9 +33,7 @@ describe('getDisplayImageUrl', () => {
   });
 
   it('normalizes protocol-relative known image URLs as https proxy candidates', () => {
-    expect(
-      getDisplayImageUrl('//covers.openlibrary.org/b/id/123-L.jpg'),
-    ).toBe(
+    expect(getDisplayImageUrl('//covers.openlibrary.org/b/id/123-L.jpg')).toBe(
       '/api/image-proxy?url=https%3A%2F%2Fcovers.openlibrary.org%2Fb%2Fid%2F123-L.jpg',
     );
   });
@@ -47,31 +48,39 @@ describe('getDisplayImageUrl', () => {
     );
   });
 
-  it('keeps local and unknown https image URLs direct', () => {
+  it('keeps same-origin, blob, and safe raster data URLs local', () => {
     expect(getDisplayImageUrl('/cover.jpg')).toBe('/cover.jpg');
-    expect(getDisplayImageUrl('https://cdn.example.test/cover.jpg')).toBe(
-      'https://cdn.example.test/cover.jpg',
+    expect(getDisplayImageUrl('./cover.jpg')).toBe('./cover.jpg');
+    expect(getDisplayImageUrl('blob:poster-preview')).toBe(
+      'blob:poster-preview',
+    );
+    expect(getDisplayImageUrl('data:image/png;base64,cG9zdGVy')).toBe(
+      'data:image/png;base64,cG9zdGVy',
     );
   });
 
-  it('does not send unknown http hosts to the allowlisted image proxy', () => {
-    expect(getDisplayImageUrl('http://cdn.example.test/cover.jpg')).toBe(
-      'http://cdn.example.test/cover.jpg',
-    );
+  it('rejects arbitrary external hosts instead of loading them in the browser', () => {
+    expect(getDisplayImageUrl('https://cdn.example.test/cover.jpg')).toBe('');
+    expect(getDisplayImageUrl('http://cdn.example.test/cover.jpg')).toBe('');
+    expect(getDisplayImageUrlCandidates('not a valid url')).toEqual([]);
   });
 
-  it('provides direct https fallback candidates for proxied hosts', () => {
+  it('does not provide a direct fallback candidate for proxied hosts', () => {
     expect(
-      getDisplayImageUrlCandidates('https://covers.openlibrary.org/b/id/123-L.jpg'),
+      getDisplayImageUrlCandidates(
+        'https://covers.openlibrary.org/b/id/123-L.jpg',
+      ),
     ).toEqual([
       '/api/image-proxy?url=https%3A%2F%2Fcovers.openlibrary.org%2Fb%2Fid%2F123-L.jpg',
-      'https://covers.openlibrary.org/b/id/123-L.jpg',
     ]);
   });
 
-  it('does not treat non-cover AniList endpoints as proxy image hosts', () => {
-    expect(getDisplayImageUrl('https://graphql.anilist.co')).toBe(
-      'https://graphql.anilist.co',
-    );
+  it('rejects SVG data URLs and non-cover AniList endpoints', () => {
+    expect(
+      getDisplayImageUrl(
+        'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>',
+      ),
+    ).toBe('');
+    expect(getDisplayImageUrl('https://graphql.anilist.co')).toBe('');
   });
 });

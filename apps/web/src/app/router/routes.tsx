@@ -1,3 +1,4 @@
+import type { ProductReleaseProfile } from '@work-archive/shared-types';
 import type { RouteObject } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 import { Suspense, type ReactNode } from 'react';
@@ -13,6 +14,13 @@ import {
   TierBoardViewPage,
 } from './tier-board-route-components';
 import {
+  CommunityPage,
+  CommunityBoardsPage,
+  CommunityPostDetailPage,
+  CommunityProfilePage,
+  CommunityReflectionPage,
+  CommunityReviewDetailPage,
+  CommunityTastePage,
   AccountOverviewPage,
   GoogleAuthCompletePage,
   GuestTransferReviewPage,
@@ -27,6 +35,16 @@ import {
 } from './page-route-components';
 import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import { featureFlags, type FeatureFlags } from '@shared/runtime/feature-flags';
+import {
+  deploymentProfile,
+  type DeploymentProfile,
+} from '@shared/runtime/deployment-profile';
+import {
+  isCommunityFullEnabled,
+  isCommunityReflectionEnabled,
+  isCommunitySocialEnabled,
+  productReleaseProfile,
+} from '@shared/runtime/product-release-profile';
 import { HomePage } from '@features/home';
 import { StateMessage } from '@shared/components/AppPrimitives';
 import { appI18n } from '@app/i18n';
@@ -72,7 +90,67 @@ function tierBoardElement(flags: FeatureFlags, element: ReactNode) {
 
 export function createAppRoutes(
   flags: FeatureFlags = featureFlags,
+  profile: DeploymentProfile = deploymentProfile,
+  releaseProfile: ProductReleaseProfile = productReleaseProfile,
 ): RouteObject[] {
+  const sitesGuestPoc = profile === 'sites-guest-poc';
+  const reflectionEnabled =
+    !sitesGuestPoc && isCommunityReflectionEnabled(releaseProfile);
+  const socialEnabled =
+    !sitesGuestPoc && isCommunitySocialEnabled(releaseProfile);
+  const fullEnabled = !sitesGuestPoc && isCommunityFullEnabled(releaseProfile);
+  const communityRoutes: RouteObject[] = reflectionEnabled
+    ? [
+        {
+          path: 'community',
+          element: lazyRoute(
+            socialEnabled ? (
+              <CommunityPage fullEnabled={fullEnabled} />
+            ) : (
+              <CommunityReflectionPage />
+            ),
+          ),
+          errorElement: routeError(
+            appI18n.t('routes.communityError'),
+            '/works',
+            appI18n.t('routes.fallbackWorks'),
+          ),
+        },
+        ...(socialEnabled
+          ? [
+              {
+                path: 'community/boards',
+                element: lazyRoute(
+                  <CommunityBoardsPage fullEnabled={fullEnabled} />,
+                ),
+              },
+              {
+                path: 'community/posts/:id',
+                element: lazyRoute(<CommunityPostDetailPage />),
+              },
+              {
+                path: 'community/reviews/:id',
+                element: lazyRoute(<CommunityReviewDetailPage />),
+              },
+              ...(fullEnabled
+                ? [
+                    {
+                      path: 'community/taste',
+                      element: lazyRoute(<CommunityTastePage />),
+                    },
+                  ]
+                : []),
+              {
+                path: 'u/:handle',
+                element: lazyRoute(
+                  <CommunityProfilePage fullEnabled={fullEnabled} />,
+                ),
+              },
+            ]
+          : []),
+      ]
+    : [];
+
   return [
     {
       element: <MainProductLayout />,
@@ -99,6 +177,7 @@ export function createAppRoutes(
             appI18n.t('routes.fallbackHome'),
           ),
         },
+        ...communityRoutes,
         {
           path: 'works/new',
           element: lazyRoute(<WorkCreatePage />),
@@ -164,7 +243,11 @@ export function createAppRoutes(
         },
         {
           path: 'profile',
-          element: lazyRoute(<ProfilePage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/" />
+          ) : (
+            lazyRoute(<ProfilePage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.profileError'),
             '/account',
@@ -179,7 +262,11 @@ export function createAppRoutes(
       children: [
         {
           path: 'login',
-          element: lazyRoute(<LoginPage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/" />
+          ) : (
+            lazyRoute(<LoginPage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.loginError'),
             '/works',
@@ -192,7 +279,11 @@ export function createAppRoutes(
         },
         {
           path: 'google/complete',
-          element: lazyRoute(<GoogleAuthCompletePage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/" />
+          ) : (
+            lazyRoute(<GoogleAuthCompletePage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.googleCompleteError'),
             '/auth/login',
@@ -215,7 +306,11 @@ export function createAppRoutes(
       children: [
         {
           index: true,
-          element: lazyRoute(<AccountOverviewPage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/account/settings" />
+          ) : (
+            lazyRoute(<AccountOverviewPage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.accountOverviewError'),
             '/works',
@@ -224,7 +319,11 @@ export function createAppRoutes(
         },
         {
           path: 'transfer',
-          element: lazyRoute(<GuestTransferReviewPage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/account/settings" />
+          ) : (
+            lazyRoute(<GuestTransferReviewPage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.transferError'),
             '/account',
@@ -241,10 +340,6 @@ export function createAppRoutes(
           ),
         },
       ],
-    },
-    {
-      path: '/community',
-      element: <Navigate replace to="/works" />,
     },
     {
       path: '/account/sync',

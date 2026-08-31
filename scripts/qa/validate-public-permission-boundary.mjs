@@ -54,6 +54,14 @@ const schemaPath = 'apps/api/prisma/schema.prisma';
 const gatesPath = 'scripts/qa/commercial-repo-gates.sh';
 const localEvidencePath = 'scripts/qa/gate1-evidence-local.sh';
 const packagePath = 'package.json';
+const communityControllerPath =
+  'apps/api/src/modules/community/community-reflection.controller.ts';
+const communityServicePath =
+  'apps/api/src/modules/community/community.service.ts';
+const communityPublishPath =
+  'apps/web/src/features/community/services/community-publish.ts';
+const communityPagePath =
+  'apps/web/src/features/community/pages/CommunityReflectionPage.tsx';
 
 const boundary = readRequired(boundaryPath);
 const bola = readRequired(bolaPath);
@@ -61,6 +69,10 @@ const schema = readRequired(schemaPath);
 const gates = readRequired(gatesPath);
 const localEvidence = readRequired(localEvidencePath);
 const packageJson = readRequired(packagePath);
+const communityController = readRequired(communityControllerPath);
+const communityService = readRequired(communityServicePath);
+const communityPublish = readRequired(communityPublishPath);
+const communityPage = readRequired(communityPagePath);
 
 requireIncludes(boundaryPath, boundary, [
   '| Status | `canonical` |',
@@ -70,6 +82,8 @@ requireIncludes(boundaryPath, boundary, [
   '`exported`',
   'Do not add a `public` visibility state',
   'Data That Must Never Become Public By Accident',
+  'Community Alpha Permission Semantics',
+  'Repository implementation does not approve production exposure by itself',
   'Required Review Before Public Expansion',
   'npm run qa:public-boundary',
 ]);
@@ -97,6 +111,95 @@ requirePattern(
   bola,
   /\|\s*`tier_board`\s*\|\s*not_exposed\s*\|\s*not_exposed\s*\|\s*not_exposed\s*\|\s*satisfied\s*\|\s*satisfied\s*\|/,
   'BOLA matrix must keep tier boards non-exposed outside sync for Gate 1.',
+);
+requirePattern(
+  bolaPath,
+  bola,
+  /\|\s*`community_post`\s*\|\s*satisfied\s*\|\s*not_exposed\s*\|\s*satisfied\s*\|/,
+  'BOLA matrix must record implemented Community post read and owner-delete coverage.',
+);
+for (const model of [
+  'CommunityPost',
+  'CommunityReaction',
+  'CommunityReport',
+  'CommunityModerationAuditLog',
+]) {
+  requirePattern(
+    schemaPath,
+    schema,
+    new RegExp(`model\\s+${model}\\s*\\{`),
+    `Prisma must define ${model} for the approved Community boundary.`,
+  );
+}
+requirePattern(
+  communityControllerPath,
+  communityController,
+  /@Get\(\)[\s\S]{0,620}getOptionalUser\(authorizationHeader\)/,
+  'Community feed reads must stay public with optional bearer viewer flags.',
+);
+requirePattern(
+  communityControllerPath,
+  communityController,
+  /@Post\(\)[\s\S]{0,260}@UseGuards\(JwtAuthGuard\)/,
+  'Community publication must require authentication.',
+);
+requirePattern(
+  communityControllerPath,
+  communityController,
+  /@RequireCommunityRelease\('reflection'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
+  'approved Community endpoints must require the reflection release capability.',
+);
+for (const route of [
+  "@Post(':id/reactions')",
+  "@Post('moderation/:id/hide')",
+  "@Post('moderation/:id/restore')",
+  "@Post('moderation/reports/:id/resolve')",
+]) {
+  requirePattern(
+    communityControllerPath,
+    communityController,
+    new RegExp(
+      `${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]{0,100}@HttpCode\\(HttpStatus\\.OK\\)`,
+    ),
+    `${route} must return the documented 200 status instead of the Nest POST default.`,
+  );
+}
+requirePattern(
+  communityServicePath,
+  communityService,
+  /const PUBLIC_AUTHOR_SELECT = \{(?:(?!\b(?:email|id|oauthAccounts)\s*:)[^}])*\}/s,
+  'Community public author selection must exclude raw ids, email, and OAuth data.',
+);
+requireIncludes(communityPublishPath, communityPublish, [
+  "'thumbnailUrl' | 'title' | 'type'",
+  'body: body.trim()',
+  'workThumbnailUrl',
+]);
+requireIncludes(communityServicePath, communityService, [
+  'parseAllowedImageUrl',
+  'CommunityPostStatus.published',
+  "{ reactionCount: 'desc' as const }",
+  'reactionCount: { increment: 1 }',
+  'reactionCount: { decrement: 1 }',
+]);
+requirePattern(
+  schemaPath,
+  schema,
+  /@@index\(\[surface, status, reactionCount\(sort: Desc\), createdAt\(sort: Desc\), id\(sort: Desc\)\]\)/,
+  'Popular Community reads must use the scalar reaction count index.',
+);
+requireIncludes(communityPagePath, communityPage, [
+  'getDisplayImageUrl(post.author.avatarUrl)',
+  'getDisplayImageUrl(',
+  'post.work?.thumbnailUrl',
+  'feedRequestId',
+  'publicPreviewDescription',
+]);
+requirePattern(
+  schemaPath,
+  schema,
+  /model\s+CommunityModerationAuditLog\s*\{[\s\S]*?actorId\s+String\?[\s\S]*?actor\s+User\?\s+@relation\([^)]*onDelete:\s*SetNull[^)]*\)/,
+  'Community moderation audit actors must be nullable so account deletion preserves anonymized audit evidence.',
 );
 requirePattern(
   gatesPath,

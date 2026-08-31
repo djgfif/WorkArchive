@@ -1,0 +1,4 @@
+.formula { margin-bottom:1.25rem; border-color:color-mix(in srgb,var(--app-accent-primary) 28%,var(--app-border-subtle)); background:color-mix(in srgb,var(--app-accent-primary) 5%,var(--app-surface-card)); }
+.author { display:flex; align-items:center; gap:.8rem; color:inherit; text-decoration:none; }
+.score { color:var(--app-accent-primary); font-family:var(--app-font-figure); font-size:1.35rem; font-weight:900; }
+.reason { padding:.35rem .65rem; border:1px solid var(--app-border-default); border-radius:999px; color:var(--app-text-secondary); font-size:.78rem; }

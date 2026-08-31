@@ -57,43 +57,48 @@ export function GuestTransferReviewPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
 
-  const loadReview = useCallback(async (options?: { isCancelled?: () => boolean }) => {
-    if (!user) {
-      return;
-    }
-
-    setIsLoading(true);
-    setSubmitError(null);
-
-    try {
-      const pendingReview = await guestTransferService.getPendingReview(user.id);
-
-      if (options?.isCancelled?.()) {
+  const loadReview = useCallback(
+    async (options?: { isCancelled?: () => boolean }) => {
+      if (!user) {
         return;
       }
 
-      setReview(pendingReview);
-      setSelectedIds(
-        pendingReview
-          ? pendingReview.items
-              .filter((item) => !item.hasDuplicates)
-              .map((item) => item.guestWork.id)
-          : [],
-      );
-    } catch (error) {
-      if (options?.isCancelled?.()) {
-        return;
-      }
+      setIsLoading(true);
+      setSubmitError(null);
 
-      setReview(null);
-      setSelectedIds([]);
-      setSubmitError(getGuestTransferErrorMessage(error, 'load'));
-    } finally {
-      if (!options?.isCancelled?.()) {
-        setIsLoading(false);
+      try {
+        const pendingReview = await guestTransferService.getPendingReview(
+          user.id,
+        );
+
+        if (options?.isCancelled?.()) {
+          return;
+        }
+
+        setReview(pendingReview);
+        setSelectedIds(
+          pendingReview
+            ? pendingReview.items
+                .filter((item) => !item.hasDuplicates)
+                .map((item) => item.guestWork.id)
+            : [],
+        );
+      } catch (error) {
+        if (options?.isCancelled?.()) {
+          return;
+        }
+
+        setReview(null);
+        setSelectedIds([]);
+        setSubmitError(getGuestTransferErrorMessage(error, 'load'));
+      } finally {
+        if (!options?.isCancelled?.()) {
+          setIsLoading(false);
+        }
       }
-    }
-  }, [user]);
+    },
+    [user],
+  );
 
   useEffect(() => {
     let isCancelled = false;
@@ -138,9 +143,7 @@ export function GuestTransferReviewPage() {
         authenticatedUser.id,
         review.fingerprint,
       );
-      setResultMessage(
-        t('auth.guestTransfer.skipSuccess'),
-      );
+      setResultMessage(t('auth.guestTransfer.skipSuccess'));
       setReview(null);
       setSelectedIds([]);
     } catch (error) {
@@ -185,6 +188,18 @@ export function GuestTransferReviewPage() {
         ? currentValue.filter((id) => id !== workId)
         : [...currentValue, workId],
     );
+  }
+
+  function selectAllGuestRecords() {
+    if (!review) {
+      return;
+    }
+
+    setSelectedIds(review.items.map((item) => item.guestWork.id));
+  }
+
+  function clearSelection() {
+    setSelectedIds([]);
   }
 
   return (
@@ -295,6 +310,29 @@ export function GuestTransferReviewPage() {
               <Text c="var(--mantine-color-dimmed)">{duplicateSummary}</Text>
             )}
 
+            <Text c="var(--mantine-color-dimmed)">
+              {t('auth.guestTransfer.skipPreservesGuest')}
+            </Text>
+
+            <ActionRow>
+              <AppButton
+                disabled={isSubmitting || selectedCount === review.items.length}
+                onClick={selectAllGuestRecords}
+                tone="secondary"
+                type="button"
+              >
+                {t('auth.guestTransfer.actionSelectAll')}
+              </AppButton>
+              <AppButton
+                disabled={isSubmitting || selectedCount === 0}
+                onClick={clearSelection}
+                tone="quiet"
+                type="button"
+              >
+                {t('auth.guestTransfer.actionClearSelection')}
+              </AppButton>
+            </ActionRow>
+
             <ActionRow>
               <AppButton
                 disabled={!canSubmit}
@@ -379,15 +417,17 @@ export function GuestTransferReviewPage() {
                     {item.duplicateCandidates.map((candidate) => (
                       <Text c="var(--mantine-color-dimmed)" key={candidate.id}>
                         {t('auth.guestTransfer.candidatePrefix')}{' '}
-                        {candidate.title} / {t(`works.type.${candidate.type}`)} /{' '}
-                        {t(`works.status.${candidate.status}`)}
+                        {candidate.title} / {t(`works.type.${candidate.type}`)}{' '}
+                        / {t(`works.status.${candidate.status}`)}
                       </Text>
                     ))}
                   </Stack>
                 )}
 
                 {item.guestWork.shortReview && (
-                  <Text c="var(--mantine-color-text)">{item.guestWork.shortReview}</Text>
+                  <Text c="var(--mantine-color-text)">
+                    {item.guestWork.shortReview}
+                  </Text>
                 )}
               </SectionCard>
             ))}

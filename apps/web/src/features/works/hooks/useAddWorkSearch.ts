@@ -12,17 +12,19 @@ import {
 
 interface UseAddWorkSearchOptions {
   enabled: boolean;
+  initialSearchTerm?: string;
   onApplyCandidate: (candidate: ImportCandidate) => void;
   onUseManualTitle: (title: string) => void;
 }
 
 export function useAddWorkSearch({
   enabled,
+  initialSearchTerm = '',
   onApplyCandidate,
   onUseManualTitle,
 }: UseAddWorkSearchOptions) {
   const { t } = useAppTranslation();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [searchType, setSearchType] = useState<CatalogSearchMediumType>('all');
   const [providerGroup, setProviderGroup] = useState<ProviderGroup>('all');
   const [searchCandidates, setSearchCandidates] = useState<ImportCandidate[]>(
@@ -84,7 +86,7 @@ export function useAddWorkSearch({
 
       setSearchCandidates(visibleCandidates);
       setSearchNotice(result.notice);
-      setSelectedSearchCandidate(visibleCandidates[0] ?? null);
+      setSelectedSearchCandidate(null);
     } catch (error) {
       const message =
         error instanceof Error

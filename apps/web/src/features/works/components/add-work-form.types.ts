@@ -2,6 +2,8 @@ import type { ChangeEvent, RefObject } from 'react';
 
 import type { WorkFormValues } from '../utils/work-form';
 
+export type WorkFormFocusArea = 'archive-health' | 'general' | 'review';
+
 export type WorkFormInputChangeHandler = (
   event: ChangeEvent<
     HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement

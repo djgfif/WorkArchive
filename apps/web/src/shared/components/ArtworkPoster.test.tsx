@@ -42,6 +42,7 @@ describe('ArtworkPoster', () => {
 
     expect(image).toHaveAttribute('loading', 'lazy');
     expect(image).toHaveAttribute('decoding', 'async');
+    expect(image).toHaveAttribute('referrerpolicy', 'no-referrer');
   });
 
   it('uses eager loading for detail poster variants', () => {
@@ -59,7 +60,7 @@ describe('ArtworkPoster', () => {
     );
   });
 
-  it('falls back from the image proxy to the original https source', () => {
+  it('shows the local fallback when the image proxy fails', () => {
     renderWithProviders(
       <ArtworkPoster
         thumbnailUrl="https://covers.openlibrary.org/b/id/123-L.jpg"
@@ -77,28 +78,24 @@ describe('ArtworkPoster', () => {
 
     fireEvent.error(image);
 
-    expect(screen.getByAltText('Dune 포스터')).toHaveAttribute(
-      'src',
-      'https://covers.openlibrary.org/b/id/123-L.jpg',
-    );
+    expect(screen.getByLabelText('Dune 포스터 대체 표지')).toBeInTheDocument();
+    expect(screen.queryByAltText('Dune 포스터')).not.toBeInTheDocument();
   });
 
-  it('shows the fallback poster after every image source fails', () => {
+  it('never renders an arbitrary external image host', () => {
     renderWithProviders(
       <ArtworkPoster
-        thumbnailUrl="https://covers.openlibrary.org/b/id/123-L.jpg"
+        thumbnailUrl="https://cdn.example.test/track-user.jpg"
         title="Dune"
         variant="row"
       />,
     );
 
-    fireEvent.error(screen.getByAltText('Dune 포스터'));
-    fireEvent.error(screen.getByAltText('Dune 포스터'));
-
     expect(screen.getByLabelText('Dune 포스터 대체 표지')).toBeInTheDocument();
+    expect(screen.queryByAltText('Dune 포스터')).not.toBeInTheDocument();
   });
 
-  it('skips a recently failed proxy source on the next mount', () => {
+  it('keeps a recently failed proxy source on the local fallback', () => {
     const { unmount } = renderWithProviders(
       <ArtworkPoster
         thumbnailUrl="https://covers.openlibrary.org/b/id/123-L.jpg"
@@ -118,10 +115,8 @@ describe('ArtworkPoster', () => {
       />,
     );
 
-    expect(screen.getByAltText('Dune 포스터')).toHaveAttribute(
-      'src',
-      'https://covers.openlibrary.org/b/id/123-L.jpg',
-    );
+    expect(screen.getByLabelText('Dune 포스터 대체 표지')).toBeInTheDocument();
+    expect(screen.queryByAltText('Dune 포스터')).not.toBeInTheDocument();
   });
 
   it('reuses a locally cached proxy image before trying the external source again', async () => {

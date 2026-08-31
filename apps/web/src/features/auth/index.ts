@@ -1,5 +1,6 @@
 export { AuthContext, type AuthContextValue } from './context/AuthContext';
 export { AuthProvider } from './context/AuthProvider';
+export { ArchiveScopeIndicator } from './components/ArchiveScopeIndicator';
 export { useAuthSession } from './hooks/useAuthSession';
 export { GoogleAuthCompletePage } from './pages/GoogleAuthCompletePage';
 export { GuestTransferReviewPage } from './pages/GuestTransferReviewPage';

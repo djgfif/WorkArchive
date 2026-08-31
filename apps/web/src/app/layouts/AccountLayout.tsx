@@ -18,7 +18,13 @@ import {
   ThemeToggleControl,
 } from '@shared/components/AppPrimitives';
 import { useAppTranslation } from '@app/i18n';
-import { getUserAvatarProfile, useAuthSession } from '@features/auth';
+import { SitesPocNotice } from '@shared/components/SitesPocNotice';
+import {
+  ArchiveScopeIndicator,
+  getUserAvatarProfile,
+  useAuthSession,
+} from '@features/auth';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import { cn, cx } from '@shared/utils/class-names';
 
 import styles from './AccountLayout.module.css';
@@ -123,6 +129,7 @@ export function AccountLayout() {
   const { t } = useAppTranslation();
   const { isLoading, mode, signOut, user } = useAuthSession();
   const isAuthenticated = mode === 'authenticated';
+  const sitesGuestPoc = isSitesGuestPoc();
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
 
   async function handleSignOut() {
@@ -139,8 +146,10 @@ export function AccountLayout() {
 
   return (
     <main className="layout-shell layout-shell--account">
+      <SitesPocNotice topOffset="page" />
       <Container px="md" size={1360}>
-        <Grid align="start" gap="xl">
+        <ArchiveScopeIndicator attentionOnly />
+        <Grid align="start" gap="xl" mt="md">
           {/* 모바일 — 상단 수평 nav */}
           <Grid.Col hiddenFrom="lg" span={12}>
             <AccountSidebar
@@ -150,6 +159,7 @@ export function AccountLayout() {
               isAuthenticated={isAuthenticated}
               loginReturnTo={loginReturnTo}
               onSignOut={() => void handleSignOut()}
+              sitesGuestPoc={sitesGuestPoc}
               variant="mobile"
             />
           </Grid.Col>
@@ -164,6 +174,7 @@ export function AccountLayout() {
                 isAuthenticated={isAuthenticated}
                 loginReturnTo={loginReturnTo}
                 onSignOut={() => void handleSignOut()}
+                sitesGuestPoc={sitesGuestPoc}
                 variant="desktop"
               />
             </Box>
@@ -193,6 +204,7 @@ interface AccountSidebarProps {
   isAuthenticated: boolean;
   loginReturnTo: string;
   onSignOut: () => void;
+  sitesGuestPoc: boolean;
   variant: 'desktop' | 'mobile';
 }
 
@@ -204,12 +216,13 @@ function AccountSidebar({
   loginReturnTo,
   onSignOut,
   variant,
+  sitesGuestPoc,
 }: AccountSidebarProps) {
   const isMobile = variant === 'mobile';
   const { t } = useAppTranslation();
 
   return (
-    <Stack gap="sm">
+    <Stack className={cx(isMobile && styles.accountSidebarMobile)} gap="sm">
       <Box className={cn(styles.brandPanel)}>
         <BrandLink
           heading="Work Archive"
@@ -263,24 +276,30 @@ function AccountSidebar({
           aria-label={t('common.account')}
           className={cn(styles.navSection)}
         >
-          <Stack gap={2}>
-            {accountNavigationItems.map((item) => (
-              <AccountNavItem
-                end={item.to === '/account'}
-                icon={item.icon}
-                key={item.to}
-                label={t(item.labelKey)}
-                to={item.to}
-              />
-            ))}
+          <Stack className={cx(isMobile && styles.mobileNavList)} gap={2}>
+            {accountNavigationItems
+              .filter((item) => !sitesGuestPoc || item.to !== '/account')
+              .map((item) => (
+                <AccountNavItem
+                  end={item.to === '/account'}
+                  icon={item.icon}
+                  key={item.to}
+                  label={t(item.labelKey)}
+                  to={item.to}
+                />
+              ))}
           </Stack>
         </Box>
 
-        <Divider color="var(--app-border-subtle)" mx="sm" />
+        <Divider
+          className={cx(isMobile && styles.mobileSidebarDivider)}
+          color="var(--app-border-subtle)"
+          mx="sm"
+        />
 
         {/* 하단 액션 */}
         <Box className={cn(styles.footerSection)}>
-          <Stack gap={2}>
+          <Stack className={cx(isMobile && styles.mobileFooterList)} gap={2}>
             {/* 작품 목록으로 */}
             <AccountNavItem
               end={false}
@@ -306,7 +325,7 @@ function AccountSidebar({
                 </Box>
                 {t('navigation.logout')}
               </Box>
-            ) : (
+            ) : sitesGuestPoc ? null : (
               <AccountNavItem
                 end={false}
                 icon={<IconLogin />}
@@ -335,11 +354,9 @@ interface AccountNavItemProps {
 
 function AccountNavItem({ end, icon, label, state, to }: AccountNavItemProps) {
   return (
-    <AppNavLink end={end} fullWidth state={state} to={to}>
+    <AppNavLink aria-label={label} end={end} fullWidth state={state} to={to}>
       <Group gap="sm" wrap="nowrap">
-        <Box className={cn(styles.navIcon)}>
-          {icon}
-        </Box>
+        <Box className={cn(styles.navIcon)}>{icon}</Box>
         {label}
       </Group>
     </AppNavLink>

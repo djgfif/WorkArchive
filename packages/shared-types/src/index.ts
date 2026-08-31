@@ -640,6 +640,104 @@ export interface WorkRecord extends AuditFields {
   serverVersion: number;
 }
 
+export interface CatalogUserRecordIdentityV2 {
+  kind: 'catalog';
+  catalogTitleId: EntityId;
+}
+
+export interface ExternalUserRecordIdentityV2 {
+  kind: 'external';
+  provider: string;
+  externalId: string;
+  externalRefs?: WorkImportExternalRef[];
+  title: string;
+  mediumType: WorkType;
+  author?: string;
+  description?: string;
+  thumbnailUrl?: string;
+}
+
+export interface ManualUserRecordIdentityV2 {
+  kind: 'manual';
+  title: string;
+  mediumType: WorkType;
+}
+
+export type UserRecordIdentityV2 =
+  | CatalogUserRecordIdentityV2
+  | ExternalUserRecordIdentityV2
+  | ManualUserRecordIdentityV2;
+
+export interface UserRecordPersonalFieldsV2 {
+  status?: WorkStatus;
+  rating?: number | null;
+  shortReview?: string;
+  review?: string;
+  favorite?: boolean;
+  personalTags?: string[];
+  startedAt?: ISODateString | null;
+  completedAt?: ISODateString | null;
+  droppedAt?: ISODateString | null;
+  lastConsumedAt?: ISODateString | null;
+}
+
+export interface CreateUserRecordV2Request {
+  identity: UserRecordIdentityV2;
+  record?: UserRecordPersonalFieldsV2;
+}
+
+export interface UserRecordDataV2 extends AuditFields {
+  id: EntityId;
+  status: WorkStatus;
+  rating: number | null;
+  shortReview: string;
+  review: string;
+  favorite: boolean;
+  personalTags: string[];
+  progressCurrent: number | null;
+  progressTotal: number | null;
+  progressUnit: ProgressUnit | null;
+  lastConsumedLabel: string | null;
+  startedAt: ISODateString | null;
+  completedAt: ISODateString | null;
+  droppedAt: ISODateString | null;
+  lastConsumedAt: ISODateString | null;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
+export interface CatalogTitleSummaryV2 {
+  id: EntityId;
+  mediumType: WorkType;
+  title: string;
+  thumbnailUrl: string;
+  verificationStatus: CatalogVerificationStatus | string;
+}
+
+export type UserRecordViewIdentityV2 =
+  | {
+      kind: 'catalog';
+      catalogTitleId: EntityId;
+      catalog: CatalogTitleSummaryV2;
+    }
+  | {
+      kind: 'manual';
+      title: string;
+      mediumType: WorkType;
+      author: string;
+      description: string;
+      thumbnailUrl: string;
+    };
+
+export interface UserRecordViewV2 {
+  identity: UserRecordViewIdentityV2;
+  record: UserRecordDataV2;
+}
+
+export interface UserRecordListV2 {
+  records: UserRecordViewV2[];
+}
 export const TIER_BOARD_VISIBILITIES = [
   'private',
   'link_only',
@@ -745,10 +843,16 @@ export const TIMELINE_ENTRY_TYPES = [
 
 export type TimelineEntryType = (typeof TIMELINE_ENTRY_TYPES)[number];
 
+export const TIMELINE_ENTRY_SOURCES = ['manual', 'automatic'] as const;
+
+export type TimelineEntrySource = (typeof TIMELINE_ENTRY_SOURCES)[number];
+
 export interface TimelineEntryRecord extends AuditFields {
   id: EntityId;
   workId: EntityId;
   type: TimelineEntryType;
+  /** Missing only on archives and sync payloads created before source tracking. */
+  source?: TimelineEntrySource;
   occurredAt: ISODateString;
   note: string;
   deletedAt: ISODateString | null;
@@ -1015,6 +1119,7 @@ export const SYNC_QUEUE_SOURCES = [
   'manual_create',
   'edit_form',
   'restore',
+  'archive_health_fix',
   'progress_update',
   'timeline_entry_update',
   'release_record_update',
@@ -1147,4 +1252,329 @@ export interface SyncQueueItemRecord<TPayload = SyncQueuePayload> {
 export interface AppMetaRecord {
   key: string;
   value: string;
+}
+
+export const PRODUCT_RELEASE_PROFILES = [
+  'personal-archive',
+  'community-reflection-alpha',
+  'community-social-experiment',
+  'community-core',
+  'community-full',
+] as const;
+export type ProductReleaseProfile = (typeof PRODUCT_RELEASE_PROFILES)[number];
+
+export interface ProductReleaseCapabilities {
+  communityReflection: boolean;
+  communityCore: boolean;
+  communityFull: boolean;
+  /** @deprecated Use communityCore for the formal social surface gate. */
+  communitySocial: boolean;
+}
+
+export interface ProductReleaseRuntime {
+  capabilities: ProductReleaseCapabilities;
+  profile: ProductReleaseProfile;
+}
+
+export const PRODUCT_RELEASE_CAPABILITIES: Record<
+  ProductReleaseProfile,
+  ProductReleaseCapabilities
+> = {
+  'personal-archive': {
+    communityReflection: false,
+    communityCore: false,
+    communityFull: false,
+    communitySocial: false,
+  },
+  'community-reflection-alpha': {
+    communityReflection: true,
+    communityCore: false,
+    communityFull: false,
+    communitySocial: false,
+  },
+  'community-social-experiment': {
+    communityReflection: true,
+    communityCore: true,
+    communityFull: true,
+    communitySocial: true,
+  },
+  'community-core': {
+    communityReflection: true,
+    communityCore: true,
+    communityFull: false,
+    communitySocial: true,
+  },
+  'community-full': {
+    communityReflection: true,
+    communityCore: true,
+    communityFull: true,
+    communitySocial: true,
+  },
+};
+
+export function isProductReleaseProfile(
+  value: unknown,
+): value is ProductReleaseProfile {
+  return (
+    typeof value === 'string' &&
+    PRODUCT_RELEASE_PROFILES.includes(value as ProductReleaseProfile)
+  );
+}
+
+export function getProductReleaseCapabilities(
+  profile: ProductReleaseProfile,
+): ProductReleaseCapabilities {
+  return PRODUCT_RELEASE_CAPABILITIES[profile];
+}
+
+export const COMMUNITY_POST_SORTS = ['latest', 'popular'] as const;
+export type CommunityPostSort = (typeof COMMUNITY_POST_SORTS)[number];
+
+export const COMMUNITY_POST_SURFACES = ['reflection', 'board'] as const;
+export type CommunityPostSurface = (typeof COMMUNITY_POST_SURFACES)[number];
+
+export const COMMUNITY_REPORT_REASONS = [
+  'spoiler',
+  'harassment',
+  'hate',
+  'spam',
+  'other',
+] as const;
+export type CommunityReportReason = (typeof COMMUNITY_REPORT_REASONS)[number];
+
+export type CommunityReportResolution = 'resolve' | 'dismiss';
+
+export const COMMUNITY_BOARD_CATEGORIES = [
+  'free',
+  'recommendation',
+  'question',
+  'information',
+  'spoiler',
+] as const;
+export type CommunityBoardCategory =
+  (typeof COMMUNITY_BOARD_CATEGORIES)[number];
+
+export type CommunityProfileVisibility = 'private' | 'public';
+export type CommunityFeedScope = 'all' | 'following';
+export type CommunityFeedKind = 'review' | 'post';
+export type CommunityTargetType = 'comment' | 'post' | 'review';
+
+export interface CommunityPublicAuthor {
+  avatarUrl: string;
+  displayName: string;
+  handle: string | null;
+}
+
+export interface CommunityWorkSnapshot {
+  catalogTitleId?: EntityId | null;
+  genres?: string[];
+  thumbnailUrl: string;
+  title: string;
+  type: WorkType;
+}
+
+export interface CommunityPostView {
+  author: CommunityPublicAuthor;
+  body: string;
+  category?: CommunityBoardCategory;
+  commentCount?: number;
+  createdAt: ISODateString;
+  id: EntityId;
+  reactionCount: number;
+  spoiler: boolean;
+  surface: CommunityPostSurface;
+  updatedAt: ISODateString;
+  viewerCanDelete: boolean;
+  viewerHasReacted: boolean;
+  work: CommunityWorkSnapshot | null;
+}
+
+export interface CommunityBoardPostView extends CommunityPostView {
+  category: CommunityBoardCategory;
+  commentCount: number;
+}
+
+export interface CommunityReviewView {
+  author: CommunityPublicAuthor;
+  body: string;
+  commentCount: number;
+  createdAt: ISODateString;
+  id: EntityId;
+  rating: number | null;
+  reactionCount: number;
+  spoiler: boolean;
+  updatedAt: ISODateString;
+  viewerCanDelete: boolean;
+  viewerCanEdit: boolean;
+  viewerHasReacted: boolean;
+  work: CommunityWorkSnapshot & { catalogTitleId: EntityId };
+}
+
+export interface CommunityCommentView {
+  author: CommunityPublicAuthor;
+  body: string;
+  createdAt: ISODateString;
+  id: EntityId;
+  parentId: EntityId | null;
+  reactionCount: number;
+  replies: CommunityCommentView[];
+  spoiler: boolean;
+  updatedAt: ISODateString;
+  viewerCanDelete: boolean;
+  viewerCanEdit: boolean;
+  viewerHasReacted: boolean;
+}
+
+export interface CommunityFeedItem {
+  createdAt: ISODateString;
+  id: EntityId;
+  kind: CommunityFeedKind;
+  post: CommunityBoardPostView | null;
+  review: CommunityReviewView | null;
+}
+
+export interface CommunityFeedResponse {
+  items: CommunityFeedItem[];
+  nextCursor: string | null;
+}
+
+export interface CommunityTrendingWorkView {
+  averageRating: number | null;
+  discussionCount: number;
+  reviewCount: number;
+  work: CommunityWorkSnapshot & { catalogTitleId: EntityId };
+}
+
+export interface CommunityProfileSections {
+  showBoardPosts: boolean;
+  showFollowers: boolean;
+  showRatings: boolean;
+  showReviews: boolean;
+  showTasteSummary: boolean;
+}
+
+export interface CommunityNotificationPreferences {
+  browser: boolean;
+  globalBadge: boolean;
+  inCommunity: boolean;
+}
+
+export interface CommunityProfileView {
+  allowFollowers: boolean;
+  author: CommunityPublicAuthor;
+  bio: string;
+  favoriteGenres: string[];
+  favoriteWorks: CommunityWorkSnapshot[];
+  followerCount: number | null;
+  followingCount: number | null;
+  isPrivate: boolean;
+  notifications?: CommunityNotificationPreferences;
+  recentPosts: CommunityBoardPostView[];
+  recentReviews: CommunityReviewView[];
+  sections: CommunityProfileSections;
+  viewerCanEdit: boolean;
+  viewerCanFollow: boolean;
+  viewerIsFollowing: boolean;
+}
+
+export interface CommunityTasteFingerprint {
+  catalogRatings: Record<EntityId, number>;
+  genres: Record<string, number>;
+  tags: Record<string, number>;
+  types: Partial<Record<WorkType, number>>;
+}
+
+export interface CommunityTasteCandidate {
+  author: CommunityPublicAuthor;
+  fingerprint: CommunityTasteFingerprint;
+}
+
+export interface CommunityTasteMatchView {
+  author: CommunityPublicAuthor;
+  reasons: string[];
+  score: number;
+}
+
+export interface CommunityPostListResponse {
+  nextCursor: EntityId | null;
+  posts: CommunityPostView[];
+}
+
+export interface CreateCommunityPostRequest {
+  body: string;
+  category?: CommunityBoardCategory;
+  catalogTitleId?: EntityId;
+  spoiler?: boolean;
+  workThumbnailUrl?: string;
+  workTitle?: string;
+  workType?: WorkType;
+}
+
+export interface UpsertCommunityReviewRequest {
+  body?: string;
+  rating?: number | null;
+  spoiler?: boolean;
+}
+
+export interface CreateCommunityCommentRequest {
+  body: string;
+  parentId?: EntityId | null;
+  spoiler?: boolean;
+  targetId: EntityId;
+  targetType: Exclude<CommunityTargetType, 'comment'>;
+}
+
+export interface UpdateCommunityCommentRequest {
+  body: string;
+  spoiler?: boolean;
+}
+
+export interface UpdateCommunityProfileRequest {
+  allowFollowers: boolean;
+  bio: string;
+  favoriteCatalogTitleIds: EntityId[];
+  favoriteGenres: string[];
+  notifications: CommunityNotificationPreferences;
+  sections: CommunityProfileSections;
+  visibility: CommunityProfileVisibility;
+}
+
+export interface CreateCommunityReportRequest {
+  detail?: string;
+  reason: CommunityReportReason;
+}
+
+export interface CommunityMutationResponse {
+  ok: true;
+}
+
+export interface CommunityModerationReportView {
+  comment: Pick<
+    CommunityCommentView,
+    'body' | 'createdAt' | 'id' | 'spoiler'
+  > | null;
+  createdAt: ISODateString;
+  detail: string;
+  id: EntityId;
+  post: Pick<
+    CommunityPostView,
+    'body' | 'createdAt' | 'id' | 'spoiler' | 'work'
+  > | null;
+  reason: CommunityReportReason;
+  reporter: CommunityPublicAuthor;
+  review: Pick<
+    CommunityReviewView,
+    'body' | 'createdAt' | 'id' | 'rating' | 'spoiler' | 'work'
+  > | null;
+  status: 'pending' | 'resolved' | 'dismissed';
+  targetType: 'post' | 'review' | 'comment';
+}
+
+export interface CommunityModerationReportListResponse {
+  reports: CommunityModerationReportView[];
+}
+
+export interface ResolveCommunityReportRequest {
+  note?: string;
+  resolution: CommunityReportResolution;
 }

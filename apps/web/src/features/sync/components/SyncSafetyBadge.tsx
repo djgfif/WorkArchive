@@ -1,52 +1,23 @@
-import { useMemo } from 'react';
-
 import { AppLinkButton } from '@shared/components/AppPrimitives';
 import { useAppTranslation } from '@app/i18n';
-import { useAuthSession } from '@features/auth';
-import { useSyncDashboard } from '../hooks/useSyncDashboard';
-import { getSyncSafetyBadgeState } from '../utils/sync-safety-state';
+import { useArchiveSafetyState } from '../hooks/useArchiveSafetyState';
 
 export function SyncSafetyBadge() {
   const { t } = useAppTranslation();
-  const { mode } = useAuthSession();
-  const {
-    conflictItems,
-    failedItems,
-    lastSuccessfulPullAt,
-    pendingItems,
-    staleStatusAt,
-  } = useSyncDashboard();
-  const requeuedCount = pendingItems.filter(
-    (item) => item.state === 'requeued',
-  ).length;
-  const state = useMemo(() => {
-    return getSyncSafetyBadgeState({
-      conflictCount: conflictItems.length,
-      failedCount: failedItems.length,
-      lastSuccessfulPullAt,
-      mode,
-      pendingCount: pendingItems.length,
-      requeuedCount,
-      staleStatusAt,
-    });
-  }, [
-    conflictItems.length,
-    failedItems.length,
-    lastSuccessfulPullAt,
-    mode,
-    pendingItems.length,
-    requeuedCount,
-    staleStatusAt,
-  ]);
+  const { isLoading, presentation, state } = useArchiveSafetyState();
+
+  if (isLoading || (state.level !== 'action' && state.level !== 'pending')) {
+    return null;
+  }
 
   return (
     <AppLinkButton
-      aria-label={t('sync.badgeAria', { label: state.label })}
-      size="compact-xs"
-      to={state.to}
-      tone={state.tone}
+      aria-label={t('sync.badgeAria', { label: presentation.badge.label })}
+      size="compact-sm"
+      to={presentation.badge.to}
+      tone={presentation.badge.tone}
     >
-      {state.label}
+      {presentation.badge.label}
     </AppLinkButton>
   );
 }

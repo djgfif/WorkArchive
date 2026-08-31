@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { appI18n } from '@app/i18n';
+import { downloadTextFile } from '@shared/utils/download-file';
 import { appMetaRepository } from '../../sync/queue';
 import {
   localArchiveService,
@@ -16,32 +17,18 @@ export interface JsonArchiveExportFeedback {
   tone: 'error' | 'info' | 'success';
 }
 
-function downloadTextFile(filename: string, type: string, content: string) {
-  const blob = new Blob([content], {
-    type,
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 export async function exportJsonArchiveBackup(
   scope: LocalArchiveScope = 'simple',
 ) {
   const artifact = await localArchiveService.createJsonBackupArtifact(scope);
   const { content, summary } = artifact;
 
-  downloadTextFile(
-    summary.fileName,
-    'application/json',
-    content,
-  );
+  downloadTextFile(summary.fileName, 'application/json', content);
   await Promise.all([
-    appMetaRepository.setValue(LAST_JSON_EXPORT_AT_META_KEY, summary.exportedAt),
+    appMetaRepository.setValue(
+      LAST_JSON_EXPORT_AT_META_KEY,
+      summary.exportedAt,
+    ),
     appMetaRepository.setValue(
       LAST_JSON_BACKUP_SUMMARY_META_KEY,
       JSON.stringify(summary),

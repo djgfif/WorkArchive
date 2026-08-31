@@ -126,7 +126,9 @@ export function cloneReleaseRecord(
   };
 }
 
-export function cloneTimelineEntry(entry: TimelineEntryRecord): TimelineEntryRecord {
+export function cloneTimelineEntry(
+  entry: TimelineEntryRecord,
+): TimelineEntryRecord {
   return {
     ...entry,
   };
@@ -414,7 +416,10 @@ export class SyncAutoMergeService {
     remote: TimelineEntryRecord,
     localPayload: TimelineEntryRecord,
   ): AutoMergeOutcome<TimelineEntryRecord> {
-    if (remote.id !== localPayload.id || remote.workId !== localPayload.workId) {
+    if (
+      remote.id !== localPayload.id ||
+      remote.workId !== localPayload.workId
+    ) {
       return { ok: false, reason: 'parent_mismatch' };
     }
 
@@ -426,6 +431,7 @@ export class SyncAutoMergeService {
       'type',
       'occurredAt',
       'note',
+      'source',
     ] as const satisfies readonly (keyof TimelineEntryRecord)[];
 
     if (!haveSameFieldValues(remote, localPayload, fields)) {

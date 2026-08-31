@@ -9,7 +9,12 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
-import { appI18n, formatAppDateTime, formatAppNumber, useAppTranslation } from '@app/i18n';
+import {
+  appI18n,
+  formatAppDateTime,
+  formatAppNumber,
+  useAppTranslation,
+} from '@app/i18n';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
@@ -127,8 +132,8 @@ export function SecuritySettingsSection({
         <ActionRow>
           <AppBadge tone={mode === 'authenticated' ? 'success' : 'muted'}>
             {mode === 'authenticated'
-              ? 'Google-only auth'
-              : 'Local-first guest'}
+              ? t('settings.security.authBadgeGoogleOnly')
+              : t('settings.security.authBadgeLocalFirstGuest')}
           </AppBadge>
           <AppBadge tone="muted">
             {t('settings.security.noPasswordLogin')}
@@ -137,9 +142,7 @@ export function SecuritySettingsSection({
       </SectionCard>
 
       {mode !== 'authenticated' ? (
-        <Text c="dimmed">
-          {t('settings.security.guestSessionDescription')}
-        </Text>
+        <Text c="dimmed">{t('settings.security.guestSessionDescription')}</Text>
       ) : isLoadingSessions ? (
         <Text aria-busy="true" c="dimmed">
           {t('settings.security.loadingSessions')}

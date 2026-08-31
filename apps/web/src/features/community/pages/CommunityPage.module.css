@@ -1,0 +1,49 @@
+.hero { padding:2.25rem 0 1.4rem; }
+.hero h1 { margin:.2rem 0 .35rem; font-size:clamp(1.85rem,3.2vw,3.1rem); letter-spacing:-.045em; line-height:1.08; }
+.eyebrow { color:var(--app-accent-primary); font-family:var(--app-font-figure); font-size:.72rem; font-weight:850; letter-spacing:.16em; }
+.trustLine { margin-top:.85rem; padding-left:.75rem; border-left:2px solid color-mix(in srgb,var(--app-accent-primary) 55%,transparent); color:var(--app-text-muted); font-size:.8rem; line-height:1.5; }
+.primaryLink,.secondaryLink { display:inline-flex; min-height:44px; align-items:center; padding:0 .95rem; border-radius:var(--mantine-radius-md); font-size:.9rem; font-weight:750; text-decoration:none; }
+.primaryLink { background:var(--app-accent-primary); color:white; }
+.secondaryLink { border:1px solid var(--app-border-default); color:var(--app-text-primary); }
+.pathNav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border-top:1px solid var(--app-border-subtle); border-bottom:1px solid var(--app-border-subtle); }
+.pathLink { display:grid; gap:.22rem; min-height:112px; align-content:center; padding:1rem 1.15rem; color:inherit; text-decoration:none; transition:background 140ms ease; }
+.pathLink + .pathLink { border-left:1px solid var(--app-border-subtle); }
+.pathLink:hover { background:var(--app-surface-subtle); }
+.pathLink strong { font-size:.95rem; }
+.pathLink > span:last-child { color:var(--app-text-muted); font-size:.78rem; line-height:1.45; }
+.pathEyebrow { color:var(--app-accent-primary); font-family:var(--app-font-figure); font-size:.66rem; font-weight:800; letter-spacing:.08em; }
+.composer { margin:1.4rem 0; border-color:color-mix(in srgb,var(--app-accent-primary) 26%,var(--app-border-subtle)); background:linear-gradient(140deg,color-mix(in srgb,var(--app-accent-primary) 5%,var(--app-surface-card)),var(--app-surface-card)); }
+.handlePrompt { margin:1.15rem 0 .2rem; background:var(--app-surface-card); }
+.composerGrid { display:grid; grid-template-columns:minmax(260px,1fr) minmax(220px,.65fr); gap:1rem; align-items:end; }
+.privacyNote { padding:.7rem .8rem; border-left:3px solid var(--app-accent-primary); background:var(--app-surface-subtle); color:var(--app-text-secondary); font-size:.8rem; line-height:1.55; }
+.trendingSection { padding:1.65rem 0; }
+.trendingSection h2,.feedToolbar h2 { margin:0; font-size:1.2rem; }
+.trendingGrid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.75rem; margin-top:.85rem; }
+.trendingCard { display:flex; gap:.75rem; align-items:center; min-width:0; background:var(--app-surface-card); }
+.cover { width:44px; height:60px; flex:0 0 auto; border-radius:.35rem; object-fit:cover; }
+.ratingValue { color:var(--app-accent-warm); font-family:var(--app-font-figure); font-weight:800; }
+.layout { display:grid; grid-template-columns:minmax(0,820px) minmax(250px,300px); gap:clamp(1.3rem,3vw,3rem); align-items:start; }
+.feedToolbar { display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; margin:1.65rem 0 .9rem; padding-bottom:.7rem; border-bottom:1px solid var(--app-border-subtle); }
+.feedFilters { display:flex; align-items:center; gap:.7rem; }
+.feedCard { background:var(--app-surface-card); transition:border-color 140ms ease,transform 140ms ease; }
+.feedCard:hover { border-color:var(--app-border-default); transform:translateY(-1px); }
+.authorLink,.railAuthor,.workLine { display:flex; align-items:center; gap:.7rem; color:inherit; text-decoration:none; }
+.workLine { padding:.75rem; border:1px solid var(--app-border-subtle); border-radius:var(--mantine-radius-md); background:var(--app-surface-subtle); }
+.bodyLink { color:var(--app-text-primary); line-height:1.7; overflow-wrap:anywhere; white-space:pre-wrap; text-decoration:none; }
+.cardActions { padding-top:.65rem; border-top:1px solid var(--app-border-subtle); }
+.action,.actionActive,.actionLink { display:inline-flex; min-height:44px; align-items:center; padding:0 .7rem; border:1px solid transparent; border-radius:var(--mantine-radius-sm); background:transparent; color:var(--app-text-muted); cursor:pointer; font:inherit; font-size:.83rem; text-decoration:none; }
+.action:hover,.actionLink:hover { border-color:var(--app-border-default); color:var(--app-text-primary); }
+.actionActive { border-color:color-mix(in srgb,var(--app-accent-primary) 45%,var(--app-border-default)); color:var(--app-accent-primary); }
+.action:disabled { cursor:default; }
+.emptyFeed { display:flex; min-height:176px; align-items:center; justify-content:space-between; gap:2rem; background:var(--app-surface-subtle); }
+.emptyFeed > div:first-child { max-width:34rem; }
+.emptyEyebrow { color:var(--app-accent-primary); font-family:var(--app-font-figure); font-size:.68rem; font-weight:850; letter-spacing:.12em; }
+.rail { position:sticky; top:5.5rem; display:grid; gap:1rem; }
+.guideCard { background:var(--app-surface-card); }
+.guideCard a { display:grid; gap:.1rem; padding:.65rem 0; border-top:1px solid var(--app-border-subtle); color:inherit; text-decoration:none; }
+.guideCard a:first-child { border-top:0; }
+.guideCard a span { color:var(--app-text-muted); font-size:.76rem; }
+.privacyCard { background:linear-gradient(145deg,color-mix(in srgb,var(--app-accent-primary) 6%,var(--app-surface-card)),var(--app-surface-card)); }
+@media (max-width:64em) { .trendingGrid { grid-template-columns:repeat(3,minmax(0,1fr)); } .layout { grid-template-columns:1fr; } .rail { position:static; grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:48em) { .composerGrid { grid-template-columns:1fr; } .pathNav { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; } .pathLink { min-width:min(76vw,280px); min-height:104px; scroll-snap-align:start; } .pathLink + .pathLink { border-left:1px solid var(--app-border-subtle); } .trendingGrid { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; } .trendingCard { min-width:210px; scroll-snap-align:start; } .emptyFeed { align-items:flex-start; flex-direction:column; gap:1.25rem; } }
+@media (max-width:36em) { .hero { padding-top:1.25rem; } .feedToolbar { align-items:stretch; flex-direction:column; } .feedFilters { align-items:flex-start; flex-wrap:wrap; } .rail { grid-template-columns:1fr; } }

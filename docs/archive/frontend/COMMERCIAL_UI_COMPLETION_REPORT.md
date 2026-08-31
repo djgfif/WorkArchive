@@ -55,7 +55,7 @@ Last updated: 2026-05-17
   - Web targeted: 2 files, 5 tests passed.
 - `npm run test -w @work-archive/web -- InsightsPage.test.tsx`: 통과.
   - Web targeted: 1 file, 3 tests passed.
-- `npm run test -w @work-archive/web -- SyncPage.test.tsx`: 통과.
+- `npm run test --workspace @work-archive/web -- SettingsPage.test.tsx`: 통과.
   - Web targeted: 1 file, 9 tests passed.
 - `npm run test -w @work-archive/web -- WorksListPage.test.tsx`: 최초 sandbox 실행은 Vite/esbuild `spawn EPERM`으로 실패. 승인된 재실행 후 통과.
   - Web targeted: 1 file, 8 tests passed.

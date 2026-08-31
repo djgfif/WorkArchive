@@ -34,6 +34,10 @@ import {
   type WorksRepository,
 } from '@features/works/data';
 import {
+  getWorkArchiveDb,
+  type WorkArchiveDatabase,
+} from '@features/works/storage';
+import {
   tierBoardRepository,
   type TierBoardRepository,
 } from '@features/tier-boards/data';
@@ -46,6 +50,7 @@ import {
   type SyncQueueRepository,
 } from './sync-queue.repository';
 import {
+  SYNC_LEASE_BUSY_RETRY_AFTER_MS,
   syncLeaseService,
   type SyncLeaseService,
   type SyncLeaseContext,
@@ -71,6 +76,23 @@ import {
 } from './sync-conflict-resolution.service';
 
 const PULL_PAGE_LIMIT = 500;
+
+type DatabaseResolver = () => WorkArchiveDatabase;
+
+interface PullMergeBuckets {
+  worksToMerge: WorkRecord[];
+  releaseRecordsToMerge: UserReleaseRecord[];
+  timelineEntriesToMerge: TimelineEntryRecord[];
+  seriesToMerge: SeriesRecord[];
+  contributorsToMerge: ContributorRecord[];
+  workSeriesLinksToMerge: WorkSeriesLinkRecord[];
+  workContributorsToMerge: WorkContributorRecord[];
+  workRelationsToMerge: WorkRelationRecord[];
+  tierBoardsToMerge: TierBoardRecord[];
+  tierLanesToMerge: TierLaneRecord[];
+  tierBoardCardsToMerge: TierBoardCardRecord[];
+  tierBoardAssetsToMerge: TierBoardAssetRecord[];
+}
 
 export interface PullCycleResult {
   pulledCount: number;
@@ -124,6 +146,7 @@ export class SyncPullService {
     private readonly stalePolicyService: SyncStalePolicyService = syncStalePolicyService,
     private readonly autoMergeService: SyncAutoMergeService = syncAutoMergeService,
     private readonly conflictService: SyncConflictResolutionService = syncConflictResolutionService,
+    private readonly getDb: DatabaseResolver = getWorkArchiveDb,
   ) {}
 
   async pullRemoteChanges(): Promise<PullCycleResult> {
@@ -142,7 +165,8 @@ export class SyncPullService {
       pulledAt: null,
       nextSince: null,
       messages: [appI18n.t('sync.pullLeaseBusy')],
-      requestFailed: false,
+      requestFailed: true,
+      retryAfterMs: SYNC_LEASE_BUSY_RETRY_AFTER_MS,
     };
   }
 
@@ -260,18 +284,20 @@ export class SyncPullService {
             : null;
       } while (cursor !== null);
 
-      await this.worksRepo.bulkPut(worksToMerge);
-      await this.releaseRecordsRepo.bulkPut(releaseRecordsToMerge);
-      await this.timelineEntriesRepo.bulkPut(timelineEntriesToMerge);
-      await this.graphRepo.bulkPutSeries(seriesToMerge);
-      await this.graphRepo.bulkPutContributors(contributorsToMerge);
-      await this.graphRepo.bulkPutWorkSeriesLinks(workSeriesLinksToMerge);
-      await this.graphRepo.bulkPutWorkContributors(workContributorsToMerge);
-      await this.graphRepo.bulkPutWorkRelations(workRelationsToMerge);
-      await this.tierBoardRepo.bulkPutBoards(tierBoardsToMerge);
-      await this.tierBoardRepo.bulkPutLanes(tierLanesToMerge);
-      await this.tierBoardRepo.bulkPutCards(tierBoardCardsToMerge);
-      await this.tierBoardRepo.bulkPutAssets(tierBoardAssetsToMerge);
+      await this.applyPullChangesAtomically({
+        contributorsToMerge,
+        releaseRecordsToMerge,
+        seriesToMerge,
+        tierBoardAssetsToMerge,
+        tierBoardCardsToMerge,
+        tierBoardsToMerge,
+        tierLanesToMerge,
+        timelineEntriesToMerge,
+        workContributorsToMerge,
+        workRelationsToMerge,
+        workSeriesLinksToMerge,
+        worksToMerge,
+      });
 
       if (nextSince !== null) {
         await this.metaRepo.setValue(LAST_SUCCESSFUL_PULL_AT_KEY, nextSince);
@@ -317,10 +343,7 @@ export class SyncPullService {
         nextSince: since,
         messages: [
           error instanceof Error
-            ? localizeServerMessage(
-                error.message,
-                appI18n.t('sync.failedPull'),
-              )
+            ? localizeServerMessage(error.message, appI18n.t('sync.failedPull'))
             : appI18n.t('sync.failedPull'),
         ],
         requestFailed: true,
@@ -329,23 +352,47 @@ export class SyncPullService {
     }
   }
 
-  private collectPullChange(
-    change: PullSyncChange,
-    buckets: {
-      worksToMerge: WorkRecord[];
-      releaseRecordsToMerge: UserReleaseRecord[];
-      timelineEntriesToMerge: TimelineEntryRecord[];
-      seriesToMerge: SeriesRecord[];
-      contributorsToMerge: ContributorRecord[];
-      workSeriesLinksToMerge: WorkSeriesLinkRecord[];
-      workContributorsToMerge: WorkContributorRecord[];
-      workRelationsToMerge: WorkRelationRecord[];
-      tierBoardsToMerge: TierBoardRecord[];
-      tierLanesToMerge: TierLaneRecord[];
-      tierBoardCardsToMerge: TierBoardCardRecord[];
-      tierBoardAssetsToMerge: TierBoardAssetRecord[];
-    },
-  ) {
+  private async applyPullChangesAtomically(buckets: PullMergeBuckets) {
+    const db = this.getDb();
+
+    await db.transaction(
+      'rw',
+      [
+        db.works,
+        db.releaseRecords,
+        db.timelineEntries,
+        db.series,
+        db.contributors,
+        db.workSeriesLinks,
+        db.workContributors,
+        db.workRelations,
+        db.tierBoards,
+        db.tierLanes,
+        db.tierBoardCards,
+        db.tierBoardAssets,
+      ],
+      async () => {
+        await this.worksRepo.bulkPut(buckets.worksToMerge);
+        await this.releaseRecordsRepo.bulkPut(buckets.releaseRecordsToMerge);
+        await this.timelineEntriesRepo.bulkPut(buckets.timelineEntriesToMerge);
+        await this.graphRepo.bulkPutSeries(buckets.seriesToMerge);
+        await this.graphRepo.bulkPutContributors(buckets.contributorsToMerge);
+        await this.graphRepo.bulkPutWorkSeriesLinks(
+          buckets.workSeriesLinksToMerge,
+        );
+        await this.graphRepo.bulkPutWorkContributors(
+          buckets.workContributorsToMerge,
+        );
+        await this.graphRepo.bulkPutWorkRelations(buckets.workRelationsToMerge);
+        await this.tierBoardRepo.bulkPutBoards(buckets.tierBoardsToMerge);
+        await this.tierBoardRepo.bulkPutLanes(buckets.tierLanesToMerge);
+        await this.tierBoardRepo.bulkPutCards(buckets.tierBoardCardsToMerge);
+        await this.tierBoardRepo.bulkPutAssets(buckets.tierBoardAssetsToMerge);
+      },
+    );
+  }
+
+  private collectPullChange(change: PullSyncChange, buckets: PullMergeBuckets) {
     if (change.entityType === 'work' && change.work) {
       buckets.worksToMerge.push(change.work);
       return;

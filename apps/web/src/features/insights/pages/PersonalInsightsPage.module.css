@@ -17,6 +17,85 @@
   border-color: var(--app-border-subtle);
 }
 
+.activityPanel {
+  overflow: hidden;
+}
+
+.activityMetric {
+  background: var(--app-surface-subtle);
+  border-radius: var(--mantine-radius-sm);
+  min-width: 0;
+  padding: 0.875rem 1rem;
+}
+
+.activityMetricValue {
+  color: var(--app-text-primary);
+  font-family: var(--app-font-figure);
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  margin-top: 0.25rem;
+}
+
+.activityGrid {
+  display: grid;
+  gap: clamp(3px, 0.55vw, 7px);
+  grid-template-columns: repeat(28, minmax(6px, 1fr));
+}
+
+.activityCell {
+  aspect-ratio: 1;
+  background: var(--app-surface-subtle);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: 4px;
+  min-width: 0;
+}
+
+.activityCell[data-level='low'] {
+  background: color-mix(
+    in srgb,
+    var(--app-accent-primary) 30%,
+    var(--app-surface-subtle)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-primary) 40%,
+    var(--app-border-subtle)
+  );
+}
+
+.activityCell[data-level='medium'] {
+  background: color-mix(
+    in srgb,
+    var(--app-accent-primary) 60%,
+    var(--app-surface-subtle)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-primary) 68%,
+    var(--app-border-subtle)
+  );
+}
+
+.activityCell[data-level='high'] {
+  background: var(--app-accent-primary);
+  border-color: var(--app-accent-strong);
+}
+
+@media (max-width: 36em) {
+  .activityMetric {
+    padding: 0.75rem 0.875rem;
+  }
+
+  .activityGrid {
+    gap: 3px;
+  }
+
+  .activityCell {
+    border-radius: 3px;
+  }
+}
+
 .barTrack {
   background: var(--app-surface-subtle);
   border-radius: 999px;
@@ -48,6 +127,46 @@
 
 .workLink:hover {
   color: var(--app-accent-primary);
+}
+
+.lowDataPanel {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--app-accent-primary) 8%, transparent),
+      transparent 42%
+    ),
+    var(--app-surface-card);
+  border-color: var(--app-border-subtle);
+}
+
+.lowDataCount {
+  color: var(--app-text-primary);
+  font-family: var(--app-font-figure);
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}
+
+.lowDataCount span {
+  color: var(--app-text-muted);
+  font-size: 0.42em;
+  letter-spacing: 0;
+}
+
+.lowDataProgress {
+  background: var(--app-surface-subtle);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.lowDataProgressFill {
+  background: var(--app-accent-primary);
+  border-radius: inherit;
+  height: 100%;
 }
 
 /* ── 별점 히스토그램 ─────────────────────────────────────────────────────── */

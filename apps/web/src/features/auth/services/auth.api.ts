@@ -19,14 +19,19 @@ import {
   type MemoryAuthTokens,
 } from './auth-storage';
 
-interface RestoredSession {
-  tokens: MemoryAuthTokens;
-  user: AuthUserResponse;
-}
-
-const REFRESH_UNAVAILABLE_UNTIL_KEY =
-  'work-archive.auth.refreshUnavailableUntil';
-const REFRESH_UNAVAILABLE_TTL_MS = 60_000;
+export type RestoreStoredSessionResult =
+  | {
+      status: 'authenticated';
+      tokens: MemoryAuthTokens;
+      user: AuthUserResponse;
+    }
+  | {
+      status: 'expired';
+    }
+  | {
+      reason: 'network' | 'server';
+      status: 'unavailable';
+    };
 
 interface GoogleAuthStatusResponse {
   configured: boolean;
@@ -128,44 +133,11 @@ export async function fetchGoogleAuthStatus() {
   });
 }
 
-function getRefreshUnavailableUntil() {
-  if (typeof window === 'undefined') {
-    return 0;
-  }
-
-  const rawValue = window.sessionStorage.getItem(REFRESH_UNAVAILABLE_UNTIL_KEY);
-  const parsedValue = Number.parseInt(rawValue ?? '', 10);
-
-  return Number.isFinite(parsedValue) ? parsedValue : 0;
-}
-
-function markRefreshUnavailable() {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.sessionStorage.setItem(
-    REFRESH_UNAVAILABLE_UNTIL_KEY,
-    String(Date.now() + REFRESH_UNAVAILABLE_TTL_MS),
-  );
-}
-
-function clearRefreshUnavailable() {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.sessionStorage.removeItem(REFRESH_UNAVAILABLE_UNTIL_KEY);
-}
 
 export async function restoreStoredSession(
   options: RestoreStoredSessionOptions = {},
-): Promise<RestoredSession | null> {
+): Promise<RestoreStoredSessionResult> {
   clearLegacyStoredAuthTokens();
-
-  if (!options.force && Date.now() < getRefreshUnavailableUntil()) {
-    return null;
-  }
 
   try {
     const { response, responseBody: session } =
@@ -174,34 +146,46 @@ export async function restoreStoredSession(
         timeoutMs: AUTH_REFRESH_TIMEOUT_MS,
       });
 
-    if (response.status === 204) {
-      markRefreshUnavailable();
-      return null;
-    }
-
-    if (session === null) {
-      markRefreshUnavailable();
-      return null;
+    if (response.status === 204 || session === null) {
+      return {
+        status: 'expired',
+      };
     }
 
     const nextTokens = {
       accessToken: session.accessToken,
     };
 
-    clearRefreshUnavailable();
-
     return {
+      status: 'authenticated',
       tokens: nextTokens,
       user: session.user,
     };
   } catch (error) {
     clearLegacyStoredAuthTokens();
-    markRefreshUnavailable();
 
     if (options.force) {
       throw error;
     }
 
-    return null;
+    if (error instanceof ApiRequestError) {
+      if (error.status === 401 || error.status === 403) {
+        return {
+          status: 'expired',
+        };
+      }
+
+      if (error.status === 0) {
+        return {
+          reason: 'network',
+          status: 'unavailable',
+        };
+      }
+    }
+
+    return {
+      reason: 'server',
+      status: 'unavailable',
+    };
   }
 }

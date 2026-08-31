@@ -1,14 +1,14 @@
 # Work Archive 개선 실행 로드맵
 
-| 항목 | 내용 |
-| --- | --- |
-| 상태 | `active advisory` |
-| 역할 | 구조적 부채 상환과 확장 대비 보조 로드맵 |
-| 작성일 | 2026-06-06 |
-| 최근 재검토 | 2026-07-01 문서/코드 정합성 재검토. safe auto-merge 관련 웹 테스트 재확인 |
-| 기준 | 정적 코드 리딩 기반 평가 + 현재 canonical 상태 문서와 실제 migration/provider runtime/sync safe auto-merge 대조 |
-| 범위 | 신기능이 아닌 **구조적 부채 상환 + 확장 대비** 중심 |
-| 공수 표기 | S = 1~3일, M = 1~2주, L = 2주+ (1인 기준 추정) |
+| 항목        | 내용                                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------- |
+| 상태        | `active advisory`                                                                                               |
+| 역할        | 구조적 부채 상환과 확장 대비 보조 로드맵                                                                        |
+| 작성일      | 2026-06-06                                                                                                      |
+| 최근 재검토 | 2026-07-01 문서/코드 정합성 재검토. safe auto-merge 관련 웹 테스트 재확인                                       |
+| 기준        | 정적 코드 리딩 기반 평가 + 현재 canonical 상태 문서와 실제 migration/provider runtime/sync safe auto-merge 대조 |
+| 범위        | 신기능이 아닌 **구조적 부채 상환 + 확장 대비** 중심                                                             |
+| 공수 표기   | S = 1~3일, M = 1~2주, L = 2주+ (1인 기준 추정)                                                                  |
 
 이 로드맵은 부채를 "방치 시 비용이 커지는 순서"로 배열했다. 각 단계는 앞 단계가 끝나야 시작 가능한 게 아니라, **우선순위와 의존성**으로 묶여 있다. 현재 구현 현실은 [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)를 우선한다.
 
@@ -80,7 +80,7 @@
 
 ### 3-1. 자동 충돌 병합 정책 확장 — `P2` · `M`
 
-- **현재**: SyncPage 수동 해결(로컬 유지/원격 적용/필드 병합)은 구현됨. safe auto-merge도 동일 entity/parent, delete-update 충돌 없음, scalar field 동일 조건에서 work taxonomy, contributor/series aliases, release/timeline/graph/tier-board server metadata refresh만 처리한다.
+- **현재**: Settings 계정 백업 섹션의 수동 해결(로컬 유지/원격 적용/필드 병합)은 구현됨. safe auto-merge도 동일 entity/parent, delete-update 충돌 없음, scalar field 동일 조건에서 work taxonomy, contributor/series aliases, release/timeline/graph/tier-board server metadata refresh만 처리한다.
 - **작업**: 현 정책을 넓힌다면 base snapshot 기반 scalar merge 또는 필드별 LWW 같은 별도 제품 결정을 먼저 만들고, 텍스트 리뷰/삭제/parent mismatch는 계속 수동 예외로 둔다.
 - **완료 기준**: 새 자동 병합 케이스 테스트 고정, 수동 해결로 falls back 하는 경계 명확화, 데이터 손실/rollback/사용자 복구 정책 문서화
 - **트리거**: 다기기 동시 편집 빈도 상승 시점
@@ -107,11 +107,11 @@
 
 ## 우선순위 요약
 
-| 우선순위 | 즉시 착수 | 비고 |
-| --- | --- | --- |
-| **지금 (P1)** | 1-1 API v2 분리, 4-1 CI 강제, 4-2 환경 재현 | 부채/위험 최대. 0-1은 완료 |
-| **다음 (P2)** | 0-2 스타일 토큰, 1-2 카탈로그 분리, 2-1 provider runtime Redis 운영 검증, 3-1 자동 병합 정책 확장 | 확장·일관성 |
-| **이후 (P3)** | 3-2 게스트 병합/이관 | 사용 패턴 의존 |
+| 우선순위      | 즉시 착수                                                                                         | 비고                       |
+| ------------- | ------------------------------------------------------------------------------------------------- | -------------------------- |
+| **지금 (P1)** | 1-1 API v2 분리, 4-1 CI 강제, 4-2 환경 재현                                                       | 부채/위험 최대. 0-1은 완료 |
+| **다음 (P2)** | 0-2 스타일 토큰, 1-2 카탈로그 분리, 2-1 provider runtime Redis 운영 검증, 3-1 자동 병합 정책 확장 | 확장·일관성                |
+| **이후 (P3)** | 3-2 게스트 병합/이관                                                                              | 사용 패턴 의존             |
 
 ## 권장 실행 순서
 

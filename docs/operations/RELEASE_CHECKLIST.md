@@ -2,7 +2,7 @@
 
 ## Preflight
 
-- Confirm this release does not introduce Kafka, Saga orchestration, an API Gateway, Redis general caching, public community features, or email/password login.
+- Confirm this release does not introduce Kafka, Saga orchestration, an API Gateway, Redis general caching, or email/password login.
 - For public beta candidates, confirm
   `docs/commercial/COMMERCIAL_LAUNCH_READINESS.md` is the active gate and update
   `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md` with real run results.
@@ -25,8 +25,11 @@
   protection, CodeQL, and Dependabot status are recorded for the release.
 - Confirm `METRICS_ENABLED=true` is used only behind an internal collector or
   allowlisted reverse-proxy path. If not reviewed, keep `METRICS_ENABLED=false`.
-- Confirm public community/share flags remain disabled.
-- Confirm inactive placeholder-only features such as Community and Insights are not exposed in primary navigation.
+- If Community is included, require explicit release approval plus migrated host,
+  rate-limit, moderator operator, retention, takedown, rollback, and guest-read
+  smoke evidence. Repository implementation alone is not approval.
+- Confirm active Community and Insights navigation matches the intended release
+  profile; do not silently redirect either route.
 
 ## Verification
 
@@ -117,7 +120,8 @@ BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 - Guest/local archive create and JSON export.
 - Authenticated sync push and pull.
 - If `tierBoards` is disabled, confirm tier board navigation is hidden and tier board routes redirect to `/works`.
-- Confirm disabled or placeholder-only routes such as `/community` and `/insights` do not appear in the visible navigation.
+- If Community is included, verify guest feed read, guarded publish/reaction/report/delete,
+  spoiler reveal, moderator hide/restore/resolve audit, and private-record non-publication.
 - Tier board create, edit, JSON export/import, and PNG export if changed.
 - Import provider diagnostics page or API response.
 - Smoke-level latency baseline from `npm run qa:performance-smoke` for

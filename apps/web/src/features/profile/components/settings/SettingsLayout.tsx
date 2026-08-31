@@ -16,11 +16,6 @@ interface SettingsSectionItem {
   group?: SettingsGroupId | undefined;
 }
 
-interface SettingsNavGroup {
-  group?: SettingsGroupId | undefined;
-  sections: SettingsSectionItem[];
-}
-
 interface SettingsLayoutProps {
   sections: SettingsSectionItem[];
 }
@@ -31,23 +26,17 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
   const [activeSectionId, setActiveSectionId] = useState(defaultSectionId);
   const activeSection =
     sections.find((section) => section.id === activeSectionId) ?? sections[0];
-  const sideNavGroups = sections.reduce<SettingsNavGroup[]>(
-    (groups, section) => {
-      const currentGroup = groups[groups.length - 1];
-
-      if (currentGroup && currentGroup.group === section.group) {
-        currentGroup.sections.push(section);
-        return groups;
-      }
-
-      groups.push({
-        group: section.group,
-        sections: [section],
-      });
-
-      return groups;
-    },
-    [],
+  const primarySectionIds = new Set([
+    'data-backup',
+    'account',
+    'external-import',
+    'display',
+  ]);
+  const primarySections = sections.filter((section) =>
+    primarySectionIds.has(section.id),
+  );
+  const advancedSections = sections.filter(
+    (section) => !primarySectionIds.has(section.id),
   );
 
   useEffect(() => {
@@ -88,54 +77,30 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
   return (
     <div className={css.layout ?? ''}>
       <nav
-        aria-label={t('settings.layout.sideNavAria')}
-        className={css.sideNav ?? ''}
+        aria-label={t('settings.layout.primaryNavAria')}
+        className={css.sectionNav ?? ''}
       >
         <SectionCard padding="sm" tone="subtle">
-          <div className={css.navGroups ?? ''}>
-            {sideNavGroups.map((navGroup) => {
-              const groupLabel = navGroup.group
-                ? t(`settings.groups.${navGroup.group}`)
-                : undefined;
-              const groupLabelId = groupLabel
-                ? `settings-group-${navGroup.group}`
-                : undefined;
-
-              return (
-                <div
-                  aria-labelledby={groupLabelId}
-                  className={css.navGroup ?? ''}
-                  key={navGroup.group ?? 'overview'}
-                  role={groupLabelId ? 'group' : undefined}
-                >
-                  {groupLabel && (
-                    <h2 className={css.navGroupLabel ?? ''} id={groupLabelId}>
-                      {groupLabel}
-                    </h2>
-                  )}
-                  <div className={css.navList ?? ''}>
-                    {navGroup.sections.map((section) => (
-                      <a key={section.id} {...getNavLinkProps(section)}>
-                        <span>{section.label}</span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+          <div className={css.primaryNavList ?? ''}>
+            {primarySections.map((section) => (
+              <a key={section.id} {...getNavLinkProps(section)}>
+                <span>{section.label}</span>
+              </a>
+            ))}
           </div>
+          {advancedSections.length > 0 && (
+            <details className={css.advancedNav ?? ''}>
+              <summary>{t('settings.layout.advancedTitle')}</summary>
+              <div className={css.advancedNavList ?? ''}>
+                {advancedSections.map((section) => (
+                  <a key={section.id} {...getNavLinkProps(section)}>
+                    <span>{section.label}</span>
+                  </a>
+                ))}
+              </div>
+            </details>
+          )}
         </SectionCard>
-      </nav>
-
-      <nav
-        aria-label={t('settings.layout.mobileNavAria')}
-        className={css.mobileNav ?? ''}
-      >
-        {sections.map((section) => (
-          <a key={section.id} {...getNavLinkProps(section)}>
-            {section.label}
-          </a>
-        ))}
       </nav>
 
       <div className={css.content ?? ''}>

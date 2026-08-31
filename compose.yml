@@ -48,6 +48,7 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/work_archive?schema=public}
+      PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}
       HOST: ${HOST:-0.0.0.0}
       PORT: 3000
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
@@ -103,6 +104,8 @@ services:
       args:
         VITE_API_BASE_URL: /api
     container_name: work-archive-web
+    environment:
+      PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}
     restart: unless-stopped
     depends_on:
       api:
@@ -113,7 +116,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'wget -q -O /dev/null http://127.0.0.1:8080/work-archive-config.js',
+          'wget -q -O - http://127.0.0.1:8080/work-archive-config.js | grep -F "productReleaseProfile = ''$${PRODUCT_RELEASE_PROFILE}''" >/dev/null && wget -q -O - http://127.0.0.1:8080/api/product-release | grep -F "\"profile\":\"$${PRODUCT_RELEASE_PROFILE}\"" >/dev/null',
         ]
       interval: 10s
       timeout: 5s

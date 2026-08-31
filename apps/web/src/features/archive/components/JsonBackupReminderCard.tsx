@@ -36,7 +36,7 @@ export function JsonBackupReminderCard({
         <ActionRow justify="space-between">
           <Stack gap={4}>
             <ActionRow>
-              <AppBadge tone="warning">
+              <AppBadge tone="default">
                 {t('archive.backup.warningBadge')}
               </AppBadge>
               <AppBadge tone="muted">{t('archive.backup.mutedBadge')}</AppBadge>

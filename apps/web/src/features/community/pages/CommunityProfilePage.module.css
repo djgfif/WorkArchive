@@ -1,0 +1,9 @@
+.header { margin:1.5rem 0; background:linear-gradient(145deg,color-mix(in srgb,var(--app-accent-primary) 6%,var(--app-surface-card)),var(--app-surface-card)); }
+.bio { max-width:700px; margin:1.4rem 0; line-height:1.7; }
+.share { min-height:44px; padding:0 .8rem; border:1px solid var(--app-border-default); border-radius:var(--mantine-radius-sm); background:transparent; color:var(--app-text-secondary); cursor:pointer; }
+.settings { margin:1rem 0 1.5rem; border-color:color-mix(in srgb,var(--app-accent-primary) 28%,var(--app-border-subtle)); }
+.switchGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+.content { display:grid; gap:1.5rem; margin:1.5rem 0; }
+.tag { padding:.35rem .65rem; border:1px solid var(--app-border-default); border-radius:999px; color:var(--app-text-secondary); font-size:.8rem; }
+.post { display:block; padding:1rem; border:1px solid var(--app-border-subtle); border-radius:var(--mantine-radius-md); background:var(--app-surface-card); color:var(--app-text-primary); line-height:1.6; text-decoration:none; }
+@media (max-width:42em) { .switchGrid { grid-template-columns:1fr; } }

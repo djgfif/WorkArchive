@@ -28,43 +28,80 @@ export const WorkEditPage = lazy(() =>
 );
 
 export const PersonalInsightsPage = lazy(() =>
-  import('@features/insights').then((module) => ({
+  import('@features/insights/pages/PersonalInsightsPage').then((module) => ({
     default: module.PersonalInsightsPage,
   })),
 );
 
+export const CommunityReflectionPage = lazy(() =>
+  import('@features/community/pages/CommunityReflectionPage').then((module) => ({
+    default: module.CommunityReflectionPage,
+  })),
+);
+
+export const CommunityPage = lazy(() =>
+  import('@features/community/pages/CommunityPage').then((module) => ({
+    default: module.CommunityPage,
+  })),
+);
+export const CommunityBoardsPage = lazy(() =>
+  import('@features/community/pages/CommunityBoardsPage').then((module) => ({
+    default: module.CommunityBoardsPage,
+  })),
+);
+export const CommunityPostDetailPage = lazy(() =>
+  import('@features/community/pages/CommunityDetailPage').then((module) => ({
+    default: module.CommunityPostDetailPage,
+  })),
+);
+export const CommunityReviewDetailPage = lazy(() =>
+  import('@features/community/pages/CommunityDetailPage').then((module) => ({
+    default: module.CommunityReviewDetailPage,
+  })),
+);
+export const CommunityProfilePage = lazy(() =>
+  import('@features/community/pages/CommunityProfilePage').then((module) => ({
+    default: module.CommunityProfilePage,
+  })),
+);
+export const CommunityTastePage = lazy(() =>
+  import('@features/community/pages/CommunityTastePage').then((module) => ({
+    default: module.CommunityTastePage,
+  })),
+);
+
 export const ProfilePage = lazy(() =>
-  import('@features/profile').then((module) => ({
+  import('@features/profile/pages/ProfilePage').then((module) => ({
     default: module.ProfilePage,
   })),
 );
 
 export const AccountOverviewPage = lazy(() =>
-  import('@features/profile').then((module) => ({
+  import('@features/profile/pages/AccountOverviewPage').then((module) => ({
     default: module.AccountOverviewPage,
   })),
 );
 
 export const SettingsPage = lazy(() =>
-  import('@features/profile').then((module) => ({
+  import('@features/profile/pages/SettingsPage').then((module) => ({
     default: module.SettingsPage,
   })),
 );
 
 export const LoginPage = lazy(() =>
-  import('@features/auth').then((module) => ({
+  import('@features/auth/pages/LoginPage').then((module) => ({
     default: module.LoginPage,
   })),
 );
 
 export const GoogleAuthCompletePage = lazy(() =>
-  import('@features/auth').then((module) => ({
+  import('@features/auth/pages/GoogleAuthCompletePage').then((module) => ({
     default: module.GoogleAuthCompletePage,
   })),
 );
 
 export const GuestTransferReviewPage = lazy(() =>
-  import('@features/auth').then((module) => ({
+  import('@features/auth/pages/GuestTransferReviewPage').then((module) => ({
     default: module.GuestTransferReviewPage,
   })),
 );

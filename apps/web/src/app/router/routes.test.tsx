@@ -51,6 +51,90 @@ describe('app routes', () => {
       });
     }
   });
+  it('does not register Community routes in the default personal archive', () => {
+    const paths = createAppRoutes()[0]?.children?.map((route) => route.path);
+    expect(paths).not.toContain('community');
+    expect(paths).not.toContain('community/boards');
+    expect(paths).not.toContain('u/:handle');
+  });
+
+  it('registers only the approved root Community route for reflection alpha', () => {
+    const routes = createAppRoutes(
+      undefined,
+      'standard',
+      'community-reflection-alpha',
+    );
+    const productRoutes = routes[0]?.children ?? [];
+    const communityRoute = productRoutes.find(
+      (route) => route.path === 'community',
+    );
+
+    expect(communityRoute).toBeDefined();
+    expect(isValidElement(communityRoute?.element)).toBe(true);
+    expect(
+      isValidElement(communityRoute?.element) && communityRoute.element.type,
+    ).toBe(Suspense);
+    expect(productRoutes.map((route) => route.path)).not.toEqual(
+      expect.arrayContaining([
+        'community/boards',
+        'community/posts/:id',
+        'community/reviews/:id',
+        'community/taste',
+        'u/:handle',
+      ]),
+    );
+  });
+
+  it('registers expanded routes only for the social experiment', () => {
+    const paths = createAppRoutes(
+      undefined,
+      'standard',
+      'community-social-experiment',
+    )[0]?.children?.map((route) => route.path);
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        'community',
+        'community/boards',
+        'community/posts/:id',
+        'community/reviews/:id',
+        'community/taste',
+        'u/:handle',
+      ]),
+    );
+  });
+
+  it('keeps network routes closed for Community core', () => {
+    const paths = createAppRoutes(
+      undefined,
+      'standard',
+      'community-core',
+    )[0]?.children?.map((route) => route.path);
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        'community',
+        'community/boards',
+        'community/posts/:id',
+        'community/reviews/:id',
+        'u/:handle',
+      ]),
+    );
+    expect(paths).not.toContain('community/taste');
+  });
+
+  it('opens every Community route for Community full', () => {
+    const paths = createAppRoutes(
+      undefined,
+      'standard',
+      'community-full',
+    )[0]?.children?.map((route) => route.path);
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        'community',
+        'community/taste',
+        'u/:handle',
+      ]),
+    );
+  });
 
   it('keeps /insights in the product layout instead of redirecting to /works', () => {
     const routes = createAppRoutes();
@@ -100,7 +184,11 @@ describe('app routes', () => {
   });
 
   it('adds route error boundaries to primary product, auth, and account routes', () => {
-    const routes = createAppRoutes();
+    const routes = createAppRoutes(
+      undefined,
+      'standard',
+      'community-reflection-alpha',
+    );
     const productRoutes = routes[0]?.children ?? [];
     const authRoutes =
       routes.find((route) => route.path === '/auth')?.children ?? [];
@@ -112,6 +200,7 @@ describe('app routes', () => {
       productRoutes.find((route) => route.path === 'works/:id'),
       productRoutes.find((route) => route.path === 'works/:id/edit'),
       productRoutes.find((route) => route.path === 'insights'),
+      productRoutes.find((route) => route.path === 'community'),
       productRoutes.find((route) => route.path === 'tier-boards/:boardId/view'),
       productRoutes.find((route) => route.path === 'profile'),
       authRoutes.find((route) => route.path === 'login'),
@@ -126,6 +215,34 @@ describe('app routes', () => {
       expect(
         isValidElement(route?.errorElement) && route.errorElement.type,
       ).toBe(RouteErrorBoundary);
+    }
+  });
+  it('redirects account and authentication-only routes in the Sites guest POC', () => {
+    const routes = createAppRoutes(flagsWithTierBoardsOff, 'sites-guest-poc');
+    const productRoutes = routes[0]?.children ?? [];
+    const authRoutes =
+      routes.find((route) => route.path === '/auth')?.children ?? [];
+    const accountRoutes =
+      routes.find((route) => route.path === '/account')?.children ?? [];
+    const redirects = [
+      [productRoutes.find((route) => route.path === 'profile'), '/'],
+      [authRoutes.find((route) => route.path === 'login'), '/'],
+      [authRoutes.find((route) => route.path === 'google/complete'), '/'],
+      [accountRoutes.find((route) => route.index), '/account/settings'],
+      [
+        accountRoutes.find((route) => route.path === 'transfer'),
+        '/account/settings',
+      ],
+    ] as const;
+
+    for (const [route, target] of redirects) {
+      expect(isValidElement(route?.element)).toBe(true);
+      expect(isValidElement(route?.element) && route.element.type).toBe(
+        Navigate,
+      );
+      expect(
+        isValidElement(route?.element) && route.element.props,
+      ).toMatchObject({ replace: true, to: target });
     }
   });
 });

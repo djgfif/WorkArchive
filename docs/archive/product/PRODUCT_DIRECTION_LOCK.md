@@ -2,13 +2,18 @@
 
 | Field                 | Value                                                                                                                            |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `canonical`                                                                                                                      |
-| Role                  | `product direction lock`                                                                                                         |
-| Source of truth       | user-stated product intent, current local-first architecture, current README/CURRENT_STATUS, current Quick Add/import behavior   |
-| Last verified against | `2026-04-26` personal-only direction lock                                                                                        |
+| Status                | `archived`                                                                                                                       |
+| Role                  | `historical product direction snapshot`                                                                                          |
+| Source of truth       | historical context only; superseded by [`PRODUCT_CONSTITUTION.md`](../../product/PRODUCT_CONSTITUTION.md)                        |
+| Last verified against | `2026-08-25` personal-first direction with opt-in Community alpha                                                                |
 | When to update        | only when the product's primary purpose, personal-only policy, guest/login policy, or data-boundary policy intentionally changes |
 
-이 문서는 Work Archive의 제품 본질과 구현 방향을 고정한다. 여러 차례 리팩터링과 확장 문서가 추가되면서 방향이 흐려질 수 있으므로, 앞으로 모든 기획/구현/문서 판단은 이 문서를 우선 기준으로 삼는다.
+> **퇴역 경고:** 이 문서는 현재 기준이 아니다. 현재 제품 판단은
+> [`PRODUCT_CONSTITUTION.md`](../../product/PRODUCT_CONSTITUTION.md)를 따른다.
+
+이 문서는 2026-08-25까지 Work Archive의 제품 본질과 Community alpha 전환을
+고정했던 역사 스냅샷이다. 아래 내용은 당시 판단의 추적을 위해 보존하며 현재
+기획, 구현 또는 배포를 승인하지 않는다.
 
 ## 1. Product Essence
 
@@ -33,12 +38,14 @@ Work Archive는 기본적으로 다음을 위한 개인 도구다.
 
 - 공개 프로필
 - 공개 리뷰 플랫폼
-- 커뮤니티
 - 공용 카탈로그 검수 플랫폼
 - SNS형 작품 추천 서비스
 - 서버 중심 미디어 데이터베이스
 
-공개/커뮤니티 기능은 무기한 보류한다. 현재 제품은 순수 개인용으로 완성하는 것을 목표로 한다. 미래에 공유 기능을 만들더라도 기본 제품 방향을 바꾸는 것이 아니라, 사용자가 명시적으로 선택하는 export/share 기능에 한정한다.
+개인 아카이브는 여전히 제품의 독립적인 핵심이다. 2026-08-25부터
+Community alpha는 사용자가 새 감상을 명시적으로 공개하는 별도 온라인
+plane으로만 허용한다. 개인 리뷰나 기록을 자동 공개하거나 커뮤니티를
+기본 저장 경로로 만들지 않는다.
 
 ## 2. Primary Product Promise
 
@@ -49,9 +56,9 @@ Work Archive는 기본적으로 다음을 위한 개인 도구다.
 
 로그인은 제품 사용의 필수 조건이 아니다. 꼭 계정이 필요한 기능이 아니라면 guest도 동일하게 사용할 수 있어야 한다.
 
-## 3. Personal-only Policy
+## 3. Personal-first Policy
 
-Work Archive는 당분간 순수 개인용 아카이브 앱으로 개발한다.
+Work Archive는 개인용 아카이브를 중심으로 개발한다.
 
 만드는 것:
 
@@ -67,20 +74,22 @@ Work Archive는 당분간 순수 개인용 아카이브 앱으로 개발한다.
 - 선택형 private backup / sync
 - user-scoped API key 저장, 예: Aladin TTBKey
 - 개인 통계 / minimal Insights
+- 명시적으로 작성·공개하는 짧은 Community 감상과 반응
 
 지금 만들지 않는 것:
 
 - public profile
-- public review
-- follow / like / comment
-- community timeline
+- private review의 자동 공개
+- follow / comment
 - public tier board
 - catalog moderation workflow
 - public aggregate ranking
 - social recommendation feed
 - user-to-user messaging
 
-개인 기록을 공개하거나 소셜 기능과 연결하는 흐름은 현재 제품 범위에서 제외한다.
+Community는 개인 기록과 분리된 별도 서버 데이터다. 작품 연결은 사용자가
+선택한 제목·매체·표지 스냅샷만 복사하며, 개인 기록 ID와 별점·상태·진행도·
+리뷰·태그·timeline·sync metadata는 공개하지 않는다.
 
 ## 4. Guest-first / Login-optional Policy
 
@@ -235,10 +244,12 @@ Quick Add 저장 원칙:
 - `Imports`: 검색/후보 plane
 - `Catalog`: 작품 식별/metadata 보조 plane
 - `Works`: compatibility layer
+- `Community`: 명시적으로 공개한 감상, 반응, 신고, moderation plane
 
 `Works`는 성장 경로가 아니다. 새 도메인 기능은 가능한 한 `Catalog`, `Imports`, `UserRecords`, `Sync` 중 알맞은 경계에 둔다.
 
-`PublicLayer` / community / moderation 계열 기능은 현재 제품 범위 밖이다.
+`Community`는 private record 모델이나 sync payload를 참조하지 않는 독립
+모듈로 유지한다. 정확한 계약은 [`../../project/COMMUNITY_ALPHA_PLAN.md`](../../project/COMMUNITY_ALPHA_PLAN.md)를 따른다.
 
 ## 11. Implementation Priorities From This Direction
 
@@ -289,16 +300,25 @@ Quick Add 저장 원칙:
 - 올해 완료한 작품
 - 개인 태그/장르 요약
 
-### Out of scope. Public/community expansion
+### Priority 7. Opt-in Community alpha
 
-공개 프로필, 공개 리뷰, 커뮤니티, 팔로우, 댓글, moderation은 현재 로드맵에서 제외한다.
+- 공개 피드 읽기
+- 로그인 사용자의 명시적 감상 공개와 삭제
+- 반응 추가/취소
+- 스포일러 보호
+- 신고, moderator 숨김/복원, 처리 감사 이력
+
+### Out of scope. Broader social expansion
+
+공개 프로필, 기존 개인 리뷰 공개, 팔로우, 댓글, DM, 추천, 공개 랭킹은
+현재 로드맵에서 제외한다.
 
 ## 12. Codex Guardrail
 
 Codex나 다른 자동 구현 도구에 작업을 줄 때 아래 문장을 포함한다.
 
 ```text
-Work Archive의 본질은 순수 개인용 local-first 작품 기록/리뷰 아카이브다. 로그인은 선택이며, 꼭 계정이 필요한 기능이 아니면 guest도 사용할 수 있어야 한다. 개인 기록 데이터와 서버/catalog 보조 데이터는 별개 plane으로 유지한다. 수동 추가는 핵심 기능이며, 검색은 입력 보조 기능이다. 커뮤니티, 공개 프로필, 공개 리뷰, public/social 기능은 현재 제품 범위 밖이다.
+Work Archive의 본질은 personal-first local-first 작품 기록/리뷰 아카이브다. 로그인은 선택이며, 꼭 계정이 필요한 기능이 아니면 guest도 사용할 수 있어야 한다. 개인 기록 데이터와 서버/catalog/community 데이터는 별개 plane으로 유지한다. 수동 추가는 핵심 기능이며, 검색은 입력 보조 기능이다. Community는 사용자가 새로 작성하고 명시적으로 공개한 감상만 다루며 개인 기록을 자동 공개하지 않는다.
 ```
 
 ## 13. Exit Criteria

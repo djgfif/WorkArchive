@@ -7,15 +7,18 @@ import { queryClient } from './query-client';
 import { AppRouter } from './router/AppRouter';
 import { LocalDataSafetyRuntime } from './runtime/LocalDataSafetyRuntime';
 import { PwaRuntime } from './runtime/PwaRuntime';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 
 export function App() {
+  const sitesGuestPoc = isSitesGuestPoc();
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <AppLocaleRuntime />
-        <AutoSyncRuntime />
+        {!sitesGuestPoc && <AutoSyncRuntime />}
         <LocalDataSafetyRuntime />
-        <PwaRuntime />
+        {!sitesGuestPoc && <PwaRuntime />}
         <AppRouter />
       </AuthProvider>
     </QueryClientProvider>

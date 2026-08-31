@@ -1,0 +1,6 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Work Archive">
+  <rect width="64" height="64" rx="16" fill="#0A0A0C"/>
+  <rect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#303038" stroke-width="2"/>
+  <path d="M18 18h28v28H18z" fill="#1C1C22" stroke="#6366F1" stroke-width="2"/>
+  <path d="M23 25h18M23 32h13M23 39h16" stroke="#F4F4F6" stroke-width="3" stroke-linecap="round"/>
+</svg>

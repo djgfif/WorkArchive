@@ -29,6 +29,11 @@ import {
 } from '../utils/tier-board-editor-helpers';
 import styles from '../pages/TierBoardsPage.module.css';
 import { cn } from '@shared/utils/class-names';
+import { getDisplayImageUrl } from '@shared/utils/image-proxy';
+import {
+  getKoreanParticle,
+  KOREAN_PARTICLE_DIRECTION,
+} from '@shared/utils/korean-particle';
 import { useAppTranslation } from '@app/i18n';
 
 const css = styles;
@@ -59,12 +64,13 @@ export function CardImage({
   title: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const displayImageUrl = getDisplayImageUrl(imageUrl);
 
   useEffect(() => {
     setFailed(false);
-  }, [imageUrl]);
+  }, [displayImageUrl]);
 
-  if (!imageUrl || failed) {
+  if (!displayImageUrl || failed) {
     return (
       <Box className={cn(css.itemFallback)}>
         <Text fw={800}>{title.slice(0, 1).toUpperCase()}</Text>
@@ -78,7 +84,8 @@ export function CardImage({
       className={cn(css.itemImage)}
       crossOrigin="anonymous"
       onError={() => setFailed(true)}
-      src={imageUrl}
+      referrerPolicy="no-referrer"
+      src={displayImageUrl}
     />
   );
 }
@@ -158,13 +165,15 @@ function CardMenu({
   onEdit: (card: TierBoardCardRecord) => void;
   onMove: (id: string, laneId: string | null) => void;
 }) {
-  const { t } = useAppTranslation();
+  const { i18n, t } = useAppTranslation();
 
   return (
     <Menu position="bottom-end">
       <Menu.Target>
         <ActionIcon
-          aria-label={t('tierBoards.canvas.cardMenuAria', { title: card.title })}
+          aria-label={t('tierBoards.canvas.cardMenuAria', {
+            title: card.title,
+          })}
           className={cn(css.itemMenuButton)}
           size="sm"
           variant="filled"
@@ -179,7 +188,12 @@ function CardMenu({
         </Menu.Item>
         {lanes.map((lane) => (
           <Menu.Item key={lane.id} onClick={() => onMove(card.id, lane.id)}>
-            {t('tierBoards.canvas.moveToLane', { title: lane.title })}
+            {t('tierBoards.canvas.moveToLane', {
+              destination:
+                i18n.resolvedLanguage === 'ko'
+                  ? `${lane.title}${getKoreanParticle(lane.title, KOREAN_PARTICLE_DIRECTION)}`
+                  : lane.title,
+            })}
           </Menu.Item>
         ))}
         <Menu.Divider />
@@ -290,15 +304,10 @@ export function SortableLane({
   const { setNodeRef: setDropNodeRef } = useDroppable({
     id: getLaneContainerId(lane.id),
   });
-  const setLaneNodeRef = (node: HTMLDivElement | null) => {
-    setSortableNodeRef(node);
-    setDropNodeRef(node);
-  };
-
   return (
     <div
       className={`${cn(css.lane)} ${isDragging ? cn(css.dragging) : ''}`}
-      ref={setLaneNodeRef}
+      ref={setSortableNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -384,7 +393,7 @@ export function SortableLane({
           </ActionIcon>
         </Group>
       </Stack>
-      <div className={cn(css.laneDropZone)}>
+      <div className={cn(css.laneDropZone)} ref={setDropNodeRef}>
         <Box p="md">
           <SortableContext
             items={cards.map((card) => getCardSortableId(card.id))}

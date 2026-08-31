@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Logger,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -22,6 +23,7 @@ import {
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -43,9 +45,17 @@ import { WorksService } from './works.service';
 @UseGuards(JwtAuthGuard)
 @Controller('works')
 export class WorksController {
-  constructor(@Inject(WorksService) private readonly worksService: WorksService) {}
+  private readonly logger = new Logger(WorksController.name);
+
+  constructor(
+    @Inject(WorksService) private readonly worksService: WorksService,
+  ) {}
 
   @Get()
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Deprecated: use GET /api/v2/user-records',
+  })
   @ApiOkResponse({
     description: 'List all active works.',
     type: WorkResponseDto,
@@ -55,13 +65,19 @@ export class WorksController {
     description: 'The access token is missing, invalid, or expired.',
   })
   findAll(@CurrentUser() user: AuthenticatedUser) {
+    this.recordLegacyUse('list');
     return this.worksService.findAll(user.userId);
   }
 
   @Get('grouped')
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Deprecated: use GET /api/v2/user-records',
+  })
   @ApiExtraModels(GroupedWorksQueryDto)
   @ApiOkResponse({
-    description: 'List active works grouped by franchise, medium, contributor, or status.',
+    description:
+      'List active works grouped by franchise, medium, contributor, or status.',
   })
   @ApiUnauthorizedResponse({
     description: 'The access token is missing, invalid, or expired.',
@@ -70,10 +86,15 @@ export class WorksController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: GroupedWorksQueryDto,
   ) {
+    this.recordLegacyUse('list-grouped');
     return this.worksService.findGrouped(user.userId, query.by);
   }
 
   @Get(':id')
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Deprecated: use GET /api/v2/user-records/{id}',
+  })
   @ApiParam({
     name: 'id',
     format: 'uuid',
@@ -92,10 +113,15 @@ export class WorksController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
+    this.recordLegacyUse('get');
     return this.worksService.findOne(user.userId, id);
   }
 
   @Post()
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Deprecated: use POST /api/v2/user-records',
+  })
   @ApiBody({
     type: CreateWorkDto,
   })
@@ -111,6 +137,7 @@ export class WorksController {
     @Body() createWorkDto: CreateWorkDto,
     @Req() request: Request,
   ) {
+    this.recordLegacyUse('create');
     return this.worksService.create(
       user.userId,
       createWorkDto,
@@ -119,6 +146,10 @@ export class WorksController {
   }
 
   @Patch(':id')
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Deprecated: use PATCH /api/v2/user-records/{id}',
+  })
   @ApiParam({
     name: 'id',
     format: 'uuid',
@@ -142,6 +173,7 @@ export class WorksController {
     @Body() updateWorkDto: UpdateWorkDto,
     @Req() request: Request,
   ) {
+    this.recordLegacyUse('update');
     return this.worksService.update(
       user.userId,
       id,
@@ -152,6 +184,10 @@ export class WorksController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Deprecated: use the user-record deletion contract',
+  })
   @ApiParam({
     name: 'id',
     format: 'uuid',
@@ -170,10 +206,21 @@ export class WorksController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Req() request: Request,
   ) {
+    this.recordLegacyUse('delete');
     await this.worksService.remove(
       user.userId,
       id,
       getRequestId(request) ?? undefined,
+    );
+  }
+
+  private recordLegacyUse(action: string) {
+    this.logger.log(
+      JSON.stringify({
+        action,
+        event: 'api.legacy_works.used',
+        replacement: '/api/v2/user-records',
+      }),
     );
   }
 }

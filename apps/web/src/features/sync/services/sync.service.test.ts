@@ -15,7 +15,9 @@ import { WorksService } from '@features/works';
 import { ReleaseRecordsRepository } from '@features/works';
 import { TimelineEntriesRepository } from '@features/works';
 import { GraphRepository } from '@features/works';
+import { TierBoardRepository } from '@features/tier-boards/data';
 import { AppMetaRepository } from './app-meta.repository';
+import { LAST_SUCCESSFUL_PUSH_AT_KEY } from './sync-metadata';
 import { SyncQueueRepository } from './sync-queue.repository';
 import { SyncService } from './sync.service';
 
@@ -72,6 +74,7 @@ describe('SyncService', () => {
   let releaseRecordsRepository: ReleaseRecordsRepository;
   let timelineEntriesRepository: TimelineEntriesRepository;
   let graphRepository: GraphRepository;
+  let tierBoardRepository: TierBoardRepository;
   let queueRepository: SyncQueueRepository;
   let appMetaRepository: AppMetaRepository;
   let worksService: WorksService;
@@ -84,8 +87,14 @@ describe('SyncService', () => {
     timelineEntriesRepository = new TimelineEntriesRepository(() => db);
     queueRepository = new SyncQueueRepository(() => db);
     graphRepository = new GraphRepository(() => db, queueRepository);
+    tierBoardRepository = new TierBoardRepository(() => db);
     appMetaRepository = new AppMetaRepository(() => db);
-    worksService = new WorksService(worksRepository, queueRepository);
+    worksService = new WorksService(
+      worksRepository,
+      queueRepository,
+      graphRepository,
+      timelineEntriesRepository,
+    );
     syncService = new SyncService(
       worksRepository,
       releaseRecordsRepository,
@@ -93,6 +102,8 @@ describe('SyncService', () => {
       appMetaRepository,
       timelineEntriesRepository,
       graphRepository,
+      tierBoardRepository,
+      () => db,
     );
   });
 
@@ -153,6 +164,9 @@ describe('SyncService', () => {
         updatedAt: '2026-04-18T01:00:00.000Z',
       }),
     );
+    await expect(
+      appMetaRepository.getValue(LAST_SUCCESSFUL_PUSH_AT_KEY),
+    ).resolves.toBe('2026-04-18T01:00:00.000Z');
   });
 
   it('removes successful graph queue items and updates local graph records', async () => {
@@ -456,7 +470,7 @@ describe('SyncService', () => {
     );
   });
 
-  it('skips push when another tab holds the scope sync lease', async () => {
+  it('reports manual sync as incomplete when another tab holds the scope sync lease', async () => {
     await worksService.createWork(buildInput());
     await appMetaRepository.setValue(
       'sync.activeLease',
@@ -474,13 +488,51 @@ describe('SyncService', () => {
 
     vi.stubGlobal('fetch', fetchSpy);
 
-    const result = await syncService.pushQueuedChanges();
+    const result = await syncService.runManualSync();
 
     expect(result).toEqual(
       expect.objectContaining({
-        attemptedCount: 0,
-        requestFailed: false,
-        messages: ['다른 탭에서 동기화 중이라 이번 백업을 건너뛰었습니다.'],
+        state: 'failed',
+        push: expect.objectContaining({
+          attemptedCount: 0,
+          requestFailed: true,
+          retryAfterMs: 1_000,
+          messages: ['다른 탭에서 동기화 중이라 이번 백업을 건너뛰었습니다.'],
+        }),
+        pull: expect.objectContaining({
+          requestFailed: true,
+          messages: ['보내기에 실패해 가져오기를 건너뛰었습니다.'],
+        }),
+      }),
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns a retryable pull result when another tab holds the scope sync lease', async () => {
+    await appMetaRepository.setValue(
+      'sync.activeLease',
+      JSON.stringify({
+        acquiredAt: '2026-05-26T00:00:00.000Z',
+        expiresAt: '9999-01-01T00:00:00.000Z',
+        ownerId: 'other-client:other-tab',
+        token: 'pull:other',
+      }),
+    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const fetchSpy = vi.fn();
+
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await syncService.pullRemoteChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        pulledCount: 0,
+        requestFailed: true,
+        retryAfterMs: 1_000,
+        messages: ['다른 탭에서 동기화 중이라 이번 가져오기를 건너뛰었습니다.'],
       }),
     );
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -803,6 +855,91 @@ describe('SyncService', () => {
     );
   });
 
+  it('rolls back the record and queue when resolution fails between writes', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Atomic Local Dune',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote conflict detected',
+      {
+        ...localWork,
+        title: 'Atomic Remote Dune',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+    vi.spyOn(queueRepository, 'resetForRetry').mockRejectedValueOnce(
+      new Error('injected queue mutation failure'),
+    );
+
+    await expect(
+      syncService.resolveConflictWithLocal(queueItem!.id),
+    ).rejects.toThrow('injected queue mutation failure');
+
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        syncStatus: 'conflict',
+        title: 'Atomic Local Dune',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          message: 'Remote conflict detected',
+        }),
+        lastError: 'Remote conflict detected',
+      }),
+    );
+    await expect(db.conflictRecovery.count()).resolves.toBe(0);
+  });
+
+  it('keeps a conflict unchanged when the remote snapshot is missing', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Local Missing Remote',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote snapshot unavailable',
+      null,
+      'conflict_remote_missing',
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+
+    await expect(
+      syncService.resolveConflictWithRemote(queueItem!.id),
+    ).rejects.toThrow();
+
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        syncStatus: 'conflict',
+        title: 'Local Missing Remote',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          code: 'conflict_remote_missing',
+          remote: null,
+        }),
+      }),
+    );
+  });
   it('resolves a conflict by applying the remote work snapshot', async () => {
     const localWork = await worksService.createWork(
       buildInput({
@@ -834,6 +971,117 @@ describe('SyncService', () => {
         title: 'Remote Dune',
         syncStatus: 'synced',
         serverVersion: 3,
+      }),
+    );
+    await expect(db.conflictRecovery.get(queueItem!.id)).resolves.toEqual(
+      expect.objectContaining({
+        beforeEntity: expect.objectContaining({ title: 'Local Dune' }),
+        afterEntity: expect.objectContaining({ title: 'Remote Dune' }),
+      }),
+    );
+
+    await syncService.undoConflictResolution(queueItem!.id);
+
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        title: 'Local Dune',
+        syncStatus: 'conflict',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          remote: expect.objectContaining({ title: 'Remote Dune' }),
+        }),
+      }),
+    );
+    await expect(
+      db.conflictRecovery.get(queueItem!.id),
+    ).resolves.toBeUndefined();
+  });
+
+  it('refuses undo when the resolved record changed afterward', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Local Before Undo Guard',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote conflict detected',
+      {
+        ...localWork,
+        title: 'Remote Before Undo Guard',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+    await syncService.resolveConflictWithRemote(queueItem!.id);
+    const resolved = await worksRepository.getById(localWork.id);
+
+    await worksRepository.update({
+      ...resolved!,
+      review: 'Edited after resolution',
+      updatedAt: '2026-04-18T02:00:00.000Z',
+    });
+
+    await expect(
+      syncService.undoConflictResolution(queueItem!.id),
+    ).rejects.toThrow(
+      '해결 후 기록이 변경되어 안전하게 실행 취소할 수 없습니다.',
+    );
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        review: 'Edited after resolution',
+        title: 'Remote Before Undo Guard',
+      }),
+    );
+    expect(await queueRepository.listAll()).toEqual([]);
+  });
+  it('refuses undo when the resolved queue changed afterward', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({ title: 'Local Queue Undo Guard' }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote conflict detected',
+      {
+        ...localWork,
+        title: 'Remote Queue Undo Guard',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+    await syncService.resolveConflictWithLocal(queueItem!.id);
+    await queueRepository.markFailed(queueItem!.id, 'Later push failed');
+
+    await expect(
+      syncService.undoConflictResolution(queueItem!.id),
+    ).rejects.toThrow(
+      '해결 후 기록이 변경되어 안전하게 실행 취소할 수 없습니다.',
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        lastError: 'Later push failed',
+        retryCount: 1,
+      }),
+    );
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        syncStatus: 'pending',
+        title: 'Local Queue Undo Guard',
       }),
     );
   });
@@ -1127,6 +1375,7 @@ describe('SyncService', () => {
       note: 'Remote note',
       occurredAt: '2026-04-18T02:00:00.000Z',
       serverVersion: 2,
+      source: 'manual',
       syncStatus: 'synced',
       type: 'note',
       updatedAt: '2026-04-18T03:00:00.000Z',

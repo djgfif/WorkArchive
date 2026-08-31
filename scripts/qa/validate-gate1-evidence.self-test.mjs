@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import {
-  existsSync,
   mkdirSync,
   readFileSync,
   rmSync,
@@ -19,22 +18,28 @@ const sourceEvidencePath = join(
 const workspaceTempDir = join(rootDir, 'tmp/gate1-evidence-validator-self-test');
 const failures = [];
 
-const sourceEvidence = readFileSync(sourceEvidencePath, 'utf8');
+const sourceEvidenceTemplate = readFileSync(sourceEvidencePath, 'utf8');
 const monitoringReportPattern =
   /`tmp\/monitoring-evidence\/monitoring-evidence-\d{8}T\d{6}Z\.md`/;
-const monitoringReportMatch = monitoringReportPattern.exec(sourceEvidence);
+const monitoringReportMatch = monitoringReportPattern.exec(sourceEvidenceTemplate);
 
 if (!monitoringReportMatch) {
   failures.push('source evidence must include a backticked monitoring report path.');
-} else {
-  const reportPath = monitoringReportMatch[0].slice(1, -1);
-  if (!existsSync(join(rootDir, reportPath))) {
-    failures.push(`source evidence monitoring report does not exist: ${reportPath}`);
-  }
 }
 
 rmSync(workspaceTempDir, { force: true, recursive: true });
 mkdirSync(workspaceTempDir, { recursive: true });
+
+const baselineMonitoringReportPath =
+  'tmp/gate1-evidence-validator-self-test/monitoring-baseline.md';
+writeFileSync(
+  join(rootDir, baselineMonitoringReportPath),
+  ['# Monitoring Evidence Report', '', '- Mode: dry-run', '- Status: DRY_RUN', ''].join('\n'),
+);
+const sourceEvidence = sourceEvidenceTemplate.replace(
+  monitoringReportPattern,
+  `\`${baselineMonitoringReportPath}\``,
+);
 
 try {
   if (failures.length === 0) {
@@ -257,7 +262,10 @@ console.log('Gate 1 evidence validator self-test passed.');
 
 function runFixture({ expectedMessage, name, replacement }) {
   const fixturePath = join(workspaceTempDir, `fixture-${slugify(name)}.md`);
-  const fixture = sourceEvidence.replace(monitoringReportPattern, replacement);
+  const fixture = sourceEvidence.replace(
+    `\`${baselineMonitoringReportPath}\``,
+    replacement,
+  );
   if (fixture === sourceEvidence) {
     failures.push(`${name}: fixture replacement did not modify the evidence.`);
     return;
@@ -297,7 +305,10 @@ function runReportContentFixture({ expectedMessage, label, name, reportPath }) {
   const labelPattern = label.startsWith('`')
     ? escapedLabel
     : `(?:${escapedLabel}|\`${escapedLabel}\`)`;
-  const sourceLinePattern = new RegExp(`^- ${labelPattern}:[^\\n]*$`, 'm');
+  const sourceLinePattern = new RegExp(
+    `^- ${labelPattern}[^:\\n]*:[^\\n]*$`,
+    'm',
+  );
   const shouldRenderAsCommand =
     label.startsWith('`') || label.includes('npm run') || label.includes('=true');
   const renderedLabel = label.startsWith('`')

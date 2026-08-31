@@ -26,9 +26,11 @@ import type {
 
 import { appI18n } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
+import { LAST_JSON_EXPORT_AT_META_KEY } from '@shared/constants/archive-metadata';
 import { getWorkArchiveDb } from '../../works/storage';
 import { appMetaRepository } from '../services/app-meta.repository';
 import { syncQueueRepository } from '../services/sync-queue.repository';
+import { LAST_SUCCESSFUL_PUSH_AT_KEY } from '../services/sync-metadata';
 import {
   SYNC_STALE_STATUS_AT_KEY,
   SYNC_STALE_STATUS_REASON_KEY,
@@ -59,10 +61,13 @@ export interface SyncDashboardItem {
 }
 
 interface SyncDashboardState {
+  activeRecordCount: number;
   conflictWorks: WorkRecord[];
   conflictItems: SyncDashboardItem[];
   failedItems: SyncDashboardItem[];
+  lastJsonBackupAt: string | null;
   lastSuccessfulPullAt: string | null;
+  lastSuccessfulPushAt: string | null;
   pendingItems: SyncDashboardItem[];
   queueItems: SyncQueueItemRecord[];
   staleStatusAt: string | null;
@@ -72,10 +77,13 @@ interface SyncDashboardState {
 }
 
 const initialState: SyncDashboardState = {
+  activeRecordCount: 0,
   conflictWorks: [],
   conflictItems: [],
   failedItems: [],
+  lastJsonBackupAt: null,
   lastSuccessfulPullAt: null,
+  lastSuccessfulPushAt: null,
   pendingItems: [],
   queueItems: [],
   staleStatusAt: null,
@@ -606,7 +614,10 @@ export function useSyncDashboard() {
           tierLanes,
           tierBoardCards,
           tierBoardAssets,
+          activeRecordCount,
+          lastJsonBackupAt,
           lastSuccessfulPullAt,
+          lastSuccessfulPushAt,
           staleStatusAt,
           staleStatusReason,
         ] = await Promise.all([
@@ -620,7 +631,10 @@ export function useSyncDashboard() {
           db.tierLanes.toArray(),
           db.tierBoardCards.toArray(),
           db.tierBoardAssets.toArray(),
+          db.works.filter((work) => work.deletedAt === null).count(),
+          appMetaRepository.getValue(LAST_JSON_EXPORT_AT_META_KEY),
           appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
+          appMetaRepository.getValue(LAST_SUCCESSFUL_PUSH_AT_KEY),
           appMetaRepository.getValue(SYNC_STALE_STATUS_AT_KEY),
           appMetaRepository.getValue(SYNC_STALE_STATUS_REASON_KEY),
         ]);
@@ -668,12 +682,15 @@ export function useSyncDashboard() {
           .sort(compareSyncDashboardItems);
 
         return {
+          activeRecordCount,
           conflictWorks: works.filter((work) => work.syncStatus === 'conflict'),
           conflictItems: dashboardItems.filter(
             (item) => item.state === 'conflict',
           ),
           failedItems: dashboardItems.filter((item) => item.state === 'failed'),
+          lastJsonBackupAt,
           lastSuccessfulPullAt,
+          lastSuccessfulPushAt,
           pendingItems: dashboardItems.filter(
             (item) => item.state === 'pending' || item.state === 'requeued',
           ),
@@ -684,10 +701,13 @@ export function useSyncDashboard() {
       } catch (error) {
         if (isDatabaseClosedError(error)) {
           return {
+            activeRecordCount: 0,
             conflictWorks: [],
             conflictItems: [],
             failedItems: [],
+            lastJsonBackupAt: null,
             lastSuccessfulPullAt: null,
+            lastSuccessfulPushAt: null,
             pendingItems: [],
             queueItems: [],
             staleStatusAt: null,
@@ -699,20 +719,26 @@ export function useSyncDashboard() {
       }
     }).subscribe({
       next: ({
+        activeRecordCount,
         conflictWorks,
         conflictItems,
         failedItems,
+        lastJsonBackupAt,
         lastSuccessfulPullAt,
+        lastSuccessfulPushAt,
         pendingItems,
         queueItems,
         staleStatusAt,
         staleStatusReason,
       }) => {
         setState({
+          activeRecordCount,
           conflictWorks,
           conflictItems,
           failedItems,
+          lastJsonBackupAt,
           lastSuccessfulPullAt,
+          lastSuccessfulPushAt,
           pendingItems,
           queueItems,
           staleStatusAt,
@@ -723,10 +749,13 @@ export function useSyncDashboard() {
       },
       error: (error) => {
         setState({
+          activeRecordCount: 0,
           conflictWorks: [],
           conflictItems: [],
           failedItems: [],
+          lastJsonBackupAt: null,
           lastSuccessfulPullAt: null,
+          lastSuccessfulPushAt: null,
           pendingItems: [],
           queueItems: [],
           staleStatusAt: null,

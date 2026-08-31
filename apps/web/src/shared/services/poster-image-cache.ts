@@ -3,6 +3,8 @@ import Dexie, { type Table } from 'dexie';
 const DB_NAME = 'work-archive-poster-image-cache';
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_CACHE_ENTRIES = 500;
+const MAX_CACHE_BYTES = 100 * 1024 * 1024;
+export const POSTER_IMAGE_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const ALLOWED_CONTENT_TYPES = new Set([
   'image/avif',
   'image/gif',
@@ -41,6 +43,15 @@ function normalizeCacheKey(thumbnailUrl: string | null | undefined) {
   return thumbnailUrl?.trim() || '';
 }
 
+export function isPosterImageCacheExpired(updatedAt: string, now = Date.now()) {
+  const updatedAtTime = Date.parse(updatedAt);
+
+  return (
+    !Number.isFinite(updatedAtTime) ||
+    now - updatedAtTime > POSTER_IMAGE_CACHE_MAX_AGE_MS
+  );
+}
+
 function isObjectUrlSupported() {
   return (
     typeof URL !== 'undefined' &&
@@ -75,19 +86,35 @@ function readAllowedContentType(response: Response) {
 }
 
 async function trimPosterImageCache() {
-  const overflowCount = (await posterImageCacheDb.posterImages.count()) - MAX_CACHE_ENTRIES;
+  const records = await posterImageCacheDb.posterImages
+    .orderBy('lastAccessedAt')
+    .toArray();
+  let remainingBytes = records.reduce(
+    (total, record) => total + record.sizeBytes,
+    0,
+  );
+  const recordsToDelete: string[] = [];
 
-  if (overflowCount <= 0) {
-    return;
+  for (const [index, record] of records.entries()) {
+    const remainingEntries = records.length - recordsToDelete.length;
+
+    if (
+      remainingEntries <= MAX_CACHE_ENTRIES &&
+      remainingBytes <= MAX_CACHE_BYTES
+    ) {
+      break;
+    }
+
+    recordsToDelete.push(record.id);
+    remainingBytes -= record.sizeBytes;
+
+    if (index === records.length - 1) {
+      break;
+    }
   }
 
-  const recordsToDelete = await posterImageCacheDb.posterImages
-    .orderBy('lastAccessedAt')
-    .limit(overflowCount)
-    .primaryKeys();
-
   if (recordsToDelete.length > 0) {
-    await posterImageCacheDb.posterImages.bulkDelete(recordsToDelete as string[]);
+    await posterImageCacheDb.posterImages.bulkDelete(recordsToDelete);
   }
 }
 
@@ -139,6 +166,11 @@ export async function getCachedPosterImageObjectUrl(
     return null;
   }
 
+  if (isPosterImageCacheExpired(cached.updatedAt)) {
+    await posterImageCacheDb.posterImages.delete(cacheKey);
+    return null;
+  }
+
   await posterImageCacheDb.posterImages.update(cacheKey, {
     lastAccessedAt: new Date().toISOString(),
   });
@@ -163,6 +195,7 @@ export function cachePosterImageFromDisplaySource(
   const writePromise = fetch(displaySourceUrl, {
     cache: 'force-cache',
     credentials: 'same-origin',
+    referrerPolicy: 'no-referrer',
   })
     .then(async (response) => {
       if (!response.ok) {

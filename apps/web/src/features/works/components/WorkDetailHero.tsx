@@ -3,11 +3,10 @@ import { Box, Group, Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { ActionRow, SectionCard } from '@shared/components/AppPrimitives';
-import { formatWorkDate, formatWorkUpdatedAt } from '../utils/work-options';
+import { formatWorkUpdatedAt } from '../utils/work-options';
 import { ProgressDisplay, WorkPoster } from './ArchiveComponents';
 import { SerialStatusBadge } from './SerialStatusBadge';
 import styles from './ArchiveComponents.module.css';
-import type { WorkDetailTimelineItem } from '../utils/work-detail-timeline';
 import { cn } from '@shared/utils/class-names';
 import { useAppTranslation } from '@app/i18n';
 
@@ -15,10 +14,9 @@ const css = styles;
 
 interface WorkDetailHeroProps {
   actions?: ReactNode;
-  latestTimelineItem: WorkDetailTimelineItem | null;
-  personalTags: string[];
   progressLabel: string | null;
   progressPercent: number | null;
+  quickRecordSection?: ReactNode;
   shortReview: string;
   statusLabel: string;
   typeLabel: string;
@@ -27,10 +25,9 @@ interface WorkDetailHeroProps {
 
 export function WorkDetailHero({
   actions,
-  latestTimelineItem,
-  personalTags,
   progressLabel,
   progressPercent,
+  quickRecordSection,
   shortReview,
   statusLabel,
   typeLabel,
@@ -45,9 +42,10 @@ export function WorkDetailHero({
       padding="xl"
       tone="hero"
     >
-      <Group align="flex-start" gap="xl" wrap="wrap">
+      <div className={cn(css.detailHeroLayout)}>
         <Box className={cn(css.detailHeroPoster)}>
           <WorkPoster
+            className={cn(css.detailHeroPosterImage)}
             thumbnailUrl={work.thumbnailUrl}
             title={work.title}
             typeLabel={typeLabel}
@@ -55,7 +53,7 @@ export function WorkDetailHero({
           />
         </Box>
 
-        <Stack className={cn(css.detailHeroBody)} flex={1} gap="md">
+        <Stack className={cn(css.detailHeroBody)} gap="md">
           <Group className={cn(css.detailHeroMeta)} gap="xs" wrap="wrap">
             <Text fw={800} size="sm">
               {typeLabel}
@@ -85,7 +83,11 @@ export function WorkDetailHero({
                   className={cn(css.detailHeroMetaDivider)}
                   component="span"
                 />
-                <Text c="var(--app-accent-warm)" fw={800} size="sm">
+                <Text
+                  className={cn(css.detailHeroFavorite)}
+                  fw={800}
+                  size="sm"
+                >
                   {t('works.detail.favoriteBadge')}
                 </Text>
               </>
@@ -178,36 +180,18 @@ export function WorkDetailHero({
           </Group>
 
           {progressPercent !== null && <ProgressDisplay work={work} />}
-
-          {actions && <ActionRow>{actions}</ActionRow>}
         </Stack>
 
-        <Box className={cn(css.detailSummary)}>
-          <Stack gap="lg">
-            <Stack gap={6}>
-              <Text c="dimmed" fw={700} size="xs">
-                {t('works.detail.personalTags')}
-              </Text>
-              <Text fw={800} lh={1.5}>
-                {personalTags.length > 0
-                  ? personalTags.map((tag) => `#${tag}`).join(' ')
-                  : t('works.detail.personalTagsHeroEmpty')}
-              </Text>
-            </Stack>
+        {actions && (
+          <ActionRow className={cn(css.detailHeroActions)}>{actions}</ActionRow>
+        )}
 
-            <Stack gap={6}>
-              <Text c="dimmed" fw={700} size="xs">
-                {t('works.detail.latestRecord')}
-              </Text>
-              <Text fw={800} lh={1.5}>
-                {latestTimelineItem
-                  ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.label}`
-                  : t('works.detail.timelineHeroEmpty')}
-              </Text>
-            </Stack>
-          </Stack>
-        </Box>
-      </Group>
+        {quickRecordSection && (
+          <Box className={cn(css.detailQuickRecordRail)}>
+            {quickRecordSection}
+          </Box>
+        )}
+      </div>
     </SectionCard>
   );
 }

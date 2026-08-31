@@ -47,6 +47,7 @@ interface SectionCardProps {
   children: ReactNode;
   className?: string;
   gap?: string | number;
+  id?: string;
   padding?: string | number;
   tone?: SurfaceTone;
 }
@@ -193,6 +194,7 @@ interface ThemeToggleControlProps {
 }
 
 interface AppNavLinkProps {
+  'aria-label'?: string;
   badge?: ReactNode;
   children: ReactNode;
   end?: boolean;
@@ -243,7 +245,7 @@ function getBadgeToneProps(tone: AppBadgeTone) {
     case 'info':
       return { color: 'blue' } as const;
     case 'warning':
-      return { color: 'yellow' } as const;
+      return { color: 'gray', variant: 'outline' } as const;
     case 'success':
       return { color: 'teal' } as const;
     case 'muted':
@@ -304,6 +306,7 @@ export function SectionCard({
   children,
   className,
   gap = 'md',
+  id,
   padding = 'lg',
   tone = 'default',
 }: SectionCardProps) {
@@ -315,6 +318,7 @@ export function SectionCard({
         tone === 'subtle' && css.sectionCardSubtle,
         className,
       )}
+      id={id}
       p={padding}
       radius={tone === 'hero' ? 'xl' : 'lg'}
       styles={{
@@ -343,6 +347,7 @@ export function SurfaceLinkCard({
   children,
   className,
   gap = 'md',
+  id,
   padding = 'lg',
   to,
   tone = 'default',
@@ -357,6 +362,7 @@ export function SurfaceLinkCard({
         className,
       )}
       component={Link}
+      id={id}
       p={padding}
       radius="lg"
       styles={{
@@ -483,6 +489,7 @@ export function AppBadge({ children, tone = 'default' }: AppBadgeProps) {
 export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
   return (
     <Box
+      aria-label={heading}
       className={cn(css.brandLink)}
       component={Link}
       miw={0}
@@ -551,6 +558,7 @@ export function ThemeToggleControl({
 }
 
 export function AppNavLink({
+  'aria-label': ariaLabel,
   badge,
   children,
   end = false,
@@ -561,6 +569,7 @@ export function AppNavLink({
 }: AppNavLinkProps) {
   return (
     <NavLink
+      aria-label={ariaLabel}
       className={({ isActive }) =>
         cx(
           css.navLink,
@@ -574,7 +583,7 @@ export function AppNavLink({
       to={to}
     >
       <Group gap="xs" justify="space-between" wrap="nowrap" w="100%">
-        <Text component="span" fw="inherit" size="sm">
+        <Text component="div" fw="inherit" size="sm">
           {children}
         </Text>
         {badge}

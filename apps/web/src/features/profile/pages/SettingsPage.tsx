@@ -1,4 +1,5 @@
 import { Select, Stack, Text } from '@mantine/core';
+import { useMemo } from 'react';
 
 import {
   AppLinkButton,
@@ -10,9 +11,14 @@ import { AccountPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAppLocale, useAppTranslation, type AppLocale } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
+import { getArchiveSafetyState, useSyncDashboard } from '@features/sync';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
+import { ArchiveHealthSettingsSection } from '../components/settings/ArchiveHealthSettingsSection';
+import { AccountBackupStatusSettingsSection } from '../components/settings/AccountBackupStatusSettingsSection';
 import { AccountSettingsSection } from '../components/settings/AccountSettingsSection';
 import { DangerZoneSection } from '../components/settings/DangerZoneSection';
 import { DataBackupSettingsSection } from '../components/settings/DataBackupSettingsSection';
+import { DataSafetySummarySection } from '../components/settings/DataSafetySummarySection';
 import { DuplicateCleanupSettingsSection } from '../components/settings/DuplicateCleanupSettingsSection';
 import { ExternalImportSettingsSection } from '../components/settings/ExternalImportSettingsSection';
 import { LocalDataSafetySettingsSection } from '../components/settings/LocalDataSafetySettingsSection';
@@ -27,6 +33,8 @@ import { useLocalArchiveSettings } from '../hooks/useLocalArchiveSettings';
 import { useLocalDataSafetySettings } from '../hooks/useLocalDataSafetySettings';
 import { useNotionSettings } from '../hooks/useNotionSettings';
 import { useSettingsOverviewStats } from '../hooks/useSettingsOverviewStats';
+import { getDataSafetyViewModel } from '../utils/data-safety-view-model';
+import settingsStyles from '../components/settings/SettingsControlCenter.module.css';
 
 type SettingsGroupId = 'account' | 'data' | 'integrations' | 'general';
 
@@ -35,6 +43,7 @@ const sectionGroupById: Partial<Record<string, SettingsGroupId>> = {
   security: 'account',
   'danger-zone': 'account',
   'data-backup': 'data',
+  'archive-health': 'data',
   'duplicate-cleanup': 'data',
   'external-import': 'integrations',
   'search-providers': 'integrations',
@@ -42,14 +51,6 @@ const sectionGroupById: Partial<Record<string, SettingsGroupId>> = {
   language: 'general',
   display: 'general',
 };
-
-const groupOrder = [
-  undefined,
-  'account',
-  'data',
-  'integrations',
-  'general',
-] as const satisfies readonly (SettingsGroupId | undefined)[];
 
 function DisplaySettingsSection() {
   const { t } = useAppTranslation();
@@ -111,6 +112,7 @@ function LanguageSettingsSection() {
 
 export function SettingsPage() {
   const { t } = useAppTranslation();
+  const sitesGuestPoc = isSitesGuestPoc();
 
   usePageTitle(t('settings.pageTitle'));
   const { archiveScopeKey, mode, signOut, updateUser, user } = useAuthSession();
@@ -120,21 +122,116 @@ export function SettingsPage() {
   const notionSettings = useNotionSettings(mode);
   const authSessionSettings = useAuthSessionSettings(mode, signOut);
   const overviewStats = useSettingsOverviewStats(archiveScopeKey);
+  const syncDashboard = useSyncDashboard();
+  const archiveSafetyState = useMemo(
+    () =>
+      getArchiveSafetyState({
+        activeRecordCount: overviewStats.activeWorkCount,
+        conflictCount: syncDashboard.conflictItems.length,
+        failedCount: syncDashboard.failedItems.length,
+        lastJsonBackupAt:
+          overviewStats.lastJsonBackupSummary?.exportedAt ??
+          overviewStats.lastJsonExportAt ??
+          localDataSafetySettings.autoBackupStatus.lastSucceededAt,
+        lastSuccessfulPullAt: syncDashboard.lastSuccessfulPullAt,
+        lastSuccessfulPushAt: syncDashboard.lastSuccessfulPushAt,
+        mode,
+        pendingCount: syncDashboard.pendingItems.length,
+        requeuedCount: syncDashboard.pendingItems.filter(
+          (item) => item.state === 'requeued',
+        ).length,
+        staleStatusAt: syncDashboard.staleStatusAt,
+        storageState: localDataSafetySettings.storageState,
+      }),
+    [
+      localDataSafetySettings.autoBackupStatus.lastSucceededAt,
+      localDataSafetySettings.storageState,
+      mode,
+      overviewStats.activeWorkCount,
+      overviewStats.lastJsonBackupSummary?.exportedAt,
+      overviewStats.lastJsonExportAt,
+      syncDashboard.conflictItems.length,
+      syncDashboard.failedItems.length,
+      syncDashboard.lastSuccessfulPullAt,
+      syncDashboard.lastSuccessfulPushAt,
+      syncDashboard.pendingItems,
+      syncDashboard.staleStatusAt,
+    ],
+  );
+  const dataSafetyViewModel = useMemo(
+    () =>
+      getDataSafetyViewModel({
+        autoBackupStatus: localDataSafetySettings.autoBackupStatus,
+        mode,
+        safetyState: archiveSafetyState,
+      }),
+    [archiveSafetyState, localDataSafetySettings.autoBackupStatus, mode],
+  );
 
   const sections = [
     {
-      id: 'overview',
-      label: t('settings.sections.overview'),
+      id: 'data-backup',
+      label: t('settings.sections.dataBackup'),
       content: (
-        <SettingsOverview
-          archiveFeedback={localArchiveSettings.archiveFeedback}
-          archiveImportPreview={localArchiveSettings.archiveImportPreview}
-          isExportingArchive={localArchiveSettings.isExportingArchive}
-          mode={mode}
-          onExportJson={localArchiveSettings.exportJson}
-          stats={overviewStats}
-          user={user}
-        />
+        <Stack gap="md">
+          {!sitesGuestPoc && (
+            <DataSafetySummarySection viewModel={dataSafetyViewModel} />
+          )}
+          <DataBackupSettingsSection
+            archiveFeedback={localArchiveSettings.archiveFeedback}
+            archiveImportPreview={localArchiveSettings.archiveImportPreview}
+            isExportingArchive={localArchiveSettings.isExportingArchive}
+            isImportingArchive={localArchiveSettings.isImportingArchive}
+            onCancelImport={localArchiveSettings.cancelImport}
+            onConfirmImport={localArchiveSettings.confirmImport}
+            onExportCsv={localArchiveSettings.exportCsv}
+            onExportFullJson={localArchiveSettings.exportFullJson}
+            onExportJson={localArchiveSettings.exportJson}
+            onImportFileSelect={localArchiveSettings.previewImportFile}
+          />
+          <details className={settingsStyles.advancedDataSafety}>
+            <summary>
+              {t(
+                sitesGuestPoc
+                  ? 'settings.layout.dataSafetyAdvancedTitleSitesPoc'
+                  : 'settings.layout.dataSafetyAdvancedTitle',
+              )}
+            </summary>
+            <Stack gap="md" mt="md">
+              <LocalDataSafetySettingsSection
+                autoBackupStatus={localDataSafetySettings.autoBackupStatus}
+                feedback={localDataSafetySettings.feedback}
+                isChoosingBackupFolder={
+                  localDataSafetySettings.isChoosingBackupFolder
+                }
+                isLoading={localDataSafetySettings.isLoading}
+                isRequestingStorage={
+                  localDataSafetySettings.isRequestingStorage
+                }
+                isRunningBackup={localDataSafetySettings.isRunningBackup}
+                onChooseBackupFolder={
+                  localDataSafetySettings.chooseBackupFolder
+                }
+                onDisableBackup={localDataSafetySettings.disableBackup}
+                onRequestStorageProtection={
+                  localDataSafetySettings.requestStorageProtection
+                }
+                onRunBackupNow={localDataSafetySettings.runBackupNow}
+                storageState={localDataSafetySettings.storageState}
+              />
+              {!sitesGuestPoc && (
+                <AccountBackupStatusSettingsSection
+                  conflictItems={syncDashboard.conflictItems}
+                  failedItems={syncDashboard.failedItems}
+                  lastSuccessfulPullAt={syncDashboard.lastSuccessfulPullAt}
+                  mode={mode}
+                  pendingItems={syncDashboard.pendingItems}
+                  staleStatusAt={syncDashboard.staleStatusAt}
+                />
+              )}
+            </Stack>
+          </details>
+        </Stack>
       ),
     },
     {
@@ -149,46 +246,16 @@ export function SettingsPage() {
       ),
     },
     {
-      id: 'data-backup',
-      label: t('settings.sections.dataBackup'),
-      content: (
-        <Stack gap="md">
-          <LocalDataSafetySettingsSection
-            autoBackupStatus={localDataSafetySettings.autoBackupStatus}
-            feedback={localDataSafetySettings.feedback}
-            isChoosingBackupFolder={
-              localDataSafetySettings.isChoosingBackupFolder
-            }
-            isLoading={localDataSafetySettings.isLoading}
-            isRequestingStorage={localDataSafetySettings.isRequestingStorage}
-            isRunningBackup={localDataSafetySettings.isRunningBackup}
-            onChooseBackupFolder={localDataSafetySettings.chooseBackupFolder}
-            onDisableBackup={localDataSafetySettings.disableBackup}
-            onRequestStorageProtection={
-              localDataSafetySettings.requestStorageProtection
-            }
-            onRunBackupNow={localDataSafetySettings.runBackupNow}
-            storageState={localDataSafetySettings.storageState}
-          />
-          <DataBackupSettingsSection
-            archiveFeedback={localArchiveSettings.archiveFeedback}
-            archiveImportPreview={localArchiveSettings.archiveImportPreview}
-            isExportingArchive={localArchiveSettings.isExportingArchive}
-            isImportingArchive={localArchiveSettings.isImportingArchive}
-            onCancelImport={localArchiveSettings.cancelImport}
-            onConfirmImport={localArchiveSettings.confirmImport}
-            onExportCsv={localArchiveSettings.exportCsv}
-            onExportFullJson={localArchiveSettings.exportFullJson}
-            onExportJson={localArchiveSettings.exportJson}
-            onImportFileSelect={localArchiveSettings.previewImportFile}
-          />
-        </Stack>
-      ),
-    },
-    {
       id: 'external-import',
       label: t('settings.sections.externalImport'),
       content: <ExternalImportSettingsSection />,
+    },
+    {
+      id: 'archive-health',
+      label: t('settings.sections.archiveHealth'),
+      content: (
+        <ArchiveHealthSettingsSection archiveScopeKey={archiveScopeKey} />
+      ),
     },
     {
       id: 'duplicate-cleanup',
@@ -290,23 +357,53 @@ export function SettingsPage() {
         />
       ),
     },
+    {
+      id: 'overview',
+      label: t('settings.sections.overview'),
+      content: (
+        <SettingsOverview
+          archiveFeedback={localArchiveSettings.archiveFeedback}
+          archiveImportPreview={localArchiveSettings.archiveImportPreview}
+          isExportingArchive={localArchiveSettings.isExportingArchive}
+          mode={mode}
+          onExportJson={localArchiveSettings.exportJson}
+          stats={overviewStats}
+          user={user}
+        />
+      ),
+    },
   ];
 
-  const groupedSections = sections
-    .map((section) => ({ ...section, group: sectionGroupById[section.id] }))
-    .sort(
-      (first, second) =>
-        groupOrder.indexOf(first.group) - groupOrder.indexOf(second.group),
-    );
+  const sitesPocSectionIds = new Set([
+    'data-backup',
+    'external-import',
+    'display',
+  ]);
+  const visibleSections = sitesGuestPoc
+    ? sections.filter((section) => sitesPocSectionIds.has(section.id))
+    : sections;
+  const groupedSections = visibleSections.map((section) => ({
+    ...section,
+    group: sectionGroupById[section.id],
+  }));
 
   return (
     <AccountPageTemplate
       actions={
-        <AppLinkButton to="/account">
-          {t('settings.backToAccountOverview')}
-        </AppLinkButton>
+        sitesGuestPoc ? undefined : (
+          <AppLinkButton
+            className={settingsStyles.pageBackAction ?? ''}
+            to="/account"
+          >
+            {t('settings.backToAccountOverview')}
+          </AppLinkButton>
+        )
       }
-      description={t('settings.pageDescription')}
+      description={t(
+        sitesGuestPoc
+          ? 'settings.pageDescriptionSitesPoc'
+          : 'settings.pageDescription',
+      )}
       eyebrow={t('settings.pageEyebrow')}
       title={t('settings.pageTitle')}
     >

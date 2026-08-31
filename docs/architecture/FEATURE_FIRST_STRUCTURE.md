@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                  |
 | Role                  | `architecture boundary guide`                                                |
 | Source of truth       | Current `apps/web`, `apps/api`, and `packages/*` layout                      |
-| Last verified against | `2026-06-18` catalog work source boundary and compatibility mutation policy   |
+| Last verified against | `2026-08-25` Community alpha domain and local snapshot boundary               |
 | When to update        | Feature folders, module boundaries, or cross-feature dependency rules change |
 
 Work Archive uses a feature-first monorepo layout. The root keeps operational
@@ -55,6 +55,10 @@ Current dependency direction:
   is the local-first source of truth.
 - `works` may depend on `auth`, `imports`, and `sync` for authenticated actions,
   quick-add search, and sync queueing.
+- `community` may read active local works only through the `works` public
+  entrypoint to build an explicit title/type/thumbnail publication snapshot. It
+  must not import the works database directly or send personal record IDs or
+  fields to the Community API.
 - Shared UI/runtime utilities live under `apps/web/src/shared` and must not
   depend on feature implementation details unless the dependency is an explicit
   adapter boundary.
@@ -100,6 +104,10 @@ Large modules are split by responsibility:
   into entity handlers, link handlers, validation helpers, result builders, and
   Prisma data builders so relationship ownership and parent validation stay
   isolated.
+- `community`: public post reads plus authenticated publication, reaction,
+  report, and moderation behavior. It owns only explicit community rows and
+  public work snapshots. It must not import `UserRecordsService`, `SyncService`,
+  provider credential services, or private archive models.
 - `common`, `config`, `prisma`, and `security` are platform layers and may be
   used by feature modules.
 

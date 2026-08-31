@@ -125,109 +125,114 @@ export function WorksToolbarControls({
         value={query.sortBy}
       />
 
-      {collectionScope === 'active' && (
-        <Box className={cn(css.viewToggle)}>
-          {(['grid', 'list'] as const).map((mode) => (
-            <Tooltip
-              key={mode}
-              label={
-                mode === 'grid'
-                  ? t('works.list.gridViewShortcut')
-                  : t('works.list.listViewShortcut')
+      <details className={cn(css.toolbarOptions)}>
+        <summary>{t('works.list.viewOptions')}</summary>
+        <Box className={cn(css.toolbarOptionsPanel)}>
+          {collectionScope === 'active' && (
+            <Box className={cn(css.viewToggle)}>
+              {(['grid', 'list'] as const).map((mode) => (
+                <Tooltip
+                  key={mode}
+                  label={
+                    mode === 'grid'
+                      ? t('works.list.gridViewShortcut')
+                      : t('works.list.listViewShortcut')
+                  }
+                  position="bottom"
+                  withArrow
+                >
+                  <Box
+                    aria-label={
+                      mode === 'grid'
+                        ? t('works.list.gridView')
+                        : t('works.list.listView')
+                    }
+                    aria-pressed={viewMode === mode}
+                    className={cn(css.viewToggleButton)}
+                    component="button"
+                    data-active={viewMode === mode ? 'true' : 'false'}
+                    onClick={() => onViewModeChange(mode)}
+                    type="button"
+                  >
+                    {mode === 'grid' ? <IconGrid /> : <IconList />}
+                  </Box>
+                </Tooltip>
+              ))}
+            </Box>
+          )}
+
+          {collectionScope === 'active' && viewMode === 'grid' && (
+            <Box className={cx(cn(css.viewToggle), cn(css.densityToggle))}>
+              {(
+                [
+                  {
+                    density: 'comfortable',
+                    icon: <IconGridComfortable />,
+                    label: t('works.list.comfortableView'),
+                  },
+                  {
+                    density: 'compact',
+                    icon: <IconGridCompact />,
+                    label: t('works.list.compactView'),
+                  },
+                ] as const
+              ).map((option) => (
+                <Tooltip
+                  key={option.density}
+                  label={option.label}
+                  position="bottom"
+                  withArrow
+                >
+                  <Box
+                    aria-label={option.label}
+                    aria-pressed={density === option.density}
+                    className={cn(css.viewToggleButton)}
+                    component="button"
+                    data-active={density === option.density ? 'true' : 'false'}
+                    onClick={() => onDensityChange(option.density)}
+                    type="button"
+                  >
+                    {option.icon}
+                  </Box>
+                </Tooltip>
+              ))}
+            </Box>
+          )}
+
+          <Tooltip
+            label={
+              sortDirection === 'asc'
+                ? t('works.list.sortAscToggle')
+                : t('works.list.sortDescToggle')
+            }
+            position="bottom"
+            withArrow
+          >
+            <Box
+              aria-label={
+                sortDirection === 'asc'
+                  ? t('works.list.sortAsc')
+                  : t('works.list.sortDesc')
               }
-              position="bottom"
-              withArrow
+              aria-pressed={sortDirection === 'asc'}
+              className={cn(css.sortDirectionButton)}
+              component="button"
+              onClick={() =>
+                onQueryChange({
+                  ...query,
+                  sortDirection: sortDirection === 'asc' ? 'desc' : 'asc',
+                })
+              }
+              type="button"
             >
-              <Box
-                aria-label={
-                  mode === 'grid'
-                    ? t('works.list.gridView')
-                    : t('works.list.listView')
-                }
-                aria-pressed={viewMode === mode}
-                className={cn(css.viewToggleButton)}
-                component="button"
-                data-active={viewMode === mode ? 'true' : 'false'}
-                onClick={() => onViewModeChange(mode)}
-                type="button"
-              >
-                {mode === 'grid' ? <IconGrid /> : <IconList />}
-              </Box>
-            </Tooltip>
-          ))}
+              {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
+              {sortDirection === 'asc'
+                ? t('works.list.sortAsc')
+                : t('works.list.sortDesc')}
+            </Box>
+          </Tooltip>
         </Box>
-      )}
-
-      {collectionScope === 'active' && viewMode === 'grid' && (
-        <Box className={cx(cn(css.viewToggle), cn(css.densityToggle))}>
-          {(
-            [
-              {
-                density: 'comfortable',
-                icon: <IconGridComfortable />,
-                label: t('works.list.comfortableView'),
-              },
-              {
-                density: 'compact',
-                icon: <IconGridCompact />,
-                label: t('works.list.compactView'),
-              },
-            ] as const
-          ).map((option) => (
-            <Tooltip
-              key={option.density}
-              label={option.label}
-              position="bottom"
-              withArrow
-            >
-              <Box
-                aria-label={option.label}
-                aria-pressed={density === option.density}
-                className={cn(css.viewToggleButton)}
-                component="button"
-                data-active={density === option.density ? 'true' : 'false'}
-                onClick={() => onDensityChange(option.density)}
-                type="button"
-              >
-                {option.icon}
-              </Box>
-            </Tooltip>
-          ))}
-        </Box>
-      )}
-
-      <Tooltip
-        label={
-          sortDirection === 'asc'
-            ? t('works.list.sortAscToggle')
-            : t('works.list.sortDescToggle')
-        }
-        position="bottom"
-        withArrow
-      >
-        <Box
-          aria-label={
-            sortDirection === 'asc'
-              ? t('works.list.sortAsc')
-              : t('works.list.sortDesc')
-          }
-          aria-pressed={sortDirection === 'asc'}
-          className={cn(css.sortDirectionButton)}
-          component="button"
-          onClick={() =>
-            onQueryChange({
-              ...query,
-              sortDirection: sortDirection === 'asc' ? 'desc' : 'asc',
-            })
-          }
-          type="button"
-        >
-          {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
-          {sortDirection === 'asc'
-            ? t('works.list.sortAsc')
-            : t('works.list.sortDesc')}
-        </Box>
-      </Tooltip>
+      </details>
 
       <Tooltip
         label={t('works.list.advancedFilterShortcut')}

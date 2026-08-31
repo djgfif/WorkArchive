@@ -2,8 +2,9 @@
 import { runGate1EvidenceValidation } from './validate-gate1-evidence.mjs';
 
 const evidencePath =
-  process.argv.find((argument) => !argument.startsWith('--') && argument.endsWith('.md')) ??
-  'docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md';
+  process.argv.find(
+    (argument) => !argument.startsWith('--') && argument.endsWith('.md'),
+  ) ?? 'docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md';
 
 const result = runGate1EvidenceValidation({
   evidencePath,
@@ -14,6 +15,7 @@ const categories = [
   {
     key: 'release',
     title: 'Release Metadata And Approval',
+    classification: 'C',
     nextAction:
       'Assign the beta URL, release notes/ticket, approval decision, approver, and blocker disposition in the evidence ledger.',
     patterns: [
@@ -28,6 +30,7 @@ const categories = [
   {
     key: 'github',
     title: 'GitHub Controls',
+    classification: 'C',
     nextAction:
       'Verify branch protection, required checks, CodeQL, Dependabot, secret scanning, and push protection in GitHub Settings for the release commit.',
     patterns: [
@@ -43,6 +46,7 @@ const categories = [
   {
     key: 'monitoring',
     title: 'Monitoring, Alerts, And SLO Evidence',
+    classification: 'C',
     nextAction:
       'Deploy alert/SLO/dashboard artifacts, confirm /metrics exposure boundaries, and run live monitoring evidence collection.',
     patterns: [
@@ -61,6 +65,7 @@ const categories = [
   {
     key: 'backup',
     title: 'Backup And Restore Drill',
+    classification: 'C',
     nextAction:
       'Create, verify, copy off-host, and restore a production-sized backup into a disposable non-production target.',
     patterns: [
@@ -81,6 +86,7 @@ const categories = [
   {
     key: 'host',
     title: 'Beta Host Preflight And Smoke',
+    classification: 'C',
     nextAction:
       'Run commercial beta rehearsal or beta preflight plus beta smoke against the beta host with real .env.prod values.',
     patterns: [
@@ -92,7 +98,10 @@ const categories = [
       /\/health/i,
       /\/livez/i,
       /\/readyz/i,
+      /Auth refresh/i,
       /Google OAuth/i,
+      /No-store/i,
+      /Provider readiness/i,
       /Guest JSON/i,
       /Guest-to-account/i,
       /Authenticated sync/i,
@@ -105,6 +114,7 @@ const categories = [
   {
     key: 'docker-runtime',
     title: 'Docker Runtime Release-Runner Evidence',
+    classification: 'C',
     nextAction:
       'Run npm run qa:docker-runtime:self-test, then DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime on a Docker-enabled release runner with .env.prod and copy the redacted PASS report summary.',
     patterns: [
@@ -117,6 +127,7 @@ const categories = [
   {
     key: 'live-import-search',
     title: 'Live Import/Search QA',
+    classification: 'C',
     nextAction:
       'Run IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search against the beta host with disposable authenticated credentials and copy the redacted live PASS report summary.',
     patterns: [
@@ -129,6 +140,7 @@ const categories = [
   {
     key: 'live-sync-load',
     title: 'Live Sync Load QA',
+    classification: 'C',
     nextAction:
       'Run SYNC_LOAD_DRY_RUN=false npm run qa:sync-load against the beta host with a disposable authenticated account and copy the redacted live PASS report summary.',
     patterns: [
@@ -142,6 +154,7 @@ const categories = [
   {
     key: 'performance',
     title: 'Smoke Performance Baseline',
+    classification: 'C',
     nextAction:
       'Run live performance smoke against the beta host and copy p50/p95, status, and rate-limit header summaries.',
     patterns: [
@@ -154,9 +167,15 @@ const categories = [
   {
     key: 'repository',
     title: 'Repository Or Release-Runner Gates',
+    classification: 'A/C',
     nextAction:
       'Run the listed repository or release-runner command and copy only the redacted summary result.',
-    patterns: [/repository gate/i, /security:audit/i, /test:e2e/i, /npm run build/i],
+    patterns: [
+      /repository gate/i,
+      /security:audit/i,
+      /test:e2e/i,
+      /npm run build/i,
+    ],
   },
 ];
 
@@ -182,7 +201,12 @@ console.log();
 console.log(`- Evidence ledger: ${evidencePath}`);
 console.log(`- Missing or incomplete items: ${result.findings.length}`);
 console.log(`- Warning items: ${result.warnings.length}`);
-console.log('- Approval note: this report does not approve a release candidate.');
+console.log(
+  '- Classification key: A = code/script can resolve locally; B = runbook/evidence template needs documentation; C = external beta host, GitHub Settings, release runner, restore target, or disposable account required.',
+);
+console.log(
+  '- Approval note: this report does not approve a release candidate.',
+);
 console.log();
 
 for (const category of categories) {
@@ -194,6 +218,7 @@ for (const category of categories) {
   console.log(`## ${category.title}`);
   console.log();
   console.log(`- Count: ${findings.length}`);
+  console.log(`- Classification: ${category.classification}`);
   console.log(`- Next action: ${category.nextAction}`);
   console.log('- Ledger checks:');
   for (const finding of findings) {

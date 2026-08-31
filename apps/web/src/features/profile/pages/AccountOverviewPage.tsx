@@ -11,7 +11,7 @@ import { AccountPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAppTranslation } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
-import { useSyncDashboard } from '@features/sync';
+import { useArchiveSafetyState } from '@features/sync';
 import { useWorksOverview } from '@features/works';
 import styles from './AccountOverviewPage.module.css';
 import { cn, cx } from '@shared/utils/class-names';
@@ -20,47 +20,6 @@ const css = styles;
 
 function formatAverageRating(value: number | null, fallback: string) {
   return value === null ? fallback : `★ ${value.toFixed(1)}`;
-}
-
-function formatRelativeBackupTime(
-  value: string | null,
-  t: ReturnType<typeof useAppTranslation>['t'],
-) {
-  if (!value) {
-    return t('accountOverview.emptyBackupTime');
-  }
-
-  const backupTime = new Date(value).getTime();
-  if (Number.isNaN(backupTime)) {
-    return t('accountOverview.invalidBackupTime');
-  }
-
-  const diffMs = Date.now() - backupTime;
-  const diffMinutes = Math.max(0, Math.floor(diffMs / 60_000));
-
-  if (diffMinutes < 1) return t('accountOverview.recentJustNow');
-  if (diffMinutes < 60) {
-    return t('accountOverview.recentMinutes', { count: diffMinutes });
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return t('accountOverview.recentHours', { count: diffHours });
-  }
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) {
-    return t('accountOverview.recentDays', { count: diffDays });
-  }
-
-  const diffMonths = Math.floor(diffDays / 30);
-  if (diffMonths < 12) {
-    return t('accountOverview.recentMonths', { count: diffMonths });
-  }
-
-  return t('accountOverview.recentYears', {
-    count: Math.floor(diffMonths / 12),
-  });
 }
 
 interface OverviewMetricProps {
@@ -136,60 +95,20 @@ export function AccountOverviewPage() {
   const location = useLocation();
   const { mode, user } = useAuthSession();
   const { averageRating, completedCount, totalCount } = useWorksOverview();
-  const {
-    conflictItems,
-    failedItems,
-    lastSuccessfulPullAt,
-    pendingItems,
-    staleStatusAt,
-  } = useSyncDashboard();
+  const archiveSafety = useArchiveSafetyState();
+  const safetyState = archiveSafety.state;
+  const safetyPresentation = archiveSafety.presentation;
   const isAuthenticated = mode === 'authenticated';
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
-  const backupAttentionCount = conflictItems.length + failedItems.length;
-  const backupRequeuedCount = pendingItems.filter(
-    (item) => item.state === 'requeued',
-  ).length;
-  const backupPendingCount = pendingItems.length;
   const accountLabel = isAuthenticated
     ? (user?.email ?? t('accountOverview.connectedAccount'))
     : t('accountOverview.guestMode');
-  const backupStatus =
-    backupAttentionCount > 0
-      ? {
-          badge: t('accountOverview.backupNeedsManualCheck'),
-          description: t('accountOverview.backupAttentionDescription'),
-          tone: 'warning' as const,
-          value: t('accountOverview.backupManualCheck'),
-        }
-      : backupRequeuedCount > 0
-        ? {
-            badge: t('accountOverview.backupAutoMerged'),
-            description: t('accountOverview.backupRequeuedDescription'),
-            tone: 'info' as const,
-            value: t('accountOverview.backupRetryWaiting'),
-          }
-        : staleStatusAt
-          ? {
-              badge: t('accountOverview.statusRemoteCheckNeeded'),
-              description: t('accountOverview.backupStaleDescription'),
-              tone: 'warning' as const,
-              value: t('accountOverview.backupCheckWaiting'),
-            }
-          : backupPendingCount > 0
-            ? {
-                badge: t('accountOverview.backupPendingBadge'),
-                description: t('accountOverview.backupPendingDescription'),
-                tone: 'info' as const,
-                value: t('accountOverview.backupPending'),
-              }
-            : {
-                badge: t('accountOverview.statusNormal'),
-                description: t('accountOverview.backupDescription'),
-                tone: 'success' as const,
-                value: isAuthenticated
-                  ? t('accountOverview.backupProtected')
-                  : t('accountOverview.localSaved'),
-              };
+  const backupStatus = {
+    badge: safetyPresentation.title,
+    description: safetyPresentation.description,
+    tone: safetyPresentation.tone,
+    value: safetyPresentation.syncLabel,
+  };
 
   return (
     <AccountPageTemplate
@@ -240,7 +159,7 @@ export function AccountOverviewPage() {
                   : t('accountOverview.workBackupDescriptionGuest')}
               </Text>
               <Group gap="xs" wrap="wrap">
-                <AppBadge tone={isAuthenticated ? 'success' : 'muted'}>
+                <AppBadge tone="muted">
                   {isAuthenticated
                     ? t('navigation.signedIn')
                     : t('accountOverview.guest')}
@@ -289,7 +208,7 @@ export function AccountOverviewPage() {
                   <Text className={cn(css.statusGroupTitle)}>
                     {t('accountOverview.statusAccount')}
                   </Text>
-                  <AppBadge tone={isAuthenticated ? 'success' : 'muted'}>
+                  <AppBadge tone="muted">
                     {isAuthenticated
                       ? t('accountOverview.statusActive')
                       : t('accountOverview.guest')}
@@ -297,7 +216,7 @@ export function AccountOverviewPage() {
                 </Group>
                 <StatusLine
                   label={t('accountOverview.statusConnection')}
-                  tone={isAuthenticated ? 'success' : 'default'}
+                  tone="default"
                   value={
                     isAuthenticated
                       ? t('navigation.signedIn')
@@ -306,7 +225,7 @@ export function AccountOverviewPage() {
                 />
                 <StatusLine
                   label={t('accountOverview.statusStorageLocation')}
-                  tone="success"
+                  tone="default"
                   value={
                     isAuthenticated
                       ? t('accountOverview.localPlusAccount')
@@ -329,17 +248,32 @@ export function AccountOverviewPage() {
                 </Text>
                 <StatusLine
                   label={t('accountOverview.backupStatus')}
-                  tone={backupStatus.tone === 'warning' ? 'warning' : 'success'}
+                  tone={backupStatus.tone === 'warning' ? 'warning' : 'default'}
                   value={backupStatus.value}
                 />
                 <StatusLine
-                  label={t('accountOverview.lastBackup')}
+                  label={t('settings.dataSafety.lastJsonBackupLabel')}
+                  tone={
+                    safetyState.jsonBackup.status === 'missing' ||
+                    safetyState.jsonBackup.status === 'stale'
+                      ? 'warning'
+                      : 'default'
+                  }
+                  value={safetyPresentation.jsonBackupLabel}
+                />
+                <StatusLine
+                  label={t('settings.dataSafety.lastSuccessfulPushLabel')}
                   tone="default"
-                  value={formatRelativeBackupTime(lastSuccessfulPullAt, t)}
+                  value={safetyPresentation.lastPushLabel}
+                />
+                <StatusLine
+                  label={t('settings.dataSafety.lastSuccessfulPullLabel')}
+                  tone="default"
+                  value={safetyPresentation.lastPullLabel}
                 />
                 <StatusLine
                   label={t('accountOverview.offlineRecording')}
-                  tone="success"
+                  tone="default"
                   value={t('accountOverview.offlineRecordingAvailable')}
                 />
               </Box>

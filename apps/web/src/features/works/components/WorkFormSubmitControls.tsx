@@ -29,26 +29,23 @@ export function WorkFormDraftNotice({
 
   return (
     <FeedbackMessage title={t('works.form.draftNoticeTitle')} tone="info">
-      <ActionRow justify="space-between">
-        <Text c="inherit">{t('works.form.draftNoticeDescription')}</Text>
-        <ActionRow justify="flex-end">
-          <AppButton
-            onClick={onApplyDraft}
-            size="compact-sm"
-            tone="secondary"
-            type="button"
-          >
-            {t('works.form.draftApply')}
-          </AppButton>
-          <AppButton
-            onClick={onClearDraft}
-            size="compact-sm"
-            tone="ghost"
-            type="button"
-          >
-            {t('works.form.draftClear')}
-          </AppButton>
-        </ActionRow>
+      <ActionRow justify="flex-end">
+        <AppButton
+          onClick={onApplyDraft}
+          size="compact-sm"
+          tone="secondary"
+          type="button"
+        >
+          {t('works.form.draftApply')}
+        </AppButton>
+        <AppButton
+          onClick={onClearDraft}
+          size="compact-sm"
+          tone="ghost"
+          type="button"
+        >
+          {t('works.form.draftClear')}
+        </AppButton>
       </ActionRow>
     </FeedbackMessage>
   );

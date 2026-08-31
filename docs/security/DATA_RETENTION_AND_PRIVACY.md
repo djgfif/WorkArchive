@@ -91,8 +91,9 @@ PostgreSQL backups are sensitive infrastructure artifacts:
   before irreversible deletion.
 - `DELETE /api/auth/account` removes the authenticated server-side account after
   explicit email confirmation and irreversible acknowledgement. Account-owned
-  rows are deleted by Prisma cascade; retained operational records detach
-  `userId`, `sessionId`, reviewer, or actor references as documented in
+  rows, including authored community posts, reactions, and submitted reports,
+  are deleted by Prisma cascade; retained operational records detach `userId`,
+  `sessionId`, reviewer, moderator, or actor references as documented in
   [`USER_DATA_RIGHTS_POLICY.md`](./USER_DATA_RIGHTS_POLICY.md). Successful
   deletion attempts record `auth.account.delete` before the retained security
   event reference is anonymized; rejected confirmations record

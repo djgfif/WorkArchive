@@ -5,6 +5,8 @@ const JONGSEONG_RIEUL = 8;
 
 type ParticlePair = '을/를' | '이/가' | '은/는' | '과/와' | '으로/로';
 
+export const KOREAN_PARTICLE_DIRECTION: ParticlePair = '으로/로';
+
 const PARTICLES: Record<
   ParticlePair,
   { withBatchim: string; withoutBatchim: string; fallback: string }

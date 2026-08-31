@@ -39,7 +39,7 @@ import { CatalogSubmissionsQueryDto } from './dto/catalog-submissions-query.dto'
 @ApiTags('catalog')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('catalog')
+@Controller(['catalog', 'v2/catalog'])
 export class CatalogController {
   constructor(@Inject(CatalogService) private readonly catalogService: CatalogService) {}
 

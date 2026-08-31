@@ -1,22 +1,24 @@
 # WorkArchive Current Execution Plan
 
-| Field                 | Value                                                                                                                                          |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `active`                                                                                                                                       |
-| Role                  | `developer execution entrypoint`                                                                                                               |
-| Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, `docs/project/ROADMAP_FEEDBACK_2026-06.md`, current local `master` working tree |
-| Last verified against | `2026-07-01` root `security:public`, `check:docs-links`, `lint`, `typecheck`, `test`, `build`, web feature boundary check, web import cycle check, web Playwright E2E after mobile Add Work footer overlap fix and mobile drawer navigation regression, Settings provider readiness polish, Quick Add source coverage/fallback regressions, auto-sync conflict queue safety regression, guest auto-sync boundary regression, offline import-search QA with live-smoke matrix contract/manifest, sync-load dry-run, Docker runtime preflight self-test, and Docker runtime preflight BLOCKED report. |
-| When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                    |
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Role                  | `developer execution entrypoint`                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Source of truth       | `docs/product/PRODUCT_CONSTITUTION.md`, `README.md`, current-status report, execution roadmap, current working tree                                                                                                                                                                                                                                                                                                                              |
+| Last verified against | `2026-08-04` full local code-completion gates (`lint`, `typecheck`, 1,265 tests, production build, desktop/mobile Playwright, Docker web image build), conflict impact preview, Studio UI polish, local credential-free Chrome search QA, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, production release runner, monitoring, restore target, and disposable-account evidence remain pending. |
+| When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                      |
 
 이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`../archive/project/PLAN.md`](../archive/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
 
 ## Read First
 
-1. [`README.md`](../../README.md): 실행 명령, 환경 변수, 검증 상태
-2. [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md): 현재 코드 현실
-3. [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md): 통합 실행 순서
-4. [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md): 구조적 부채 상환과 확장 대비 보조 로드맵
-5. 작업 영역별 문서:
+1. [`PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md): 제품 목적, 데이터 경계, 승인 규칙
+2. [`README.md`](../../README.md): 실행 명령, 환경 변수, 검증 상태
+3. [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md): 현재 코드 현실
+4. [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md): 통합 실행 순서
+5. [`COMMUNITY_ALPHA_PLAN.md`](./COMMUNITY_ALPHA_PLAN.md): 승인된 공개 감상 알파 계약
+6. [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md): 구조적 부채 상환 보조 로드맵
+7. 작업 영역별 문서:
    - Frontend archive: [`docs/archive/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../archive/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
    - Backend archive: [`docs/archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
 
@@ -38,7 +40,10 @@ npm run dev
 - API health: http://localhost:18731/health
 - Swagger: http://localhost:18731/docs
 
-Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에서 실제 실행 검증하지 않았다. 실행하지 않은 Compose 검증은 통과로 기록하지 않는다.
+로컬 개발 Docker Compose는 2026-08-04에 web/API/PostgreSQL healthy 상태와
+`/readyz` 200 응답까지 확인했다. 이는 로컬 코드 완성 증적이며, 실제
+`.env.prod`를 사용하는 production compose와 Docker-enabled release runner
+검증을 대신하지 않는다.
 
 ## Current Architecture Facts
 
@@ -53,17 +58,34 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - `importDraft.catalogTitle`은 optional legacy-compatible field이며, 없으면 `payload.title`로 fallback한다.
 - Settings provider readiness는 ready / user key required / server setup
   required / paused 상태를 계정 설정에서 분리 표시하고 테스트로 고정했다.
-- SyncPage는 pending / failed / conflict queue item 상태, 원인, 기록 보기, 재시도 CTA와 conflict 기본 해결 UX를 제공한다.
+- Settings 데이터 백업 화면은 IndexedDB 로컬 원본, 자동 폴더 백업, 선택형 계정 백업/sync, 서버 데이터 권리 작업을 구분해서 보여준다.
+- Settings의 계정 백업 섹션은 pending / failed / conflict queue item 상태, 원인별 복구 그룹, 기록 보기, 재시도 CTA와 conflict 기본 해결 UX를 제공한다.
 - Sync conflict 해결은 로컬 유지, 원격 적용, 필드별 병합을 지원한다. 좁은 safe auto-merge는 동일 entity/parent, delete-update 충돌 없음, scalar field 동일 조건에서 taxonomy/alias 또는 server metadata만 병합하고 재시도 queue로 되돌린다.
 - overlapping scalar edit, delete/update collision, parent/ownership mismatch, unsupported payload는 자동 병합하지 않고 수동 검토 대상으로 남긴다.
 - auto sync push는 conflict queue item을 자동 전송하지 않고 수동 검토 대상으로 남긴다.
+- 수동 conflict 해결 화면은 실행 전에 로컬 유지/원격 덮어쓰기 범위와 선택한
+  필드 그룹을 요약하고, 삭제 상태가 포함된 항목은 별도 주의 문구를 표시한다.
+  원격 snapshot 부재, overlapping scalar edit, delete/update collision은 계속
+  자동 해결하지 않는다.
+- account archive activation pull은 같은 탭의 기존 queue push보다 먼저 완료된다.
+- push 실행 중 발생한 추가 queue 요청은 drain loop가 합쳐서 후속 push로
+  처리한다.
+- 숨김/offline 중 보류된 push는 focus/online/visible 전환 때 다시 시작한다.
+- 다른 탭이 sync lease를 보유하면 pull/push는 재시도 지연을 반환하고 자동
+  sync는 queue 변경이나 사용자 입력 없이 다시 예약한다.
 - guest mode local-first writes는 자동 pull/push를 시작하지 않고 로그인 archive와 분리된다.
 - Works 목록 조회는 Dexie v7 scope index로 active/trash를 먼저 좁힌다. status/type/updatedAt 기본 경로는 IndexedDB query를 먼저 사용하고, 검색어/태그 조합은 scope 축소 후 인메모리 필터링한다.
-- manual timeline entries는 Dexie v9 sync-ready 모델과 backend `UserTimelineEntry` private storage를 통해 optional account sync 대상에 포함된다.
+- manual timeline entries와 상태·진행도 자동 이벤트는 Dexie v9 sync-ready 모델과
+  backend `UserTimelineEntry` private storage를 통해 optional account sync 대상에
+  포함된다. 자동 이벤트는 source를 보존하고 실제 값 변경에만 생성되며 사용자가
+  삭제할 수 있다.
 - JSON export는 schemaVersion, source, backupExclusions metadata와 timeline entries를 포함한다. import preview는 dry-run 결과로 add/update/duplicate/skip/conflict 예상치를 표시한다.
 - Quick Add 검색 ranking은 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match를 반영한다.
 - 낮은 신뢰도 검색 후보는 직접 추가 fallback을 방해하지 않도록 후보 UI에서 검토 안내를 표시한다.
 - access token은 브라우저 storage에 저장하지 않고 메모리에만 둔다. 앱 부팅은 `HttpOnly` refresh cookie로 세션을 복구하며, 실패하면 guest archive로 돌아간다.
+- auth/profile/insights 라우트는 feature barrel 전체가 아니라 각 페이지를 직접
+  동적 import한다. web build는 JavaScript 청크가 650,000바이트를 넘으면
+  실패하며, 검증기 자체의 경계 조건은 root test에서 self-test한다.
 - GitHub Actions `validate` workflow는 이미 존재한다. 이 문서 기준 required checks는 repository setting에서 별도 관리한다.
 - Provider cache/circuit state는 `REDIS_URL`이 구성되면 Redis를 사용한다. Redis가 없는 비프로덕션 환경에서는 process-local memory fallback을 사용한다.
 - API sync orchestration은 push/pull service에서 page loading, payload mapping, change building, entity handler, validation/result helper로 분해되어 있다. 외부 sync API 계약은 그대로 유지한다.
@@ -93,11 +115,15 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 
 ## Current Follow-Up Work
 
-- provider별 live 검색어 QA와 ranking weight 튜닝
+- credentialed provider와 beta/staging 환경에서 live 검색어 QA 및 재현되는
+  ranking 회귀가 있을 때의 최소 weight/정규화 튜닝
 - Sync conflict safe auto-merge 정책 확장 여부 검토
-- 로그인 직후 pull 자동화 검토
+- 실제 계정/브라우저에서 account activation pull 직렬화, 다중 탭 lease,
+  대용량 queue 재시도 증적 확보
 - `Works` compatibility layer 축소와 `Catalog` / `Imports` / `UserRecords` 경계 정리
-- 공개 레이어 권한 분리와 production cookie/origin/secret 운영 검증
+- 승인된 Community reflection alpha와 저장소의 social expansion 구현 차이 격리
+- boards, public profiles, comments, follows, taste/trending route와 API의 production 비노출 보장
+- production cookie/origin/secret 운영 검증
 - provider runtime Redis 경로의 beta/production 운영 증적 확보
 
 ## 2026-06-04 Expert Feedback Implementation
@@ -109,8 +135,10 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - 정정: 라이선스는 누락이 아니라 README 기준 all-rights-reserved 정책이다.
 - 정정: CI/E2E는 부재가 아니라 web Playwright E2E의 validate 포함 여부가
   아직 별도 안정화 과제다.
-- 제외: public/community/social/recommendation, mobile, Tauri, i18n은 현재
-  실행계획 범위 밖이다.
+- 조정: 승인된 Community reflection alpha는 별도 release profile로 관리한다.
+  boards, public profiles, comments, follows, taste/trending, recommendation은
+  제품 헌법 변경과 별도 decision record 전까지 production blocked다.
+- 제외: Tauri와 native mobile app은 현재 실행계획 범위 밖이다.
 
 구현 기준:
 
@@ -122,6 +150,12 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - API 개선은 flat `Works` 응답을 즉시 제거하지 않는다. 신규 기능은 가능한
   한 `Catalog`, `Imports`, `UserRecords`, `Sync` 경계에 두고, `Works`는
   compatibility façade로만 유지한다.
+- 홈 `이어볼 작품`의 다음 회차 빠른 기록은 지원 매체와 진행도 경계를 먼저
+  검증하고 최신 로컬 값을 다시 읽은 뒤, 자동 타임라인과 sync queue를 함께 쓰는
+  기존 진행도 변경 트랜잭션을 사용한다.
+- 개인 인사이트 기록 리듬은 최근 28일의 모든 활성 타임라인 유형을 로컬 달력으로
+  집계하고, 삭제·미래·잘못된 기록과 삭제 작품을 제외한다. 최근 범위와 최신 기록은
+  `occurredAt` 인덱스로 조회해 장기 아카이브의 전체 스캔을 피한다.
 - Gate 1은 로컬 저장소 파일만으로 증명 가능한 항목과 GitHub Settings,
   beta host, restore drill처럼 운영자가 직접 증적을 남겨야 하는 항목을
   분리한다.
@@ -132,15 +166,19 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 
 - provider readiness UI와 duplicate policy를 미완성 상태로 설명하지 않는다.
 - authenticated direct create path를 미구현 또는 정리 중인 기본 경로로 설명하지 않는다.
-- SyncPage conflict 상세 진입점을 전면 미구현 상태로 설명하지 않는다.
+- Settings 계정 백업 conflict 상세 진입점을 전면 미구현 상태로 설명하지 않는다.
 - Quick Add를 preview-only 흐름으로 설명하지 않는다.
 
 대신 아래 기준으로 쓴다.
 
-- provider readiness, duplicate detection, ranking/search quality의 기본 구현/테스트는 완료, 실제 검색어 QA와 ranking polish는 후속
+- provider readiness, duplicate detection, ranking/search quality의 기본
+  구현/테스트와 로컬 credential-free 실검색 QA는 완료, credentialed
+  beta/staging 검색과 재현 가능한 ranking polish는 후속
 - authenticated direct create path는 현재 제품 기준에서 의도적으로 채택하지 않는 경로
-- SyncPage queue item 단위 상태/원인/기록 보기/재시도 CTA와 기본 conflict 해결 UX는 구현
-- Docker Compose는 실제 실행하지 않았다면 미검증
+- Settings 계정 백업 섹션의 queue item 단위 상태/원인/기록 보기/재시도 CTA와 기본 conflict 해결 UX는 구현
+- 로컬 개발 Docker Compose 증적과 production compose, beta host, GitHub
+  Settings, release runner, restore target 증적을 구분하며, 실행하지 않은
+  운영 검증은 미검증으로 기록
 
 ## Validation Policy
 
@@ -149,3 +187,5 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - 코드, 타입, 설정, 테스트 파일이 의도치 않게 바뀌면 범위를 멈추고 분리한다.
 - 코드 변경이 포함된 작업은 최소 `npm run typecheck`와 관련 테스트를 실행한다.
 - 실행하지 않은 검증 명령은 문서에 새 통과 기록으로 남기지 않는다.
+- public/share/community 문서는 승인된 release profile, 실제 구현 범위, production 승인 상태를 분리한다.
+- `npm run qa:product-contract`로 archived 권한 역전과 Community production block을 검증한다.

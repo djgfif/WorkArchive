@@ -1,11 +1,12 @@
 ﻿import { screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import { appRoutes } from '@app/router/routes';
 import { renderWithProviders } from '@test/render-with-providers';
 import { AuthProvider } from '@features/auth';
-import { worksService } from '@features/works';
+import { timelineEntriesRepository, worksService } from '@features/works';
 
 describe('HomePage', () => {
   it('shows onboarding paths when the archive is empty', async () => {
@@ -19,12 +20,28 @@ describe('HomePage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('첫 작품을 놓는 방법')).toBeInTheDocument();
-    expect(screen.getAllByText('첫 작품 추가').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('검색으로 추가').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('백업 가져오기').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
+    expect(
+      await screen.findByText('아직 기록한 작품이 없습니다'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('작품 하나를 추가하면 오늘의 기록이 시작됩니다.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '직접 추가' })).toHaveAttribute(
+      'href',
+      '/works/new?mode=manual',
+    );
+    expect(
+      screen.getByRole('link', { name: 'JSON 백업 가져오기' }),
+    ).toHaveAttribute('href', '/account/settings#data-backup');
     expect(screen.getAllByText('0개').length).toBeGreaterThan(0);
+
+    expect(
+      screen
+        .getByRole('heading', { level: 1, name: '오늘의 기록' })
+        .compareDocumentPosition(
+          screen.getByRole('textbox', { name: '빠른 작품 기록' }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('keeps the home focused on the personal shelf, continue flow, and search', async () => {
@@ -43,7 +60,7 @@ describe('HomePage', () => {
       favorite: false,
     });
 
-    await worksService.createWork({
+    const continueWork = await worksService.createWork({
       type: 'anime',
       title: 'Fate/Zero',
       author: 'Gen Urobuchi',
@@ -58,6 +75,29 @@ describe('HomePage', () => {
       favorite: false,
       lastConsumedAt: new Date().toISOString(),
     });
+    await worksService.updateProgress(continueWork.id, {
+      lastConsumedLabel: '2회까지',
+      progressCurrent: 2,
+      progressTotal: 12,
+      progressUnit: 'episode',
+    });
+
+    for (const title of ['Fate filler one', 'Fate filler two']) {
+      await worksService.createWork({
+        type: 'anime',
+        title,
+        author: '',
+        genres: [],
+        personalTags: [],
+        description: '',
+        thumbnailUrl: '',
+        status: 'planned',
+        rating: null,
+        shortReview: '',
+        review: '',
+        favorite: false,
+      });
+    }
 
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/'],
@@ -69,22 +109,44 @@ describe('HomePage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('이어볼 작품')).toBeInTheDocument();
-    expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('진행 중').length).toBeGreaterThan(0);
-    expect(screen.getByText('평균 별점')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '검색' })).toBeInTheDocument();
+    const user = userEvent.setup();
+    expect(await screen.findByText('이어서 기록')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '기록 추가' })).toHaveLength(
+      1,
+    );
     expect(
-      screen.getByRole('link', { name: '평가 안 한 작품 1개' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('link', { name: '+ 추가' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('최근 감상한 작품')).toBeInTheDocument();
     expect(screen.getByText('최근 정리한 감상')).toBeInTheDocument();
     expect(screen.queryByText('시리즈 컬렉션')).not.toBeInTheDocument();
     expect(screen.queryByText('제작진으로 보기')).not.toBeInTheDocument();
 
+    await user.click(
+      screen.getByRole('button', { name: 'Fate/Zero 3회까지 기록' }),
+    );
+
+    expect(
+      await screen.findByText('Fate/Zero 3회까지 기록했습니다.'),
+    ).toBeInTheDocument();
+    await expect(worksService.getWorkById(continueWork.id)).resolves.toEqual(
+      expect.objectContaining({
+        lastConsumedLabel: '3회까지',
+        progressCurrent: 3,
+        progressTotal: 12,
+        progressUnit: 'episode',
+      }),
+    );
+    await expect(
+      timelineEntriesRepository.listByWorkId(continueWork.id),
+    ).resolves.toEqual([
+      expect.objectContaining({ source: 'automatic', type: 'progress' }),
+      expect.objectContaining({ source: 'automatic', type: 'progress' }),
+    ]);
+
     expect(
       screen
-        .getByText('이어볼 작품')
+        .getByText('이어서 기록')
         .compareDocumentPosition(screen.getByText('최근 정리한 감상')) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
@@ -120,6 +182,23 @@ describe('HomePage', () => {
       review: '',
       favorite: false,
     });
+
+    for (const title of ['Archive filler one', 'Archive filler two']) {
+      await worksService.createWork({
+        type: 'novel',
+        title,
+        author: '',
+        genres: [],
+        personalTags: [],
+        description: '',
+        thumbnailUrl: '',
+        status: 'planned',
+        rating: null,
+        shortReview: '',
+        review: '',
+        favorite: false,
+      });
+    }
 
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/'],

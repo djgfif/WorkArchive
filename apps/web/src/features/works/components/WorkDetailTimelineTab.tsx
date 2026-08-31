@@ -21,6 +21,7 @@ import {
 import { formatWorkDate, formatWorkDateTime } from '../utils/work-options';
 import { useAppTranslation } from '@app/i18n';
 import {
+  getWorkRepeatCopy,
   timelineTypeOptions,
   type WorkDetailTimelineItem,
 } from '../utils/work-detail-timeline';
@@ -57,11 +58,22 @@ export function WorkDetailTimelineTab({
   const [timelineNote, setTimelineNote] = useState('');
   const [timelineType, setTimelineType] = useState<TimelineEntryType>('note');
   const [isSavingTimelineEntry, setIsSavingTimelineEntry] = useState(false);
+  const [isSavingRepeatEntry, setIsSavingRepeatEntry] = useState(false);
   const [deletingTimelineEntryId, setDeletingTimelineEntryId] = useState<
     string | null
   >(null);
   const latestTimelineItem =
     timelineItems.length > 0 ? timelineItems[timelineItems.length - 1] : null;
+  const repeatCopy = getWorkRepeatCopy(work.type);
+  const repeatRecordDate = new Date().toISOString().slice(0, 10);
+  const repeatCount = timelineItems.filter(
+    (item) => item.type === 'rewatch',
+  ).length;
+  const hasRepeatEntryToday = timelineItems.some(
+    (item) =>
+      item.type === 'rewatch' && item.value.slice(0, 10) === repeatRecordDate,
+  );
+  const canQuickRecordRepeat = work.status === 'completed' || repeatCount > 0;
 
   async function handleCreateTimelineEntry() {
     if (!onCreateTimelineEntry || !timelineDate) {
@@ -85,11 +97,29 @@ export function WorkDetailTimelineTab({
     if (!onDeleteTimelineEntry) {
       return;
     }
+
     try {
       setDeletingTimelineEntryId(id);
       await onDeleteTimelineEntry(id);
     } finally {
       setDeletingTimelineEntryId(null);
+    }
+  }
+
+  async function handleCreateRepeatEntry() {
+    if (!onCreateTimelineEntry || hasRepeatEntryToday) {
+      return;
+    }
+
+    try {
+      setIsSavingRepeatEntry(true);
+      await onCreateTimelineEntry({
+        note: '',
+        occurredAt: new Date(`${repeatRecordDate}T00:00:00.000Z`).toISOString(),
+        type: 'rewatch',
+      });
+    } finally {
+      setIsSavingRepeatEntry(false);
     }
   }
 
@@ -154,6 +184,40 @@ export function WorkDetailTimelineTab({
         />
       </SectionCard>
 
+      {onCreateTimelineEntry && canQuickRecordRepeat && (
+        <SectionCard gap="sm" padding="md" tone="default">
+          <Group align="flex-start" justify="space-between" wrap="wrap">
+            <Stack gap={4}>
+              <Text fw={700}>{repeatCopy.title}</Text>
+              <Text c="dimmed" size="sm">
+                {repeatCopy.description}
+              </Text>
+              <Text c="dimmed" size="xs">
+                {t('works.detail.timelineRepeatAdvancedHint')}
+              </Text>
+            </Stack>
+            <AppBadge tone="muted">
+              {t('works.detail.timelineRepeatCount', {
+                count: repeatCount,
+              })}
+            </AppBadge>
+          </Group>
+          <ActionRow>
+            <AppButton
+              disabled={hasRepeatEntryToday || isSavingRepeatEntry}
+              loading={isSavingRepeatEntry}
+              onClick={() => void handleCreateRepeatEntry()}
+              tone="primary"
+              type="button"
+            >
+              {hasRepeatEntryToday
+                ? t('works.detail.timelineRepeatRecordedToday')
+                : repeatCopy.actionLabel}
+            </AppButton>
+          </ActionRow>
+        </SectionCard>
+      )}
+
       {timelineItems.length > 0 && (
         <Stack gap="md">
           {timelineItems.map((item, index) => (
@@ -175,7 +239,9 @@ export function WorkDetailTimelineTab({
                     >
                       {item.source === 'manual'
                         ? t('works.detail.timelineSourceManual')
-                        : t('works.detail.timelineSourceSystem')}
+                        : item.source === 'automatic'
+                          ? t('works.detail.timelineSourceAutomatic')
+                          : t('works.detail.timelineSourceSystem')}
                     </AppBadge>
                   </Group>
                   <Text c="dimmed" size="sm">
@@ -186,11 +252,17 @@ export function WorkDetailTimelineTab({
                   <AppBadge tone="accent">
                     {formatWorkDate(item.value)}
                   </AppBadge>
-                  {item.source === 'manual' && onDeleteTimelineEntry && (
+                  {item.deletableEntryId && onDeleteTimelineEntry && (
                     <AppButton
-                      disabled={deletingTimelineEntryId === item.id}
-                      loading={deletingTimelineEntryId === item.id}
-                      onClick={() => void handleDeleteTimelineEntry(item.id)}
+                      disabled={
+                        deletingTimelineEntryId === item.deletableEntryId
+                      }
+                      loading={
+                        deletingTimelineEntryId === item.deletableEntryId
+                      }
+                      onClick={() =>
+                        void handleDeleteTimelineEntry(item.deletableEntryId!)
+                      }
                       tone="danger"
                       type="button"
                     >

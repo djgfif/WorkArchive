@@ -1,11 +1,20 @@
 import { liveQuery } from 'dexie';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Group, Stack, Text } from '@mantine/core';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 
 import {
+  AppBadge,
   AppLinkButton,
+  FeedbackMessage,
   LoadingState,
   MetricPill,
+  SectionCard,
   StateMessage,
 } from '@shared/components/AppPrimitives';
 import { PageHero } from '@shared/components/PageHero';
@@ -15,6 +24,7 @@ import { useAppTranslation } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { syncQueueRepository } from '@features/sync';
 import { WorkForm } from '../components/WorkForm';
+import type { WorkFormFocusArea } from '../components/add-work-form.types';
 import { useWorkDetail } from '../hooks/useWorkDetail';
 import {
   graphRepository,
@@ -22,19 +32,39 @@ import {
 } from '../services/graph.repository';
 import { buildWorkFormDraftKey } from '../services/work-form-draft.service';
 import { worksService } from '../services/works.service';
+import {
+  ARCHIVE_HEALTH_SETTINGS_PATH,
+  archiveHealthReviewSessionService,
+  buildArchiveHealthEditUrl,
+  parseArchiveHealthIssueCodes,
+} from '../services/archive-health-review-session.service';
 import { DEFAULT_WORKS_LIST_QUERY } from '../utils/query-works';
 import {
   createWorkFormValuesFromRecord,
   type UpsertWorkInput,
 } from '../utils/work-form';
 
+interface WorkEditRouteState {
+  archiveHealthPreviousSaved?: boolean;
+}
+
+function getFocusArea(value: string | null): WorkFormFocusArea {
+  if (value === 'archive-health' || value === 'review') {
+    return value;
+  }
+
+  return 'general';
+}
+
 export function WorkEditPage() {
   const { t } = useAppTranslation();
   usePageTitle(t('works.edit.pageTitle'));
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { archiveScopeKey, mode } = useAuthSession();
   const [searchParams] = useSearchParams();
+  const routeState = location.state as WorkEditRouteState | null;
   const { error, isLoading, work } = useWorkDetail(id);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -45,8 +75,24 @@ export function WorkEditPage() {
     tagSuggestions: [] as string[],
   });
   const [workGraph, setWorkGraph] = useState<WorkGraphSnapshot | null>(null);
-  const focusArea =
-    searchParams.get('focus') === 'review' ? 'review' : 'general';
+  const focusArea = getFocusArea(searchParams.get('focus'));
+  const reviewSessionId =
+    focusArea === 'archive-health'
+      ? searchParams.get('reviewSession')
+      : null;
+  const reviewContext = useMemo(
+    () =>
+      focusArea === 'archive-health'
+        ? archiveHealthReviewSessionService.getContext(reviewSessionId, id)
+        : null,
+    [focusArea, id, reviewSessionId],
+  );
+  const healthIssueCodes = useMemo(
+    () =>
+      reviewContext?.currentItem.issueCodes ??
+      parseArchiveHealthIssueCodes(searchParams.get('issues')),
+    [reviewContext, searchParams],
+  );
   const draftKey = id
     ? buildWorkFormDraftKey({
         archiveScopeKey,
@@ -128,12 +174,41 @@ export function WorkEditPage() {
       const hasQueuedWork =
         mode === 'authenticated' &&
         (await syncQueueRepository.hasQueuedWork(id));
+      const savedFeedback = hasQueuedWork
+        ? t('works.feedback.localSavedSyncPending')
+        : t('works.feedback.localSaved');
+
+      if (focusArea === 'archive-health') {
+        if (reviewContext?.nextItem) {
+          navigate(
+            buildArchiveHealthEditUrl(reviewContext.nextItem.workId, {
+              issueCodes: reviewContext.nextItem.issueCodes,
+              reviewSessionId: reviewContext.session.id,
+            }),
+            {
+              replace: true,
+              state: { archiveHealthPreviousSaved: true },
+            },
+          );
+          return;
+        }
+
+        if (reviewContext) {
+          archiveHealthReviewSessionService.remove(reviewContext.session.id);
+        }
+
+        navigate(ARCHIVE_HEALTH_SETTINGS_PATH, {
+          replace: true,
+          state: reviewContext
+            ? { archiveHealthReviewCompleted: reviewContext.total }
+            : { archiveHealthReviewSaved: true },
+        });
+        return;
+      }
 
       navigate(`/works/${id}?saved=edit`, {
         state: {
-          feedback: hasQueuedWork
-            ? t('works.feedback.localSavedSyncPending')
-            : t('works.feedback.localSaved'),
+          feedback: savedFeedback,
         },
       });
     } catch (saveError) {
@@ -174,15 +249,34 @@ export function WorkEditPage() {
     );
   }
 
+  const isHealthFocus = focusArea === 'archive-health';
+  const cancelTo = isHealthFocus
+    ? ARCHIVE_HEALTH_SETTINGS_PATH
+    : `/works/${work.id}`;
+  const focusModeLabel = isHealthFocus
+    ? t('works.edit.healthMode')
+    : focusArea === 'review'
+      ? t('works.edit.reviewMode')
+      : t('works.edit.fullMode');
+  const submitLabel = isHealthFocus
+    ? reviewContext?.nextItem
+      ? t('works.edit.healthSaveNext')
+      : reviewContext
+        ? t('works.edit.healthSaveFinish')
+        : t('works.edit.healthSaveReturn')
+    : t('works.edit.submitLabel');
+
   return (
     <FlowPageTemplate>
       <PageHero
         actions={
           <>
-            <AppLinkButton to={`/works/${work.id}`}>
-              {t('works.backToWork')}
+            <AppLinkButton to={cancelTo}>
+              {isHealthFocus
+                ? t('works.edit.healthBack')
+                : t('works.backToWork')}
             </AppLinkButton>
-            {focusArea === 'review' && (
+            {focusArea !== 'general' && (
               <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
                 {t('works.edit.fullMode')}
               </AppLinkButton>
@@ -190,41 +284,79 @@ export function WorkEditPage() {
           </>
         }
         description={
-          focusArea === 'review'
+          isHealthFocus
+            ? t('works.edit.healthDescription')
+            : focusArea === 'review'
             ? t('works.edit.reviewDescription')
             : t('works.edit.description')
         }
         eyebrow={t('common.edit')}
         meta={
           <>
+            {reviewContext && (
+              <MetricPill
+                label={t('works.edit.healthProgressLabel')}
+                value={t('works.edit.healthProgress', {
+                  current: reviewContext.currentIndex + 1,
+                  total: reviewContext.total,
+                })}
+              />
+            )}
             <MetricPill
               label={t('works.edit.workTitleLabel')}
               value={work.title}
             />
             <MetricPill
               label={t('works.edit.workModeLabel')}
-              value={
-                focusArea === 'review'
-                  ? t('works.edit.reviewMode')
-                  : t('works.edit.fullMode')
-              }
+              value={focusModeLabel}
             />
           </>
         }
         title={
-          focusArea === 'review'
+          isHealthFocus
+            ? t('works.edit.healthTitle', { title: work.title })
+            : focusArea === 'review'
             ? t('works.edit.reviewTitle', { title: work.title })
             : t('works.edit.title', { title: work.title })
         }
       />
 
+      {routeState?.archiveHealthPreviousSaved && isHealthFocus && (
+        <FeedbackMessage tone="success">
+          {t('works.edit.healthPreviousSaved')}
+        </FeedbackMessage>
+      )}
+
+      {isHealthFocus && healthIssueCodes.length > 0 && (
+        <SectionCard>
+          <Stack gap="sm">
+            <Group justify="space-between">
+              <Text fw={850}>{t('works.edit.healthIssueSummary')}</Text>
+              <AppBadge tone="warning">
+                {t('works.edit.healthIssueCount', {
+                  count: healthIssueCodes.length,
+                })}
+              </AppBadge>
+            </Group>
+            <Stack gap={4}>
+              {healthIssueCodes.map((issueCode) => (
+                <Text key={issueCode} size="sm">
+                  · {t(`settings.archiveHealth.issues.${issueCode}.title`)}
+                </Text>
+              ))}
+            </Stack>
+          </Stack>
+        </SectionCard>
+      )}
+
       <WorkForm
         catalogTitleId={work.catalogTitleId ?? null}
-        cancelTo={`/works/${work.id}`}
+        cancelTo={cancelTo}
         currentWorkId={work.id}
         draftKey={draftKey}
         focusArea={focusArea}
         isSubmitting={isSubmitting}
+        key={work.id}
         onSubmit={handleSubmit}
         organizationContributorSuggestions={
           workSuggestions.organizationContributorSuggestions
@@ -234,7 +366,7 @@ export function WorkEditPage() {
         }
         seriesSuggestions={workSuggestions.seriesSuggestions}
         submitError={submitError}
-        submitLabel={t('works.edit.submitLabel')}
+        submitLabel={submitLabel}
         tagSuggestions={workSuggestions.tagSuggestions}
         {...(formInitialValues ? { initialValues: formInitialValues } : {})}
       />

@@ -10,13 +10,14 @@ const sourceExtensions = new Set(['.ts', '.tsx']);
 
 const allowedFiles = new Map([
   [
+    'apps/web/src/app/i18n/resources/community.ts',
+    'locale-scoped Community translation resource',
+  ],
+  [
     'apps/web/src/app/i18n/locales.ts',
     'locale option native labels include each language name',
   ],
-  [
-    'apps/web/src/app/i18n/resources/ko.ts',
-    'Korean translation resource',
-  ],
+  ['apps/web/src/app/i18n/resources/ko.ts', 'Korean translation resource'],
   [
     'apps/web/src/features/imports/services/csv-import.service.ts',
     'CSV import parser intentionally accepts Korean headers and status aliases',
@@ -35,6 +36,7 @@ function shouldSkipFile(path) {
   return (
     path.includes('/node_modules/') ||
     path.includes('/dist/') ||
+    path.includes('/src/shared/generated/') ||
     path.includes('/src/test/') ||
     path.endsWith('.test.ts') ||
     path.endsWith('.test.tsx') ||
@@ -84,7 +86,11 @@ function literalText(node) {
     return node.getText().replace(/^['"`]|['"`]$/g, '');
   }
 
-  if (ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+  if (
+    ts.isTemplateHead(node) ||
+    ts.isTemplateMiddle(node) ||
+    ts.isTemplateTail(node)
+  ) {
     return node.text;
   }
 
@@ -132,8 +138,12 @@ function inspectFile(path) {
 const findings = collectFiles(srcRoot).flatMap(inspectFile);
 
 if (findings.length > 0) {
-  console.error('Korean UI literals must live in apps/web/src/app/i18n/resources/ko.ts.');
-  console.error('Move user-facing copy to i18n or add a narrowly justified exception.');
+  console.error(
+    'Korean UI literals must live in apps/web/src/app/i18n/resources/ko.ts.',
+  );
+  console.error(
+    'Move user-facing copy to i18n or add a narrowly justified exception.',
+  );
   console.error('');
 
   for (const finding of findings) {

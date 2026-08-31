@@ -1,11 +1,12 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { appRoutes } from '@app/router/routes';
 import { renderWithProviders } from '@test/render-with-providers';
 import { AuthProvider } from '@features/auth';
-import { worksService } from '@features/works';
+import { timelineEntriesRepository, worksService } from '@features/works';
 
 function renderInsightsPage() {
   const router = createMemoryRouter(appRoutes, {
@@ -37,10 +38,10 @@ describe('PersonalInsightsPage', () => {
     );
   });
 
-  it('renders guest archive insights from the local IndexedDB archive', async () => {
+  it('guides a small guest archive toward useful insights', async () => {
     const now = new Date().toISOString();
 
-    await worksService.createWork({
+    const work = await worksService.createWork({
       author: 'Frank Herbert',
       completedAt: now,
       description: '',
@@ -55,6 +56,12 @@ describe('PersonalInsightsPage', () => {
       title: 'Dune',
       type: 'novel',
     });
+    await timelineEntriesRepository.create({
+      note: '',
+      occurredAt: now,
+      type: 'rewatch',
+      workId: work.id,
+    });
 
     renderInsightsPage();
 
@@ -63,28 +70,112 @@ describe('PersonalInsightsPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('게스트 로컬 아카이브')).toBeInTheDocument();
     expect(screen.getByText('내 기기에서만 계산')).toBeInTheDocument();
-    expect(screen.getByText('총 작품')).toBeInTheDocument();
-    expect(screen.getAllByText('1')[0]).toBeInTheDocument();
-    expect(screen.getByLabelText('소설 1개')).toHaveAttribute(
-      'href',
-      '/works?type=novel',
+    expect(
+      screen.getByRole('heading', { name: '인사이트를 만드는 중입니다' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute(
+      'aria-valuenow',
+      '1',
     );
-    expect(screen.getByLabelText('완료 1개')).toHaveAttribute(
-      'href',
-      '/works?status=completed',
-    );
-    expect(screen.getByLabelText('★ 5.0 1개')).toHaveAttribute(
-      'href',
-      '/works?rating=5',
-    );
-    expect(screen.getByLabelText('다시 볼 것 1개')).toHaveAttribute(
-      'href',
-      '/works?tag=%EB%8B%A4%EC%8B%9C%20%EB%B3%BC%20%EA%B2%83',
-    );
-    expect(screen.getByLabelText('SF 1개')).toHaveAttribute(
-      'href',
-      '/works?genre=SF',
-    );
+    expect(
+      screen.getByRole('link', { name: '작품 더 추가하기' }),
+    ).toHaveAttribute('href', '/works/new');
     expect(screen.getAllByText('Dune')).toHaveLength(2);
+    expect(
+      screen.getByRole('heading', { name: '기록이 남은 날' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('28일 합계 1개')).toBeInTheDocument();
+    const activityGrid = screen.getByRole('list', {
+      name: '최근 28일 기록 분포',
+    });
+    expect(within(activityGrid).getAllByRole('listitem')).toHaveLength(28);
+    expect(
+      within(activityGrid).getByRole('listitem', { name: /기록 1개$/ }),
+    ).toBeInTheDocument();
+
+    await timelineEntriesRepository.create({
+      note: '진행 기록',
+      occurredAt: new Date().toISOString(),
+      type: 'progress',
+      workId: work.id,
+    });
+
+    expect(await screen.findByText('28일 합계 2개')).toBeInTheDocument();
+    expect(
+      within(activityGrid).getByRole('listitem', { name: /기록 2개$/ }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('heading', { name: '다시 찾은 작품' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('다시 기록 1회')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Dune 다시 기록 1회' }),
+    ).toHaveAttribute('href', `/works/${work.id}`);
+  });
+
+  it('opens historical year reviews and shows comparison trends', async () => {
+    const user = userEvent.setup();
+    const currentYear = new Date().getFullYear();
+    const previousYear = currentYear - 1;
+
+    for (const [title, completedAt, rating] of [
+      ['Current review', currentYear + '-02-10T00:00:00.000Z', 5],
+      ['Previous review', previousYear + '-08-10T00:00:00.000Z', 4],
+    ] as const) {
+      await worksService.createWork({
+        author: '',
+        completedAt,
+        description: '',
+        favorite: false,
+        genres: ['드라마'],
+        personalTags: [],
+        rating,
+        review: '',
+        shortReview: '',
+        status: 'completed',
+        thumbnailUrl: '',
+        title,
+        type: 'movie',
+      });
+    }
+
+    renderInsightsPage();
+    expect(
+      await screen.findByRole('heading', { name: '기록이 남은 날' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('최근 28일에는 아직 타임라인 기록이 없습니다.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: '작품에서 기록 시작하기' }),
+    ).toHaveAttribute('href', '/works');
+
+    await user.click(
+      await screen.findByRole('button', { name: '✦ 올해의 결산' }),
+    );
+    expect(
+      await screen.findByRole('heading', {
+        name: currentYear + ' 연말 결산',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('월별 완료 추이')).toBeInTheDocument();
+    expect(screen.getByText('전년 비교')).toBeInTheDocument();
+
+    Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: () => undefined,
+    });
+    await user.click(screen.getByLabelText('결산 연도 선택'));
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(
+      await screen.findByRole('heading', {
+        name: previousYear + ' 연말 결산',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('dialog')).getByText('Previous review'),
+    ).toBeInTheDocument();
   });
 });

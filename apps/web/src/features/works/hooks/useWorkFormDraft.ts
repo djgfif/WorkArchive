@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import {
   workFormDraftService,
@@ -32,12 +32,29 @@ export function useWorkFormDraft({
   );
   const [isReadyForAutosave, setIsReadyForAutosave] = useState(false);
   const [saveStatus, setSaveStatus] = useState<DraftSaveStatus>('idle');
+  const autosaveTimeoutRef = useRef<number | null>(null);
+  const completedDraftKeyRef = useRef<string | null>(null);
   const serializedValues = useMemo(() => serializeValues(values), [values]);
   const serializedBaselineValues = useMemo(
     () => serializeValues(baselineValues),
     [baselineValues],
   );
   const isDirty = serializedValues !== serializedBaselineValues;
+
+  function cancelPendingAutosave() {
+    if (autosaveTimeoutRef.current === null) {
+      return;
+    }
+
+    window.clearTimeout(autosaveTimeoutRef.current);
+    autosaveTimeoutRef.current = null;
+  }
+
+  useLayoutEffect(() => {
+    if (draftKey) {
+      workFormDraftService.beginDraftSession(draftKey);
+    }
+  }, [draftKey]);
 
   useEffect(() => {
     if (!enabled || !draftKey) {
@@ -47,6 +64,15 @@ export function useWorkFormDraft({
       return;
     }
 
+    if (completedDraftKeyRef.current === draftKey) {
+      setPendingDraft(null);
+      setIsReadyForAutosave(false);
+      setSaveStatus('idle');
+      return;
+    }
+
+    completedDraftKeyRef.current = null;
+
     const draft = workFormDraftService.getDraft(draftKey);
 
     setPendingDraft(draft);
@@ -55,7 +81,12 @@ export function useWorkFormDraft({
   }, [draftKey, enabled]);
 
   useEffect(() => {
-    if (!enabled || !draftKey || !isReadyForAutosave) {
+    if (
+      !enabled ||
+      !draftKey ||
+      !isReadyForAutosave ||
+      completedDraftKeyRef.current === draftKey
+    ) {
       return undefined;
     }
 
@@ -66,13 +97,25 @@ export function useWorkFormDraft({
     }
 
     setSaveStatus('saving');
+    const writeVersion = workFormDraftService.captureWriteVersion(draftKey);
     const timeoutId = window.setTimeout(() => {
-      workFormDraftService.saveDraft(draftKey, values);
-      setSaveStatus('saved');
+      autosaveTimeoutRef.current = null;
+      const savedDraft = workFormDraftService.saveDraft(
+        draftKey,
+        values,
+        writeVersion,
+      );
+      if (savedDraft) {
+        setSaveStatus('saved');
+      }
     }, 500);
+    autosaveTimeoutRef.current = timeoutId;
 
     return () => {
       window.clearTimeout(timeoutId);
+      if (autosaveTimeoutRef.current === timeoutId) {
+        autosaveTimeoutRef.current = null;
+      }
     };
   }, [draftKey, enabled, isDirty, isReadyForAutosave, values]);
 
@@ -82,12 +125,27 @@ export function useWorkFormDraft({
     }
 
     onRestore(pendingDraft.values);
+    completedDraftKeyRef.current = null;
     setPendingDraft(null);
     setIsReadyForAutosave(true);
     setSaveStatus('restored');
   }
 
+  function completeDraft() {
+    cancelPendingAutosave();
+    if (draftKey) {
+      completedDraftKeyRef.current = draftKey;
+      workFormDraftService.completeDraft(draftKey);
+    }
+
+    setPendingDraft(null);
+    setIsReadyForAutosave(false);
+    setSaveStatus('idle');
+  }
+
   function clearDraft() {
+    cancelPendingAutosave();
+    completedDraftKeyRef.current = null;
     if (draftKey) {
       workFormDraftService.deleteDraft(draftKey);
     }
@@ -97,11 +155,25 @@ export function useWorkFormDraft({
     setSaveStatus('idle');
   }
 
+  function resumeAutosave() {
+    completedDraftKeyRef.current = null;
+    setIsReadyForAutosave(true);
+  }
+
+  function suspendAutosave() {
+    cancelPendingAutosave();
+    completedDraftKeyRef.current = draftKey ?? null;
+    setIsReadyForAutosave(false);
+  }
+
   return {
     applyDraft,
     clearDraft,
+    completeDraft,
     isDirty,
     pendingDraft,
+    resumeAutosave,
     saveStatus,
+    suspendAutosave,
   };
 }

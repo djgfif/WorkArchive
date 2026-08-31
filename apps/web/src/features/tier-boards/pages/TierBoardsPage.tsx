@@ -32,6 +32,7 @@ import {
   type AppTranslationKey,
 } from '@app/i18n';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { getDisplayImageUrl } from '@shared/utils/image-proxy';
 import { ArchiveEmptyState, ArchiveHero } from '@features/works';
 import {
   TIER_BOARD_TEMPLATES,
@@ -78,6 +79,29 @@ function TemplatePreview({ templateTitle }: { templateTitle: string }) {
         </Box>
       ))}
     </Group>
+  );
+}
+
+function TierBoardCoverPreview({ coverImageUrl }: { coverImageUrl: string }) {
+  const [failed, setFailed] = useState(false);
+  const displayImageUrl = getDisplayImageUrl(coverImageUrl);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [displayImageUrl]);
+
+  if (!displayImageUrl || failed) {
+    return <TemplatePreview templateTitle="S/A/B/C/D" />;
+  }
+
+  return (
+    <img
+      alt=""
+      crossOrigin="anonymous"
+      onError={() => setFailed(true)}
+      referrerPolicy="no-referrer"
+      src={displayImageUrl}
+    />
   );
 }
 
@@ -145,9 +169,7 @@ export function TierBoardsPage() {
     } catch (error) {
       setFeedback({
         message:
-          error instanceof Error
-            ? error.message
-            : t('tierBoards.createError'),
+          error instanceof Error ? error.message : t('tierBoards.createError'),
         tone: 'error',
       });
     }
@@ -201,9 +223,7 @@ export function TierBoardsPage() {
     } catch (error) {
       setFeedback({
         message:
-          error instanceof Error
-            ? error.message
-            : t('tierBoards.importError'),
+          error instanceof Error ? error.message : t('tierBoards.importError'),
         tone: 'error',
       });
     } finally {
@@ -217,36 +237,38 @@ export function TierBoardsPage() {
     <Stack className={cn(css.page)} gap="xl">
       <ArchiveHero
         actions={
-          <Group gap="sm" wrap="wrap">
-            <AppButton
-              onClick={() => setCreateOpen(true)}
-              tone="primary"
-              type="button"
-            >
-              {t('tierBoards.create')}
-            </AppButton>
-            <AppButton
-              onClick={() => fileInputRef.current?.click()}
-              tone="secondary"
-              type="button"
-            >
-              {t('tierBoards.importJson')}
-            </AppButton>
-            <input
-              accept="application/json,.json"
-              hidden
-              onChange={(event) =>
-                void handleImportFile(event.currentTarget.files?.[0] ?? null)
-              }
-              ref={fileInputRef}
-              type="file"
-            />
-          </Group>
+          boards.length > 0 ? (
+            <Group gap="sm" wrap="wrap">
+              <AppButton
+                onClick={() => setCreateOpen(true)}
+                tone="primary"
+                type="button"
+              >
+                {t('tierBoards.create')}
+              </AppButton>
+              <AppButton
+                onClick={() => fileInputRef.current?.click()}
+                tone="secondary"
+                type="button"
+              >
+                {t('tierBoards.importJson')}
+              </AppButton>
+            </Group>
+          ) : undefined
         }
         description={t('tierBoards.heroDescription')}
         eyebrow="Tier Board Maker"
         title={t('tierBoards.heroTitle')}
         variant="compact"
+      />
+      <input
+        accept="application/json,.json"
+        hidden
+        onChange={(event) =>
+          void handleImportFile(event.currentTarget.files?.[0] ?? null)
+        }
+        ref={fileInputRef}
+        type="file"
       />
 
       {feedback && (
@@ -297,15 +319,9 @@ export function TierBoardsPage() {
               <Stack h="100%" justify="space-between">
                 <Stack gap="sm">
                   <Box className={cn(css.coverPreview)}>
-                    {board.coverImageUrl ? (
-                      <img
-                        alt=""
-                        crossOrigin="anonymous"
-                        src={board.coverImageUrl}
-                      />
-                    ) : (
-                      <TemplatePreview templateTitle="S/A/B/C/D" />
-                    )}
+                    <TierBoardCoverPreview
+                      coverImageUrl={board.coverImageUrl}
+                    />
                   </Box>
                   <Group justify="space-between" wrap="nowrap">
                     <Title lineClamp={2} order={2} size="h3">
@@ -314,7 +330,7 @@ export function TierBoardsPage() {
                     <AppBadge
                       tone={board.visibility === 'exported' ? 'info' : 'muted'}
                     >
-                      {board.visibility}
+                      {t(`tierBoards.visibility.${board.visibility}`)}
                     </AppBadge>
                   </Group>
                   <Text c="dimmed" lineClamp={3} size="sm">

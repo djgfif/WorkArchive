@@ -11,6 +11,7 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiExtraModels,
   ApiOkResponse,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -25,10 +26,13 @@ import { PullSyncDto } from './dto/pull-sync.dto';
 import { PullSyncResponseDto } from './dto/pull-sync-response.dto';
 import { PushSyncDto } from './dto/push-sync.dto';
 import { PushSyncResponseDto } from './dto/push-sync-response.dto';
+import { SyncReleaseRecordPayloadDto } from './payloads/sync-release-record-payload.dto';
+import { SyncWorkPayloadDto } from './payloads/sync-work-payload.dto';
 import { SyncService } from './sync.service';
 
 @ApiTags('sync')
 @ApiBearerAuth()
+@ApiExtraModels(SyncWorkPayloadDto, SyncReleaseRecordPayloadDto)
 @UseGuards(JwtAuthGuard)
 @Controller('sync')
 export class SyncController {
