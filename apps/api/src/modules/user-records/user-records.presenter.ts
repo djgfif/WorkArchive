@@ -1,3 +1,4 @@
+import type { UserRecordViewV2 } from '@work-archive/shared-types';
 import type { WorkAggregate } from './user-records.types';
 import { toWorkSyncStatusValue } from '../works/works.constants';
 
@@ -87,5 +88,33 @@ export function toUserWorkRecordView(work: WorkAggregate) {
           relations: [],
           genres: work.catalogWork.genres,
         },
+  };
+}
+
+export function toUserWorkRecordV2View(work: WorkAggregate): UserRecordViewV2 {
+  const view = toUserWorkRecordView(work);
+
+  return {
+    identity: work.catalogTitle
+      ? {
+          kind: 'catalog',
+          catalogTitleId: work.catalogTitle.id,
+          catalog: {
+            id: view.catalog.id,
+            mediumType: view.catalog.mediumType,
+            thumbnailUrl: view.catalog.thumbnailUrl,
+            title: view.catalog.title,
+            verificationStatus: view.catalog.verificationStatus,
+          },
+        }
+      : {
+          kind: 'manual',
+          author: work.catalogWork.author,
+          description: work.catalogWork.description,
+          mediumType: work.catalogWork.type,
+          thumbnailUrl: work.catalogWork.thumbnailUrl,
+          title: work.catalogWork.title,
+        },
+    record: view.record,
   };
 }

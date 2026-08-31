@@ -39,10 +39,10 @@ const governancePath = 'docs/management/DOCUMENTATION_GOVERNANCE.md';
 const gatesPath = 'scripts/qa/commercial-repo-gates.sh';
 const packagePath = 'package.json';
 const sharedTypesPath = 'packages/shared-types/src/index.ts';
-const webProfilePath =
-  'apps/web/src/shared/runtime/product-release-profile.ts';
+const webProfilePath = 'apps/web/src/shared/runtime/product-release-profile.ts';
 const apiProfilePath = 'apps/api/src/config/product-release-profile.ts';
-const webEntrypointPath = 'apps/web/docker-entrypoint.d/40-work-archive-config.sh';
+const webEntrypointPath =
+  'apps/web/docker-entrypoint.d/40-work-archive-config.sh';
 const webIndexPath = 'apps/web/index.html';
 const webViteConfigPath = 'apps/web/vite.config.ts';
 const webRoutesPath = 'apps/web/src/app/router/routes.tsx';
@@ -59,7 +59,6 @@ const surfaceMigrationPath =
   'apps/api/prisma/migrations/20260826210000_community_release_surface/migration.sql';
 const composePath = 'compose.yml';
 const productionComposePath = 'compose.prod.yml';
-
 
 const constitution = readRequired(constitutionPath);
 const archiveLock = readRequired(archiveLockPath);
@@ -145,13 +144,13 @@ requirePattern(
   alphaPath,
   alpha,
   /production blocked/,
-  'Community alpha must remain production blocked.',
+  'Community full must remain production blocked.',
 );
 requirePattern(
   alphaPath,
   alpha,
-  /boards,[\s\S]{0,180}public\s+profiles,[\s\S]{0,180}comments,[\s\S]{0,180}follows,[\s\S]{0,180}taste\/trending/,
-  'Community alpha must name non-approved expansion surfaces.',
+  /community-core[\s\S]{0,400}boards[\s\S]{0,180}comments[\s\S]{0,180}public\s+profiles[\s\S]{0,400}follows[\s\S]{0,180}taste[\s\S]{0,180}notifications/,
+  'Community plan must separate approved core from gated full surfaces.',
 );
 if (roadmap.includes('public/community 기능은 현재 roadmap에서 제거한다')) {
   failures.push(
@@ -161,14 +160,14 @@ if (roadmap.includes('public/community 기능은 현재 roadmap에서 제거한�
 requirePattern(
   currentStatusPath,
   currentStatus,
-  /\/community\/boards[\s\S]{0,220}\/community\/taste[\s\S]{0,220}\/u\/:handle/,
-  'current reality must record the implemented social expansion routes.',
+  /\/community\/boards[\s\S]{0,300}\/u\/:handle[\s\S]{0,300}\/community\/taste/,
+  'current reality must record core and full Community routes.',
 );
 requirePattern(
   currentStatusPath,
   currentStatus,
-  /boards, public profiles, comments, follows, taste\/trending[^\n]*production blocked/,
-  'current reality must separate implemented social expansion from approval.',
+  /community-core[\s\S]{0,300}community-full[\s\S]{0,180}후반 Gate/,
+  'current reality must separate approved core from gated full capability.',
 );
 requirePattern(
   matrixPath,
@@ -209,8 +208,20 @@ requirePattern(
 requirePattern(
   constitutionPath,
   constitution,
-  /personal-archive[\s\S]{0,500}community-reflection-alpha[\s\S]{0,500}community-social-experiment/,
+  /personal-archive[\s\S]{0,500}community-core[\s\S]{0,500}community-full[\s\S]{0,500}community-reflection-alpha[\s\S]{0,500}community-social-experiment/,
   'must define the exact runtime release profile identifiers.',
+);
+requirePattern(
+  constitutionPath,
+  constitution,
+  /개인 기록 ID[\s\S]{0,180}진행도[\s\S]{0,180}개인 태그[\s\S]{0,180}비공개 감상/,
+  'must prohibit private record fields from Community requests.',
+);
+requirePattern(
+  constitutionPath,
+  constitution,
+  /personal-archive[\s\S]{0,180}웹\/API\/navigation/,
+  'must define the immediate profile-only rollback contract.',
 );
 requirePattern(
   constitutionPath,
@@ -221,8 +232,8 @@ requirePattern(
 requirePattern(
   sharedTypesPath,
   sharedTypes,
-  /PRODUCT_RELEASE_PROFILES[\s\S]{0,240}'personal-archive'[\s\S]{0,240}'community-reflection-alpha'[\s\S]{0,240}'community-social-experiment'/,
-  'shared types must define the three release profiles.',
+  /PRODUCT_RELEASE_PROFILES[\s\S]{0,300}'personal-archive'[\s\S]{0,300}'community-reflection-alpha'[\s\S]{0,300}'community-social-experiment'[\s\S]{0,300}'community-core'[\s\S]{0,300}'community-full'/,
+  'shared types must define the five release profiles.',
 );
 requirePattern(
   sharedTypesPath,
@@ -251,7 +262,7 @@ requirePattern(
 requirePattern(
   webRoutesPath,
   webRoutes,
-  /reflectionEnabled[\s\S]{0,200}socialEnabled[\s\S]{0,300}communityRoutes/,
+  /reflectionEnabled[\s\S]{0,200}socialEnabled[\s\S]{0,200}fullEnabled[\s\S]{0,300}communityRoutes/,
   'web Community routes must be capability-gated.',
 );
 requirePattern(
@@ -275,8 +286,14 @@ requirePattern(
 requirePattern(
   socialControllerPath,
   socialController,
-  /@RequireCommunityRelease\('social'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
-  'social controller must require the social release capability.',
+  /@RequireCommunityRelease\('core'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
+  'Community controller must require the core release capability.',
+);
+requirePattern(
+  socialControllerPath,
+  socialController,
+  /@RequireCommunityRelease\('full'\)[\s\S]{0,180}(followProfile|listTasteCandidates|listNotifications)/,
+  'follow, taste, and notification surfaces must require the full capability.',
 );
 requirePattern(
   reflectionControllerPath,
@@ -331,7 +348,6 @@ for (const [path, content] of [
     'Compose must pass one fail-closed runtime profile to API and web.',
   );
 }
-
 
 for (const fullPath of walkMarkdown(join(root, 'docs'))) {
   const path = relative(root, fullPath).replaceAll('\\\\', '/');

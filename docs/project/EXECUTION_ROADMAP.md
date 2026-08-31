@@ -16,13 +16,12 @@
 
 - 제품 본질은 개인 local-first 작품 기록과 회고 아카이브다.
 - 핵심 루프는 `capture-first, enrich-later`이며 로그인은 선택이다.
-- 우선순위는 `개인 아카이브 핵심 -> 개인 회고 -> 파생 도구 -> 공개·소셜 실험`이다.
-- Community reflection alpha는 개인 기록과 분리된 opt-in 공개 plane이다.
-- 저장소의 Community 구현은 승인된 단일 feed·단일 reaction 범위를 넘어
-  boards, public profiles, comments, follows, taste/trending까지 확장돼 있다.
-- 이 확장 surface는 구현 완료 여부와 무관하게 **production blocked**다.
-- 공개 베타는 Personal archive profile을 기본으로 하며, Community alpha는
-  별도 release evidence가 통과할 때만 활성화한다.
+- 우선순위는 `개인 아카이브 핵심 -> 개인 회고 -> 파생 도구 -> Community core -> 후반 소셜 확장`이다.
+- Community core는 개인 기록과 분리된 opt-in public plane이다.
+- 단일 인스턴스 베타는 `community-core`를 기본으로 한다.
+- follow, taste, notification과 recommendation network는
+  `community-full` Gate 전까지 **production blocked**다.
+- `personal-archive`는 Community 장애·비활성화 시 즉시 적용하는 rollback profile이다.
 
 ## Product Constitution
 
@@ -269,24 +268,23 @@
 - owner delete, report, moderation
 - 명시적 공개 snapshot과 private archive 분리
 
-별도 승인 전 production 범위 밖:
+Community full Gate 전 production 범위 밖:
 
-- boards, public profiles, comments, follows
-- taste/trending와 recommendation network
+- follows, taste/trending, notifications와 recommendation network
 - public tier boards와 public aggregate ranking
 - catalog promotion workflow
 
 원칙:
 
 - 개인 기록은 기본 private다.
-- Community alpha는 Personal archive와 다른 release profile로 격리한다.
-- 저장소에 존재하는 social expansion route/API는 구현 사실로 기록하되 노출하지 않는다.
-- 확장 전에 제품 헌법, decision record, 데이터 권리, 성공·중단 기준을 먼저 갱신한다.
+- Community core는 Personal archive와 다른 release profile로 격리한다.
+- Community 요청에는 명시적 공개 콘텐츠와 확인된 최소 snapshot만 보낸다.
+- 후반 확장 전에 데이터 권리와 성공·중단 Gate evidence를 기록한다.
 
 완료 기준:
 
-- Personal archive 배포에서 미승인 route/API가 도달 불가능하다.
-- Community reflection alpha만 allowlist와 release evidence로 독립 활성화할 수 있다.
+- Personal archive에서 모든 Community route/API가 도달 불가능하다.
+- Community core와 full의 capability 차이가 웹/API에서 동일하다.
 - rollback이 개인 아카이브 저장과 navigation을 손상시키지 않는다.
 
 ## Verification Gates

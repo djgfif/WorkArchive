@@ -134,6 +134,7 @@ export async function configureApp(
       '/api/works',
       '/api/user-records',
       '/api/user-release-records',
+      '/api/v2/user-records',
     ],
     rateLimiters.mutations,
   );
@@ -167,19 +168,24 @@ export async function configureApp(
     return;
   }
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Work Archive API')
-    .setDescription(
-      'Milestone 5 production-ready API for a local-first work archive with NestJS, Prisma, and PostgreSQL.',
-    )
-    .setVersion('0.5.0')
-    .addBearerAuth()
-    .build();
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  const swaggerDocument = createOpenApiDocument(app);
 
   SwaggerModule.setup('docs', app, swaggerDocument, {
     jsonDocumentUrl: 'docs/openapi.json',
   });
+}
+
+export function createOpenApiDocument(app: INestApplication) {
+  const config = new DocumentBuilder()
+    .setTitle('Work Archive API')
+    .setDescription(
+      'Local-first private archive and explicitly published Community API.',
+    )
+    .setVersion('2.0.0')
+    .addBearerAuth()
+    .build();
+
+  return SwaggerModule.createDocument(app, config);
 }
 
 function getOptionalMetricsService(app: INestApplication) {

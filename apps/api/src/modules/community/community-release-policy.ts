@@ -13,7 +13,12 @@ import { Reflector } from '@nestjs/core';
 
 import { readProductReleaseProfile } from '../../config/product-release-profile';
 
-export type CommunityReleaseRequirement = 'reflection' | 'social';
+export type CommunityReleaseRequirement =
+  | 'reflection'
+  | 'core'
+  | 'full'
+  /** @deprecated Use core. */
+  | 'social';
 
 const COMMUNITY_RELEASE_REQUIREMENT = 'communityReleaseRequirement';
 export { readProductReleaseProfile } from '../../config/product-release-profile';
@@ -23,9 +28,9 @@ export function isCommunityReleaseEnabled(
   requirement: CommunityReleaseRequirement,
 ) {
   const capabilities = getProductReleaseCapabilities(profile);
-  return requirement === 'reflection'
-    ? capabilities.communityReflection
-    : capabilities.communitySocial;
+  if (requirement === 'reflection') return capabilities.communityReflection;
+  if (requirement === 'full') return capabilities.communityFull;
+  return capabilities.communityCore;
 }
 
 export const RequireCommunityRelease = (

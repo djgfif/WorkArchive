@@ -118,6 +118,7 @@ const expectedControllers = [
   'apps/api/src/modules/notion/notion.controller.ts',
   'apps/api/src/modules/sync/sync.controller.ts',
   'apps/api/src/modules/user-records/user-records.controller.ts',
+  'apps/api/src/modules/user-records/user-records-v2.controller.ts',
   'apps/api/src/modules/user-records/user-release-records.controller.ts',
   'apps/api/src/modules/works/works.controller.ts',
   'apps/api/src/observability/metrics.controller.ts',
@@ -207,8 +208,8 @@ requirePattern(
 requirePattern(
   communityPath,
   community,
-  /@RequireCommunityRelease\('social'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
-  'social controller must be release-profile guarded.',
+  /@RequireCommunityRelease\('core'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
+  'Community controller must be core release-profile guarded.',
 );
 
 const classGuardedControllers = [
@@ -216,6 +217,7 @@ const classGuardedControllers = [
   'apps/api/src/modules/notion/notion.controller.ts',
   'apps/api/src/modules/sync/sync.controller.ts',
   'apps/api/src/modules/user-records/user-records.controller.ts',
+  'apps/api/src/modules/user-records/user-records-v2.controller.ts',
   'apps/api/src/modules/user-records/user-release-records.controller.ts',
   'apps/api/src/modules/works/works.controller.ts',
 ];
@@ -379,6 +381,7 @@ requireIncludes(
 );
 requireIncludes(configureAppPath, configureApp, "'/api/works'");
 requireIncludes(configureAppPath, configureApp, "'/api/user-records'");
+requireIncludes(configureAppPath, configureApp, "'/api/v2/user-records'");
 requireIncludes(configureAppPath, configureApp, "'/api/user-release-records'");
 requireIncludes(configureAppPath, configureApp, 'rateLimiters.mutations');
 requireIncludes(

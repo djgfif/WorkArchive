@@ -27,7 +27,8 @@ without losing in-flight updates, and resumes pending work after browser availab
 - 현재 sync는 Settings 계정 백업 섹션과 로그인 상태의 제한적 자동 sync를 함께 지원한다.
 - Settings는 로컬 IndexedDB 원본, 자동 JSON 폴더 백업, 계정 백업/sync 상태, 원인별 sync recovery assistant, 서버 데이터 export/delete 계열 작업을 분리해 설명한다.
 - `Tier Boards`는 작품 기록과 분리된 독립 보드 기능이다. `Insights`는 개인 기록 기반의 비공개 통계 화면이다.
-- 기본 `personal-archive` 프로필에는 `Community` 라우트와 API가 없다. 승인된 짧은 감상만 노출하는 `community-reflection-alpha`와 게시판·공개 프로필까지 포함하는 `community-social-experiment`는 별도 실행 프로필이며, 후자는 기본 제품으로 승인된 상태가 아니다.
+- 기본 `personal-archive` 프로필에는 `Community` 라우트와 API가 없다. 단일 인스턴스 베타는
+  정식 public plane인 `community-core`를 사용하며 `community-full`은 후반 Gate 전까지 닫는다.
 
 ## 2. Verified Stack
 
@@ -67,15 +68,16 @@ without losing in-flight updates, and resumes pending work after browser availab
 
 ### 3-2. Current Routes
 
-| Area                    | Routes                                                                                                                                                                                                                                                                              | Current state                                                       |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/insights`, `/tier-boards`, `/tier-boards/:boardId`, `/tier-boards/:boardId/view`, `/profile` | 모든 프로필의 개인 아카이브·인사이트·티어보드 기능 |
-| Reflection alpha        | `/community` | `community-reflection-alpha` 이상에서만 열리는 짧은 감상 feed |
-| Social experiment       | `/community/boards`, `/community/posts/:id`, `/community/reviews/:id`, `/community/taste`, `/u/:handle` | `community-social-experiment`에서만 열리는 비기본 실험 표면 |
-| Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings`, `/account/sync`                                                                                                                                                                                                         | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트             |
-| Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                                                                                                                                                                                                                   | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
-| Account                 | `/account`, `/account/transfer`, `/account/settings`                                                                                                                                                                                                                                | 계정 개요, guest review, 설정/data safety 흐름 구현                 |
-| Minimal                 | `*`                                                                                                                                                                                                                                                                                 | 404 처리                                                            |
+| Area                    | Routes                                                                                                                                                       | Current state                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/insights`, `/tier-boards`, `/tier-boards/:boardId`, `/tier-boards/:boardId/view`, `/profile` | 모든 프로필의 개인 아카이브·인사이트·티어보드 기능                  |
+| Community core          | `/community`, `/community/boards`, `/community/posts/:id`, `/community/reviews/:id`, `/u/:handle`                                                            | 감상·게시판·리뷰·댓글·공개 프로필·신고·moderation                   |
+| Community full          | core + `/community/taste`, follow, notification                                                                                                              | 후반 Gate 전까지 닫힌 소셜 확장                                     |
+| Deprecated aliases      | 기존 reflection/social route capability                                                                                                                      | 한 분기 호환, 자동 승격 없음                                        |
+| Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings`, `/account/sync`                                                                                  | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트             |
+| Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                                                                                            | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
+| Account                 | `/account`, `/account/transfer`, `/account/settings`                                                                                                         | 계정 개요, guest review, 설정/data safety 흐름 구현                 |
+| Minimal                 | `*`                                                                                                                                                          | 404 처리                                                            |
 
 ### 3-3. Current User Flows
 
@@ -83,11 +85,11 @@ without losing in-flight updates, and resumes pending work after browser availab
 - Works: 목록/필터/정렬/리스트-그리드 전환/보기 모드 URL 유지/휴지통 관리
 - Works / Work Create: `/works`에서는 `AddWorkDialog`로 작품 추가를 열고, `/works/new`는 같은 `QuickAddWorkForm` 흐름을 page fallback으로 제공한다. `직접 입력 -> 저장`이 기본 경로이며, `검색 -> 후보 선택 -> 입력 채우기 -> 개인 기록 확인 -> 저장`은 같은 dialog/page 안의 보조 흐름이다.
 - Work Detail / Edit: 감상 기록 확인과 수정
-- Community: 기본 프로필에서는 경로 자체가 없다. `community-reflection-alpha`는
-  새 짧은 감상, 단일 feed/reaction, report/moderation만 노출한다.
-  `community-social-experiment`만 게시판, post/review 상세, 취향 찾기, handle 기반
-  공개 profile을 추가한다. 세 프로필은 동일한 메뉴를 숨기는 방식이 아니라 라우트,
-  API guard, DB `surface`로 분리된다.
+- Community: 기본 프로필에서는 경로 자체가 없다. `community-core`는 감상,
+  게시판, post/review 상세, 댓글, handle 기반 공개 profile, 신고와 moderation을
+  연다. 취향 찾기, follow, notification과 following feed는 `community-full`에서만
+  열린다. profile은 메뉴만 숨기는 방식이 아니라 라우트, API guard, DB
+  `surface`와 runtime config로 함께 분리된다.
 - Auth: Google OAuth 로그인 / 세션 복구. legacy 회원가입/이메일 로그인은 비활성화
 - Account: sync, 설정/data safety, guest 기록 검토/선택 import
 
@@ -190,11 +192,13 @@ catalog match 문자열 정규화는 `catalog-title-matching` helper가 담당�
 moderation access guard, pending review guard는 `catalog-submissions` helper가
 담당한다.
 
-
 `CommunityModule`은 `PRODUCT_RELEASE_PROFILE`을 서버 시작 시 해석한다. 기본
 `personal-archive`에서는 모든 Community controller를 `404`로 닫고,
-`community-reflection-alpha`에서는 `/community/reflections`만 허용한다.
-기존 `/community/*` 소셜 API는 `community-social-experiment`에서만 허용한다.
+`community-core`에서는 감상·게시판·리뷰·댓글·공개 프로필·신고·moderation을
+허용한다. follow, taste, notification과 following feed는 `community-full`만
+허용한다. 기존 `community-reflection-alpha`와
+`community-social-experiment`는 한 분기 동안 기존 capability를 유지하는
+deprecated alias다.
 `CommunityPost.surface`는 `reflection`과 `board`를 저장 단계부터 구분하며 list,
 reaction, report, moderation 쿼리도 같은 surface를 강제한다. 마이그레이션 이전
 게시물은 보수적으로 `board`로 분류해 제한 회고 feed에 유입되지 않는다.
@@ -208,8 +212,8 @@ Nginx가 이를 `no-store`로 제공한다. 웹 healthcheck는 해당 값과 공
 `404`로 회수된 경우 UI는 일반 네트워크 장애 대신 기능 비활성화 상태와 로컬 서재
 복귀 경로를 표시한다.
 
-
 Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
+
 ### 4-2. Current Domain Model
 
 - `User`

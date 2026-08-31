@@ -4,16 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  CatalogWorkSource,
-  WorkType,
-  type Prisma,
-} from '@prisma/client';
+import { CatalogWorkSource, WorkType, type Prisma } from '@prisma/client';
 
 import { CatalogService } from '../catalog/catalog.service';
-import {
-  canCreateReleaseRecord,
-} from '../recording/recording-policy';
+import { canCreateReleaseRecord } from '../recording/recording-policy';
 import type { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
 import {
   normalizeGenresAndPersonalTags,
@@ -42,7 +36,10 @@ import {
   getUserRecordGroupKey,
   getUserRecordMedium,
 } from './user-records.helpers';
-import { toUserWorkRecordView } from './user-records.presenter';
+import {
+  toUserWorkRecordV2View,
+  toUserWorkRecordView,
+} from './user-records.presenter';
 import { WORK_AGGREGATE_INCLUDE } from './user-records.types';
 
 export type { WorkAggregate } from './user-records.types';
@@ -238,6 +235,12 @@ export class UserRecordsService {
     return records.map(toUserWorkRecordView);
   }
 
+  async listV2Views(userId: string) {
+    const records = await this.findActiveByUser(userId);
+
+    return { records: records.map(toUserWorkRecordV2View) };
+  }
+
   async listGroupedViews(userId: string, by: GroupedWorksQueryDto['by']) {
     const records = await this.findGroupedSourceByUser(userId);
     const groups = new Map<
@@ -274,6 +277,11 @@ export class UserRecordsService {
     return toUserWorkRecordView(await this.getActiveRecordOrThrow(userId, id));
   }
 
+  async getV2ViewOrThrow(userId: string, id: string) {
+    return toUserWorkRecordV2View(
+      await this.getActiveRecordOrThrow(userId, id),
+    );
+  }
   async getReleasesView(userId: string, id: string) {
     const record = await this.getActiveRecordOrThrow(userId, id);
     const mediumType = getUserRecordMedium(record);
@@ -448,10 +456,9 @@ export class UserRecordsService {
     userId: string,
     input: CreateUserRecordFromImportDto,
   ) {
-    const title =
-      await this.catalogService.createTitleFromImportCandidate(
-        buildCatalogTitleInputFromImport(input),
-      );
+    const title = await this.catalogService.createTitleFromImportCandidate(
+      buildCatalogTitleInputFromImport(input),
+    );
     const recordInput = buildUserRecordInputFromImport(input, title.id);
 
     return this.createViewForUser(userId, recordInput);
@@ -599,5 +606,4 @@ export class UserRecordsService {
 
     return recordId;
   }
-
 }

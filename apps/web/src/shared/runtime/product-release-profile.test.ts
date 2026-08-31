@@ -34,6 +34,8 @@ describe('product release profile', () => {
   it('keeps reflection alpha separate from social capabilities', () => {
     expect(getReleaseCapabilities('community-reflection-alpha')).toEqual({
       communityReflection: true,
+      communityCore: false,
+      communityFull: false,
       communitySocial: false,
     });
   });
@@ -41,7 +43,22 @@ describe('product release profile', () => {
   it('enables both community surfaces only for the social experiment', () => {
     expect(getReleaseCapabilities('community-social-experiment')).toEqual({
       communityReflection: true,
+      communityCore: true,
+      communityFull: true,
       communitySocial: true,
+    });
+  });
+
+  it('keeps the formal core profile narrower than full Community', () => {
+    expect(getReleaseCapabilities('community-core')).toMatchObject({
+      communityReflection: true,
+      communityCore: true,
+      communityFull: false,
+    });
+    expect(getReleaseCapabilities('community-full')).toMatchObject({
+      communityReflection: true,
+      communityCore: true,
+      communityFull: true,
     });
   });
 });

@@ -12,6 +12,8 @@ describe('product release runtime', () => {
     expect(getProductReleaseRuntime(undefined)).toEqual({
       capabilities: {
         communityReflection: false,
+        communityCore: false,
+        communityFull: false,
         communitySocial: false,
       },
       profile: 'personal-archive',
@@ -22,6 +24,8 @@ describe('product release runtime', () => {
     expect(getProductReleaseRuntime('community-reflection-alpha')).toEqual({
       capabilities: {
         communityReflection: true,
+        communityCore: false,
+        communityFull: false,
         communitySocial: false,
       },
       profile: 'community-reflection-alpha',
@@ -29,9 +33,19 @@ describe('product release runtime', () => {
     expect(getProductReleaseRuntime('community-social-experiment')).toEqual({
       capabilities: {
         communityReflection: true,
+        communityCore: true,
+        communityFull: true,
         communitySocial: true,
       },
       profile: 'community-social-experiment',
+    });
+    expect(getProductReleaseRuntime('community-core')).toMatchObject({
+      capabilities: { communityCore: true, communityFull: false },
+      profile: 'community-core',
+    });
+    expect(getProductReleaseRuntime('community-full')).toMatchObject({
+      capabilities: { communityCore: true, communityFull: true },
+      profile: 'community-full',
     });
   });
 

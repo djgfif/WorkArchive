@@ -14,6 +14,8 @@ const profiles = [
   'personal-archive',
   'community-reflection-alpha',
   'community-social-experiment',
+  'community-core',
+  'community-full',
 ];
 
 function generate(profile) {
@@ -74,11 +76,19 @@ if (!nginx.includes('Cache-Control "no-store" always;')) {
 }
 
 for (const [path, content] of composeFiles) {
-  if (!content.includes('PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}')) {
-    failures.push(`${path} must pass the same fail-closed profile to web and API.`);
+  if (
+    !content.includes(
+      'PRODUCT_RELEASE_PROFILE: ${PRODUCT_RELEASE_PROFILE:-personal-archive}',
+    )
+  ) {
+    failures.push(
+      `${path} must pass the same fail-closed profile to web and API.`,
+    );
   }
   if (!content.includes('/api/product-release')) {
-    failures.push(`${path} web healthcheck must compare the API release profile.`);
+    failures.push(
+      `${path} web healthcheck must compare the API release profile.`,
+    );
   }
 }
 

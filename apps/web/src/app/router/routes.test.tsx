@@ -103,6 +103,39 @@ describe('app routes', () => {
     );
   });
 
+  it('keeps network routes closed for Community core', () => {
+    const paths = createAppRoutes(
+      undefined,
+      'standard',
+      'community-core',
+    )[0]?.children?.map((route) => route.path);
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        'community',
+        'community/boards',
+        'community/posts/:id',
+        'community/reviews/:id',
+        'u/:handle',
+      ]),
+    );
+    expect(paths).not.toContain('community/taste');
+  });
+
+  it('opens every Community route for Community full', () => {
+    const paths = createAppRoutes(
+      undefined,
+      'standard',
+      'community-full',
+    )[0]?.children?.map((route) => route.path);
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        'community',
+        'community/taste',
+        'u/:handle',
+      ]),
+    );
+  });
+
   it('keeps /insights in the product layout instead of redirecting to /works', () => {
     const routes = createAppRoutes();
     const productRoutes = routes[0]?.children ?? [];

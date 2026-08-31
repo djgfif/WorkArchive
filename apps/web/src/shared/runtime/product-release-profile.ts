@@ -58,5 +58,11 @@ export function isCommunityReflectionEnabled(
 export function isCommunitySocialEnabled(
   profile: ProductReleaseProfile = productReleaseProfile,
 ) {
-  return getReleaseCapabilities(profile).communitySocial;
+  return getReleaseCapabilities(profile).communityCore;
+}
+
+export function isCommunityFullEnabled(
+  profile: ProductReleaseProfile = productReleaseProfile,
+) {
+  return getReleaseCapabilities(profile).communityFull;
 }

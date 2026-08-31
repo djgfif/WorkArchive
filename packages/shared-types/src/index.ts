@@ -640,6 +640,104 @@ export interface WorkRecord extends AuditFields {
   serverVersion: number;
 }
 
+export interface CatalogUserRecordIdentityV2 {
+  kind: 'catalog';
+  catalogTitleId: EntityId;
+}
+
+export interface ExternalUserRecordIdentityV2 {
+  kind: 'external';
+  provider: string;
+  externalId: string;
+  externalRefs?: WorkImportExternalRef[];
+  title: string;
+  mediumType: WorkType;
+  author?: string;
+  description?: string;
+  thumbnailUrl?: string;
+}
+
+export interface ManualUserRecordIdentityV2 {
+  kind: 'manual';
+  title: string;
+  mediumType: WorkType;
+}
+
+export type UserRecordIdentityV2 =
+  | CatalogUserRecordIdentityV2
+  | ExternalUserRecordIdentityV2
+  | ManualUserRecordIdentityV2;
+
+export interface UserRecordPersonalFieldsV2 {
+  status?: WorkStatus;
+  rating?: number | null;
+  shortReview?: string;
+  review?: string;
+  favorite?: boolean;
+  personalTags?: string[];
+  startedAt?: ISODateString | null;
+  completedAt?: ISODateString | null;
+  droppedAt?: ISODateString | null;
+  lastConsumedAt?: ISODateString | null;
+}
+
+export interface CreateUserRecordV2Request {
+  identity: UserRecordIdentityV2;
+  record?: UserRecordPersonalFieldsV2;
+}
+
+export interface UserRecordDataV2 extends AuditFields {
+  id: EntityId;
+  status: WorkStatus;
+  rating: number | null;
+  shortReview: string;
+  review: string;
+  favorite: boolean;
+  personalTags: string[];
+  progressCurrent: number | null;
+  progressTotal: number | null;
+  progressUnit: ProgressUnit | null;
+  lastConsumedLabel: string | null;
+  startedAt: ISODateString | null;
+  completedAt: ISODateString | null;
+  droppedAt: ISODateString | null;
+  lastConsumedAt: ISODateString | null;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
+export interface CatalogTitleSummaryV2 {
+  id: EntityId;
+  mediumType: WorkType;
+  title: string;
+  thumbnailUrl: string;
+  verificationStatus: CatalogVerificationStatus | string;
+}
+
+export type UserRecordViewIdentityV2 =
+  | {
+      kind: 'catalog';
+      catalogTitleId: EntityId;
+      catalog: CatalogTitleSummaryV2;
+    }
+  | {
+      kind: 'manual';
+      title: string;
+      mediumType: WorkType;
+      author: string;
+      description: string;
+      thumbnailUrl: string;
+    };
+
+export interface UserRecordViewV2 {
+  identity: UserRecordViewIdentityV2;
+  record: UserRecordDataV2;
+}
+
+export interface UserRecordListV2 {
+  records: UserRecordViewV2[];
+}
 export const TIER_BOARD_VISIBILITIES = [
   'private',
   'link_only',
@@ -1160,12 +1258,16 @@ export const PRODUCT_RELEASE_PROFILES = [
   'personal-archive',
   'community-reflection-alpha',
   'community-social-experiment',
+  'community-core',
+  'community-full',
 ] as const;
-export type ProductReleaseProfile =
-  (typeof PRODUCT_RELEASE_PROFILES)[number];
+export type ProductReleaseProfile = (typeof PRODUCT_RELEASE_PROFILES)[number];
 
 export interface ProductReleaseCapabilities {
   communityReflection: boolean;
+  communityCore: boolean;
+  communityFull: boolean;
+  /** @deprecated Use communityCore for the formal social surface gate. */
   communitySocial: boolean;
 }
 
@@ -1180,14 +1282,32 @@ export const PRODUCT_RELEASE_CAPABILITIES: Record<
 > = {
   'personal-archive': {
     communityReflection: false,
+    communityCore: false,
+    communityFull: false,
     communitySocial: false,
   },
   'community-reflection-alpha': {
     communityReflection: true,
+    communityCore: false,
+    communityFull: false,
     communitySocial: false,
   },
   'community-social-experiment': {
     communityReflection: true,
+    communityCore: true,
+    communityFull: true,
+    communitySocial: true,
+  },
+  'community-core': {
+    communityReflection: true,
+    communityCore: true,
+    communityFull: false,
+    communitySocial: true,
+  },
+  'community-full': {
+    communityReflection: true,
+    communityCore: true,
+    communityFull: true,
     communitySocial: true,
   },
 };
@@ -1211,8 +1331,7 @@ export const COMMUNITY_POST_SORTS = ['latest', 'popular'] as const;
 export type CommunityPostSort = (typeof COMMUNITY_POST_SORTS)[number];
 
 export const COMMUNITY_POST_SURFACES = ['reflection', 'board'] as const;
-export type CommunityPostSurface =
-  (typeof COMMUNITY_POST_SURFACES)[number];
+export type CommunityPostSurface = (typeof COMMUNITY_POST_SURFACES)[number];
 
 export const COMMUNITY_REPORT_REASONS = [
   'spoiler',

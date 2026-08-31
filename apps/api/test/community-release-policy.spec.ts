@@ -15,6 +15,7 @@ describe('community release policy', () => {
       false,
     );
     expect(isCommunityReleaseEnabled('personal-archive', 'social')).toBe(false);
+    expect(isCommunityReleaseEnabled('personal-archive', 'full')).toBe(false);
   });
 
   it('keeps reflection alpha narrower than the social experiment', () => {
@@ -27,6 +28,12 @@ describe('community release policy', () => {
     expect(
       isCommunityReleaseEnabled('community-social-experiment', 'social'),
     ).toBe(true);
+  });
+
+  it('opens formal core without enabling follow, taste, or notifications', () => {
+    expect(isCommunityReleaseEnabled('community-core', 'core')).toBe(true);
+    expect(isCommunityReleaseEnabled('community-core', 'full')).toBe(false);
+    expect(isCommunityReleaseEnabled('community-full', 'full')).toBe(true);
   });
 
   it('rejects a misspelled explicit server profile', () => {

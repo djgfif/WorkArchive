@@ -40,6 +40,7 @@ import {
   type DeploymentProfile,
 } from '@shared/runtime/deployment-profile';
 import {
+  isCommunityFullEnabled,
   isCommunityReflectionEnabled,
   isCommunitySocialEnabled,
   productReleaseProfile,
@@ -97,12 +98,17 @@ export function createAppRoutes(
     !sitesGuestPoc && isCommunityReflectionEnabled(releaseProfile);
   const socialEnabled =
     !sitesGuestPoc && isCommunitySocialEnabled(releaseProfile);
+  const fullEnabled = !sitesGuestPoc && isCommunityFullEnabled(releaseProfile);
   const communityRoutes: RouteObject[] = reflectionEnabled
     ? [
         {
           path: 'community',
           element: lazyRoute(
-            socialEnabled ? <CommunityPage /> : <CommunityReflectionPage />,
+            socialEnabled ? (
+              <CommunityPage fullEnabled={fullEnabled} />
+            ) : (
+              <CommunityReflectionPage />
+            ),
           ),
           errorElement: routeError(
             appI18n.t('routes.communityError'),
@@ -114,7 +120,9 @@ export function createAppRoutes(
           ? [
               {
                 path: 'community/boards',
-                element: lazyRoute(<CommunityBoardsPage />),
+                element: lazyRoute(
+                  <CommunityBoardsPage fullEnabled={fullEnabled} />,
+                ),
               },
               {
                 path: 'community/posts/:id',
@@ -124,13 +132,19 @@ export function createAppRoutes(
                 path: 'community/reviews/:id',
                 element: lazyRoute(<CommunityReviewDetailPage />),
               },
-              {
-                path: 'community/taste',
-                element: lazyRoute(<CommunityTastePage />),
-              },
+              ...(fullEnabled
+                ? [
+                    {
+                      path: 'community/taste',
+                      element: lazyRoute(<CommunityTastePage />),
+                    },
+                  ]
+                : []),
               {
                 path: 'u/:handle',
-                element: lazyRoute(<CommunityProfilePage />),
+                element: lazyRoute(
+                  <CommunityProfilePage fullEnabled={fullEnabled} />,
+                ),
               },
             ]
           : []),

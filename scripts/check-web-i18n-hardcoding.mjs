@@ -36,6 +36,7 @@ function shouldSkipFile(path) {
   return (
     path.includes('/node_modules/') ||
     path.includes('/dist/') ||
+    path.includes('/src/shared/generated/') ||
     path.includes('/src/test/') ||
     path.endsWith('.test.ts') ||
     path.endsWith('.test.tsx') ||

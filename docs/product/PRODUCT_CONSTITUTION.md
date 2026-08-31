@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                   |
 | Role                  | `sole product-direction authority`                                                                            |
 | Source of truth       | explicit product intent, local-first data architecture, user-trust and release review                         |
-| Last verified against | `2026-08-26` repository, browser, navigation, and Community scope audit                                       |
+| Last verified against | `2026-08-31` Community core, API v2, release profile, and data-rights implementation                          |
 | When to update        | primary purpose, data planes, publication contract, product hierarchy, or approval rules intentionally change |
 
 이 문서는 Work Archive의 **유일한 제품 방향 기준**이다. 구현, 로드맵,
@@ -75,11 +75,13 @@ Work Archive는 사용자가 자신이 읽고 본 작품의 역사를 빠르게 
 1. 개인 아카이브 핵심: capture, edit, search, organize, backup, restore
 2. 개인 회고: timeline, reread/rewatch, insights, archive health
 3. 파생 도구: tier board, collection, 선택형 공개 감상
-4. 공개·소셜 실험: profile, follow, comment, ranking, recommendation network
+4. Community: 게시판, 공개 리뷰·댓글·프로필, 신고와 moderation
+5. 후반 소셜 확장: follow, taste, notification, recommendation network
 
 상위 계층의 신뢰성과 도달성이 하위 계층보다 우선한다. 파생 기능은 개인
 아카이브를 입력 재료로 사용할 수 있지만, 그 저장 경로나 정보 구조를 지배하지
-않는다. 공개·소셜 기능은 기본 제품 정체성이 아니라 검증이 필요한 실험이다.
+않는다. Community는 정식 public plane이지만 항상 opt-in이며 개인 아카이브보다
+낮은 우선순위를 갖는다. 후반 소셜 확장은 별도 Gate를 통과해야 한다.
 
 ## 6. Expansion Test
 
@@ -107,11 +109,13 @@ Work Archive는 사용자가 자신이 읽고 본 작품의 역사를 빠르게 
 
 ## 8. Release Profiles
 
-| Runtime identifier               | Allowed                                                                     | Default                                |
-| -------------------------------- | --------------------------------------------------------------------------- | -------------------------------------- |
-| `personal-archive`               | 개인 기록, 회고, backup/sync, private tier board                            | enabled                                |
-| `community-reflection-alpha`     | 짧은 공개 감상, 단일 feed, 단일 reaction, report/moderation                 | disabled until release evidence passes |
-| `community-social-experiment`    | boards, public profiles, comments, follows, taste/trending, recommendations | disabled and not production-approved   |
+| Runtime identifier            | Allowed                                                | Release state                              |
+| ----------------------------- | ------------------------------------------------------ | ------------------------------------------ |
+| `personal-archive`            | 개인 기록, 회고, backup/sync, private tier board       | fail-closed default and immediate rollback |
+| `community-core`              | 감상, 게시판, 공개 리뷰·댓글·프로필, 신고와 moderation | single-instance beta default               |
+| `community-full`              | `community-core` + follow, taste, notification         | blocked until the late beta Gate passes    |
+| `community-reflection-alpha`  | 기존 짧은 감상 capability                              | deprecated compatibility alias             |
+| `community-social-experiment` | 기존 social experiment capability                      | deprecated compatibility alias             |
 
 라우트나 API가 저장소에 존재해도 해당 release profile이 승인·활성화되지 않으면
 사용자에게 노출하지 않는다.
@@ -126,12 +130,19 @@ Work Archive는 사용자가 자신이 읽고 본 작품의 역사를 빠르게 
 - 웹 번들에는 프로필을 굽지 않는다. 컨테이너 시작 시 `/tmp`에 생성한
   `work-archive-config.js`를 `no-store`로 제공한다.
 - Compose는 하나의 `PRODUCT_RELEASE_PROFILE` 값을 웹과 API 런타임에 함께 전달하고, 웹 healthcheck가 공개 API 프로필과 일치하는지 확인한다.
-- `community-reflection-alpha`는 `/community`와
-  `/community/reflections` API만 연다.
-- 게시판·리뷰·댓글·프로필·팔로우·taste/trending은
-  `community-social-experiment`에서만 라우트와 API가 열린다.
+- `community-core`는 감상, 게시판, 리뷰, 댓글, 공개 프로필, 신고와
+  moderation만 연다. follow, taste, notification과 following feed는 닫는다.
+- `community-full`만 후반 소셜 기능을 연다.
+- 두 기존 profile 이름은 한 분기 동안 기존 capability 그대로 지원하며,
+  다른 profile로 자동 승격하지 않는다.
 - 짧은 감상과 게시판 글은 `CommunityPost.surface`로 구분한다. 기존 미분류 공개 글은
   좁은 alpha로 승격하지 않고 `board`로 보수적으로 분류한다.
+- Community 요청은 그 공개 행동에서 작성한 콘텐츠와 사용자가 확인한 작품
+  snapshot만 포함한다. 개인 기록 ID, 진행도, 개인 태그와 비공개 감상은 금지한다.
+- 계정 export·삭제 미리보기·삭제 실행에는 Community 데이터도 포함한다.
+  신고 처리, hide/restore, takedown과 보존 기간은 운영·테스트 계약이다.
+- 롤백은 설정값을 `personal-archive`로 바꿔 웹/API/navigation을 함께 회수한다.
+  이 롤백은 Community DB 행을 되돌리거나 이미 공개된 정보를 회수한다는 뜻이 아니다.
 
 ## 9. Governance
 

@@ -1,6 +1,7 @@
 import {
   getProductReleaseCapabilities,
   isProductReleaseProfile,
+  PRODUCT_RELEASE_PROFILES,
   type ProductReleaseProfile,
 } from '@work-archive/shared-types';
 
@@ -20,7 +21,7 @@ export function readProductReleaseProfile(
 
   if (!isProductReleaseProfile(configuredValue)) {
     throw new Error(
-      'PRODUCT_RELEASE_PROFILE must be personal-archive, community-reflection-alpha, or community-social-experiment.',
+      `PRODUCT_RELEASE_PROFILE must be one of: ${PRODUCT_RELEASE_PROFILES.join(', ')}.`,
     );
   }
 

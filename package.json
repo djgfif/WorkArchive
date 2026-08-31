@@ -50,6 +50,7 @@
     "i18n:summary": "node scripts/export-web-i18n-work-pack.mjs --summary",
     "check:docs-links": "node scripts/check-doc-links.mjs",
     "qa:product-contract": "node scripts/qa/validate-product-contract.mjs",
+    "qa:api-v2-contract": "node scripts/qa/validate-api-v2-contract.mjs",
     "qa:product-release-runtime": "node scripts/qa/validate-product-release-runtime.mjs",
     "security:secrets": "node scripts/security/secret-leak-check.mjs",
     "security:install-hooks": "node scripts/security/install-git-hooks.mjs",
@@ -105,7 +106,9 @@
     "ops:healthcheck": "scripts/deploy/prod-healthcheck.sh",
     "ops:logs": "scripts/deploy/prod-logs.sh",
     "ops:restore-drill": "scripts/deploy/prod-restore-drill.sh",
-    "api:generate": "orval --config orval.config.ts",
+    "api:generate:spec": "npm run build --workspace @work-archive/shared-types && npm run build --workspace @work-archive/api && node apps/api/scripts/generate-openapi.mjs",
+    "api:generate": "npm run api:generate:spec && orval --config orval.config.ts",
+    "api:generate:check": "npm run api:generate && git diff --exit-code -- openapi apps/web/src/shared/generated",
     "prebuild": "npm run check:runtime",
     "build": "npm run build --workspace @work-archive/shared-types && npm run build --workspaces --if-present",
     "format": "prettier --check .",
@@ -131,6 +134,9 @@
     "brace-expansion": "5.0.9",
     "deepmerge-ts": "8.0.2",
     "fast-uri": "3.1.6",
+    "orval": {
+      "js-yaml": "4.3.1"
+    },
     "ip-address": "10.5.0",
     "js-yaml": "5.4.0"
   }

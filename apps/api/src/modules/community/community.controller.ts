@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -25,6 +26,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { CommunityProfileView } from '@work-archive/shared-types';
 
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthService } from '../auth/auth.service';
@@ -44,9 +46,15 @@ import {
   UpdateCommunityProfileDto,
   UpsertCommunityReviewDto,
 } from './dto/community.dto';
-import { CommunityService } from './community.service';
+import { CommunityInteractionService } from './services/community-interaction.service';
+import { CommunityModerationService } from './services/community-moderation.service';
+import { CommunityProfileService } from './services/community-profile.service';
+import { CommunityPublicationService } from './services/community-publication.service';
+import { CommunityQueryService } from './services/community-query.service';
 import {
   CommunityReleaseGuard,
+  isCommunityReleaseEnabled,
+  readProductReleaseProfile,
   RequireCommunityRelease,
 } from './community-release-policy';
 
@@ -59,13 +67,21 @@ import {
   UpdateCommunityProfileDto,
 )
 @Controller('community')
-@RequireCommunityRelease('social')
+@RequireCommunityRelease('core')
 @UseGuards(CommunityReleaseGuard)
 export class CommunityController {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
-    @Inject(CommunityService)
-    private readonly communityService: CommunityService,
+    @Inject(CommunityInteractionService)
+    private readonly interactions: CommunityInteractionService,
+    @Inject(CommunityModerationService)
+    private readonly moderation: CommunityModerationService,
+    @Inject(CommunityProfileService)
+    private readonly profiles: CommunityProfileService,
+    @Inject(CommunityPublicationService)
+    private readonly publication: CommunityPublicationService,
+    @Inject(CommunityQueryService)
+    private readonly queries: CommunityQueryService,
   ) {}
 
   @Get('posts')
@@ -76,23 +92,31 @@ export class CommunityController {
   ) {
     const user = await this.getOptionalUser(authorizationHeader);
 
-    return this.communityService.listPosts(query, user?.userId ?? null);
+    return this.queries.listPosts(query, user?.userId ?? null);
   }
 
   @Get('feed')
-  @ApiOkResponse({ description: 'List the combined public review and board feed.' })
+  @ApiOkResponse({
+    description: 'List the combined public review and board feed.',
+  })
   async listFeed(
     @Headers('authorization') authorizationHeader: string | undefined,
     @Query() query: CommunityFeedQueryDto,
   ) {
+    if (
+      query.scope === 'following' &&
+      !isCommunityReleaseEnabled(readProductReleaseProfile(), 'full')
+    ) {
+      throw new NotFoundException();
+    }
     const user = await this.getOptionalUser(authorizationHeader);
-    return this.communityService.listFeed(query, user?.userId ?? null);
+    return this.queries.listFeed(query, user?.userId ?? null);
   }
 
   @Get('works/trending')
   @ApiOkResponse({ description: 'List works with recent Community activity.' })
   listTrendingWorks() {
-    return this.communityService.listTrendingWorks();
+    return this.queries.listTrendingWorks();
   }
 
   @Get('posts/:id')
@@ -102,7 +126,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     const user = await this.getOptionalUser(authorizationHeader);
-    return this.communityService.getPost(id, user?.userId ?? null);
+    return this.queries.getPost(id, user?.userId ?? null);
   }
 
   @Post('posts')
@@ -115,7 +139,7 @@ export class CommunityController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: CreateCommunityPostDto,
   ) {
-    return this.communityService.createPost(user.userId, input);
+    return this.publication.createPost(user.userId, input);
   }
 
   @Get('works/:catalogTitleId/reviews')
@@ -126,7 +150,7 @@ export class CommunityController {
     @Query() query: CommunityPostsQueryDto,
   ) {
     const user = await this.getOptionalUser(authorizationHeader);
-    return this.communityService.listReviewsByWork(
+    return this.queries.listReviewsByWork(
       catalogTitleId,
       query,
       user?.userId ?? null,
@@ -140,7 +164,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     const user = await this.getOptionalUser(authorizationHeader);
-    return this.communityService.getReview(id, user?.userId ?? null);
+    return this.queries.getReview(id, user?.userId ?? null);
   }
 
   @Put('reviews/:catalogTitleId')
@@ -152,7 +176,7 @@ export class CommunityController {
     @Param('catalogTitleId', new ParseUUIDPipe()) catalogTitleId: string,
     @Body() input: UpsertCommunityReviewDto,
   ) {
-    return this.communityService.upsertReview(user.userId, catalogTitleId, input);
+    return this.publication.upsertReview(user.userId, catalogTitleId, input);
   }
 
   @Delete('reviews/:catalogTitleId')
@@ -162,7 +186,7 @@ export class CommunityController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('catalogTitleId', new ParseUUIDPipe()) catalogTitleId: string,
   ) {
-    return this.communityService.deleteReview(user.userId, catalogTitleId);
+    return this.publication.deleteReview(user.userId, catalogTitleId);
   }
 
   @Get('comments')
@@ -171,7 +195,7 @@ export class CommunityController {
     @Query() query: CommunityCommentsQueryDto,
   ) {
     const user = await this.getOptionalUser(authorizationHeader);
-    return this.communityService.listComments(
+    return this.queries.listComments(
       query.targetType,
       query.targetId,
       user?.userId ?? null,
@@ -186,7 +210,7 @@ export class CommunityController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: CreateCommunityCommentDto,
   ) {
-    return this.communityService.createComment(user.userId, input);
+    return this.publication.createComment(user.userId, input);
   }
 
   @Patch('comments/:id')
@@ -198,7 +222,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: UpdateCommunityCommentDto,
   ) {
-    return this.communityService.updateComment(user.userId, id, input);
+    return this.publication.updateComment(user.userId, id, input);
   }
 
   @Delete('comments/:id')
@@ -208,7 +232,7 @@ export class CommunityController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.communityService.deleteComment(user.userId, id);
+    return this.publication.deleteComment(user.userId, id);
   }
 
   @Put('reactions/:targetType/:targetId')
@@ -219,7 +243,7 @@ export class CommunityController {
     @Param('targetType') targetType: string,
     @Param('targetId', new ParseUUIDPipe()) targetId: string,
   ) {
-    return this.communityService.setTargetReaction(
+    return this.interactions.setTargetReaction(
       user.userId,
       this.parseReactionTarget(targetType),
       targetId,
@@ -235,7 +259,7 @@ export class CommunityController {
     @Param('targetType') targetType: string,
     @Param('targetId', new ParseUUIDPipe()) targetId: string,
   ) {
-    return this.communityService.setTargetReaction(
+    return this.interactions.setTargetReaction(
       user.userId,
       this.parseReactionTarget(targetType),
       targetId,
@@ -249,60 +273,89 @@ export class CommunityController {
     @Param('handle') handle: string,
   ) {
     const user = await this.getOptionalUser(authorizationHeader);
-    return this.communityService.getProfile(handle, user?.userId ?? null);
+    const profile = await this.profiles.getProfile(
+      handle,
+      user?.userId ?? null,
+    );
+    return this.restrictProfileToRelease(profile);
   }
 
   @Patch('profile')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiBody({ type: UpdateCommunityProfileDto })
-  updateProfile(
+  async updateProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Body() input: UpdateCommunityProfileDto,
   ) {
-    return this.communityService.updateProfile(user.userId, input);
+    const releaseInput = this.isFullRelease()
+      ? input
+      : {
+          ...input,
+          allowFollowers: false,
+          notifications: {
+            browser: false,
+            globalBadge: false,
+            inCommunity: false,
+          },
+          sections: {
+            ...input.sections,
+            showFollowers: false,
+            showTasteSummary: false,
+          },
+        };
+    const profile = await this.profiles.updateProfile(
+      user.userId,
+      releaseInput,
+    );
+    return this.restrictProfileToRelease(profile);
   }
 
   @Put('profiles/:handle/follow')
+  @RequireCommunityRelease('full')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   followProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Param('handle') handle: string,
   ) {
-    return this.communityService.setFollow(user.userId, handle, true);
+    return this.interactions.setFollow(user.userId, handle, true);
   }
 
   @Delete('profiles/:handle/follow')
+  @RequireCommunityRelease('full')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   unfollowProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Param('handle') handle: string,
   ) {
-    return this.communityService.setFollow(user.userId, handle, false);
+    return this.interactions.setFollow(user.userId, handle, false);
   }
 
   @Get('taste/candidates')
+  @RequireCommunityRelease('full')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   listTasteCandidates(@CurrentUser() user: AuthenticatedUser) {
-    return this.communityService.listTasteCandidates(user.userId);
+    return this.interactions.listTasteCandidates(user.userId);
   }
 
   @Get('notifications')
+  @RequireCommunityRelease('full')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   listNotifications(@CurrentUser() user: AuthenticatedUser) {
-    return this.communityService.listNotifications(user.userId);
+    return this.interactions.listNotifications(user.userId);
   }
 
   @Post('notifications/read')
+  @RequireCommunityRelease('full')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   markNotificationsRead(@CurrentUser() user: AuthenticatedUser) {
-    return this.communityService.markNotificationsRead(user.userId);
+    return this.interactions.markNotificationsRead(user.userId);
   }
 
   @Delete('posts/:id')
@@ -313,7 +366,7 @@ export class CommunityController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.communityService.deletePost(user.userId, id);
+    return this.publication.deletePost(user.userId, id);
   }
 
   @Post('posts/:id/reactions')
@@ -325,7 +378,7 @@ export class CommunityController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.communityService.addReaction(user.userId, id);
+    return this.interactions.addReaction(user.userId, id);
   }
 
   @Delete('posts/:id/reactions')
@@ -336,7 +389,7 @@ export class CommunityController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.communityService.removeReaction(user.userId, id);
+    return this.interactions.removeReaction(user.userId, id);
   }
 
   @Post('posts/:id/reports')
@@ -349,7 +402,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CreateCommunityReportDto,
   ) {
-    return this.communityService.reportPost(user.userId, id, input);
+    return this.moderation.reportPost(user.userId, id, input);
   }
 
   @Post('reviews/:id/reports')
@@ -362,7 +415,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CreateCommunityReportDto,
   ) {
-    return this.communityService.reportReview(user.userId, id, input);
+    return this.moderation.reportReview(user.userId, id, input);
   }
 
   @Post('comments/:id/reports')
@@ -375,7 +428,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CreateCommunityReportDto,
   ) {
-    return this.communityService.reportComment(user.userId, id, input);
+    return this.moderation.reportComment(user.userId, id, input);
   }
 
   @Get('moderation/reports')
@@ -383,7 +436,7 @@ export class CommunityController {
   @UseGuards(JwtAuthGuard)
   @ApiOkResponse({ description: 'List pending Community reports.' })
   listReports(@CurrentUser() user: AuthenticatedUser) {
-    return this.communityService.listReports(user);
+    return this.moderation.listReports(user);
   }
 
   @Post('moderation/posts/:id/hide')
@@ -397,7 +450,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CommunityModerationActionDto,
   ) {
-    return this.communityService.hidePost(user, id, input.note);
+    return this.moderation.hidePost(user, id, input.note);
   }
 
   @Post('moderation/posts/:id/restore')
@@ -411,7 +464,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CommunityModerationActionDto,
   ) {
-    return this.communityService.restorePost(user, id, input.note);
+    return this.moderation.restorePost(user, id, input.note);
   }
 
   @Post('moderation/reviews/:id/hide')
@@ -424,7 +477,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CommunityModerationActionDto,
   ) {
-    return this.communityService.hideReview(user, id, input.note);
+    return this.moderation.hideReview(user, id, input.note);
   }
 
   @Post('moderation/reviews/:id/restore')
@@ -437,7 +490,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CommunityModerationActionDto,
   ) {
-    return this.communityService.restoreReview(user, id, input.note);
+    return this.moderation.restoreReview(user, id, input.note);
   }
 
   @Post('moderation/comments/:id/hide')
@@ -450,7 +503,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CommunityModerationActionDto,
   ) {
-    return this.communityService.hideComment(user, id, input.note);
+    return this.moderation.hideComment(user, id, input.note);
   }
 
   @Post('moderation/comments/:id/restore')
@@ -463,7 +516,7 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CommunityModerationActionDto,
   ) {
-    return this.communityService.restoreComment(user, id, input.note);
+    return this.moderation.restoreComment(user, id, input.note);
   }
 
   @Post('moderation/reports/:id/resolve')
@@ -479,7 +532,37 @@ export class CommunityController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: ResolveCommunityReportDto,
   ) {
-    return this.communityService.resolveReport(user, id, input);
+    return this.moderation.resolveReport(user, id, input);
+  }
+
+  private isFullRelease() {
+    return isCommunityReleaseEnabled(readProductReleaseProfile(), 'full');
+  }
+
+  private restrictProfileToRelease(
+    profile: CommunityProfileView,
+  ): CommunityProfileView {
+    if (this.isFullRelease()) return profile;
+
+    return {
+      ...profile,
+      allowFollowers: false,
+      favoriteGenres: [],
+      followerCount: 0,
+      followingCount: 0,
+      notifications: {
+        browser: false,
+        globalBadge: false,
+        inCommunity: false,
+      },
+      sections: {
+        ...profile.sections,
+        showFollowers: false,
+        showTasteSummary: false,
+      },
+      viewerCanFollow: false,
+      viewerIsFollowing: false,
+    };
   }
 
   private async getOptionalUser(authorizationHeader?: string) {

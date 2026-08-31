@@ -53,6 +53,10 @@ async function mockAuthenticatedSession(page: Page) {
 function gotoApp(page: Page, path: string) {
   return page.goto(path, { waitUntil: 'domcontentloaded' });
 }
+async function openDirectAddForm(page: Page) {
+  await page.getByRole('button', { name: '직접 입력' }).click();
+  await expect(page.getByRole('textbox', { name: '제목' })).toBeVisible();
+}
 
 async function expectNoHorizontalOverflow(page: Page) {
   await expect
@@ -228,6 +232,7 @@ test('completes a first record with core fields on desktop and mobile', async ({
   const title = `Playwright Beta Work ${Date.now()}`;
 
   await gotoApp(page, '/works/new');
+  await openDirectAddForm(page);
 
   await expect(page.getByRole('heading', { name: '작품 추가' })).toBeVisible();
   await expect(page.getByRole('button', { name: '보는 중' })).toBeVisible();
@@ -239,11 +244,8 @@ test('completes a first record with core fields on desktop and mobile', async ({
   await page.getByRole('button', { name: '보는 중' }).click();
   await rating.press('End');
   await expect(rating).toHaveAttribute('aria-valuenow', '5');
-  await page.getByRole('button', { name: '내 아카이브에 저장' }).click();
+  await page.getByRole('button', { name: '내 서재에 추가' }).click();
 
-  await expect(page.getByText(`${title}을(를) 등록했습니다`)).toBeVisible();
-
-  await page.getByRole('link', { name: '방금 등록한 작품 보기' }).click();
   await expect(
     page.getByRole('heading', { exact: true, name: title }),
   ).toBeVisible();
@@ -264,6 +266,7 @@ test('keeps mobile add-work save actions from covering first fields', async ({
   );
 
   await gotoApp(page, '/works/new');
+  await openDirectAddForm(page);
 
   await expect(page.getByRole('heading', { name: '작품 추가' })).toBeVisible();
   await expect(
@@ -281,7 +284,7 @@ test('keeps mobile add-work save actions from covering first fields', async ({
   const layoutMetrics = await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll('button'));
     const saveButton = buttons.find((button) =>
-      button.textContent?.includes('내 아카이브에 저장'),
+      button.textContent?.includes('내 서재에 추가'),
     );
     const typeSelect = document.querySelector('select');
     const poster = document.querySelector('[aria-label*="포스터 대체 표지"]');
@@ -366,11 +369,9 @@ test('keeps 320px core routes free of horizontal overflow', async ({
   const title = `320 Layout Work ${Date.now()}`;
 
   await gotoApp(page, '/works/new');
+  await openDirectAddForm(page);
   await page.getByRole('textbox', { name: '제목' }).fill(title);
-  await page.getByRole('button', { name: '내 아카이브에 저장' }).click();
-  await expect(page.getByText(`${title}을(를) 등록했습니다`)).toBeVisible();
-
-  await page.getByRole('link', { name: '방금 등록한 작품 보기' }).click();
+  await page.getByRole('button', { name: '내 서재에 추가' }).click();
   await expect(
     page.getByRole('heading', { exact: true, name: title }),
   ).toBeVisible();
@@ -447,22 +448,22 @@ test('lets mobile users navigate core routes from the bottom bar and account men
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole('button', { name: '계정 메뉴 · 모바일 탐색' }).click();
-  await page.getByRole('menuitem', { name: '인사이트' }).click();
+  await page.getByRole('menuitem', { name: '계정 개요' }).click();
 
-  await expect(page).toHaveURL(/\/insights$/);
+  await expect(page).toHaveURL(/\/account$/);
   await expect(
-    page.getByRole('heading', {
-      name: /개인 인사이트|아직 인사이트를 만들 기록이 없습니다\./,
-    }),
+    page.getByRole('heading', { name: '개인 기록 센터' }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await page.getByRole('button', { name: '계정 메뉴 · 모바일 탐색' }).click();
-  await page.getByRole('menuitem', { name: '티어보드' }).click();
+  await page
+    .getByRole('navigation', { name: '계정' })
+    .getByRole('link', { name: '설정과 백업' })
+    .click();
 
-  await expect(page).toHaveURL(/\/tier-boards$/);
+  await expect(page).toHaveURL(/\/account\/settings$/);
   await expect(
-    page.getByRole('heading', { name: '자유형 티어보드' }),
+    page.getByRole('heading', { name: '설정과 백업' }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
@@ -570,7 +571,7 @@ test('shows quick-add source coverage and keeps direct-add fallback visible', as
 
   await expect(page.getByRole('heading', { name: '작품 추가' })).toBeVisible();
   await page.getByRole('textbox', { name: '작품 검색' }).fill('장송의 프리렌');
-  await page.getByRole('button', { name: '후보 검색' }).click();
+  await page.getByRole('button', { name: '검색', exact: true }).click();
 
   const candidateButton = page.getByRole('button', {
     name: /葬送のフリーレン.*후보 선택/,
@@ -578,9 +579,10 @@ test('shows quick-add source coverage and keeps direct-add fallback visible', as
 
   await expect(candidateButton).toBeVisible();
   await expect(
-    candidateButton.getByText('출처 2개', { exact: true }),
+    candidateButton.getByText(/TV 애니메이션 · 출처 2개/),
   ).toBeVisible();
-  await expect(candidateButton.getByText('Wikidata 보강')).toBeVisible();
+  await candidateButton.click();
+  await expect(page.getByText(/AniList · Wikidata · 출처 2개/)).toBeVisible();
   await expect(
     page.getByRole('button', { name: '직접 추가로 계속' }),
   ).toBeVisible();
@@ -615,7 +617,7 @@ test('keeps direct add usable when quick-add search fails', async ({
 
   await expect(page.getByRole('heading', { name: '작품 추가' })).toBeVisible();
   await page.getByRole('textbox', { name: '작품 검색' }).fill('실패한 검색어');
-  await page.getByRole('button', { name: '후보 검색' }).click();
+  await page.getByRole('button', { name: '검색', exact: true }).click();
 
   const searchFailureAlert = page.getByRole('alert');
 
@@ -639,11 +641,13 @@ test('keeps direct add usable when quick-add search fails', async ({
     '실패한 검색어',
   );
   const saveButton = page.getByRole('button', {
-    name: '내 아카이브에 저장',
+    name: '내 서재에 추가',
   });
   await expect(saveButton).toBeVisible();
   await saveButton.click();
-  await expect(page.getByText('실패한 검색어를 등록했습니다')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { exact: true, name: '실패한 검색어' }),
+  ).toBeVisible();
 });
 
 test('keeps guest backup and provider-key safety visible in settings', async ({
@@ -706,10 +710,9 @@ test('checks archive health and opens an affected record for editing', async ({
   const title = `Playwright Health Work ${Date.now()}`;
 
   await gotoApp(page, '/works/new');
+  await openDirectAddForm(page);
   await page.getByRole('textbox', { name: '제목' }).fill(title);
-  await page.getByRole('button', { name: '내 아카이브에 저장' }).click();
-  await expect(page.getByText(`${title}을(를) 등록했습니다`)).toBeVisible();
-
+  await page.getByRole('button', { name: '내 서재에 추가' }).click();
   await gotoApp(page, '/account/settings#archive-health');
 
   await expect(
@@ -782,4 +785,91 @@ test('lets a guest create a local-first tier board and open the editor', async (
   await expect(page.getByRole('button', { name: '보드 설정' })).toBeVisible();
   await expect(page.getByText('최애')).toBeVisible();
   await expect(page.getByText('아쉬움')).toBeVisible();
+});
+
+test('keeps community-core public and hides full-only discovery', async ({
+  page,
+}) => {
+  test.skip(
+    process.env.VITE_PRODUCT_RELEASE_PROFILE !== 'community-core',
+    'community-core release-profile contract',
+  );
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route('**/api/community/feed**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ items: [], nextCursor: null }),
+      contentType: 'application/json',
+      headers: { 'cache-control': 'no-store' },
+      status: 200,
+    });
+  });
+  await page.route('**/api/community/works/trending', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
+      headers: { 'cache-control': 'no-store' },
+      status: 200,
+    });
+  });
+
+  await gotoApp(page, '/community');
+
+  await expect(
+    page.getByRole('heading', { name: '작품에서 시작하는 이야기' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('navigation', { name: '커뮤니티 둘러보기' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: /게시판/ }).first(),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: /취향 찾기/ })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: '팔로잉' })).toHaveCount(0);
+  await expect(page.getByText('내 기록은 그대로 비공개')).toBeVisible();
+  await expect(page.getByRole('link', { name: '내 서재로' })).toHaveCount(0);
+
+  const viewport = await page.evaluate(() => ({
+    innerWidth: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+
+  expect(viewport.scrollWidth).toBe(viewport.innerWidth);
+});
+
+test('keeps the library recovery route when community-core API fails', async ({
+  page,
+}) => {
+  test.skip(
+    process.env.VITE_PRODUCT_RELEASE_PROFILE !== 'community-core',
+    'community-core release-profile contract',
+  );
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route('**/api/community/feed**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ message: 'Community unavailable' }),
+      contentType: 'application/json',
+      headers: { 'cache-control': 'no-store' },
+      status: 503,
+    });
+  });
+  await page.route('**/api/community/works/trending', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ message: 'Community unavailable' }),
+      contentType: 'application/json',
+      headers: { 'cache-control': 'no-store' },
+      status: 503,
+    });
+  });
+
+  await gotoApp(page, '/community');
+
+  await expect(
+    page.getByRole('heading', { name: '커뮤니티에 연결하지 못했습니다' }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: '내 서재로' }).click();
+
+  await expect(page).toHaveURL(/\/works$/);
+  await expect(page.getByRole('heading', { name: '작품 서재' })).toBeVisible();
 });

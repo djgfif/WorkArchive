@@ -1,11 +1,11 @@
-# Community Alpha Plan
+# Community Release Plan
 
 <!-- prettier-ignore -->
 | Field | Value |
 | --- | --- |
-| Status | `production blocked; repository implementation exceeds approved alpha` |
-| Role | `community alpha product, privacy, and moderation contract` |
-| Source of truth | [`PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md), explicit 2026-08-25 reflection-alpha approval, public permission boundary |
+| Status | `community-core approved for single-instance beta; community-full production blocked` |
+| Role | `community public-plane, privacy, moderation, and release contract` |
+| Source of truth | [`PRODUCT_CONSTITUTION.md`](../product/PRODUCT_CONSTITUTION.md), ADR 0006, public permission boundary |
 | When to update | community visibility, author identity, moderation, API, or private-record publication semantics change |
 
 ## Product Position
@@ -13,25 +13,24 @@
 Community is an additive online plane. It does not replace the local-first
 personal archive and does not make login mandatory for archive use.
 
-The alpha supports one deliberate action: a signed-in user writes a new short
-reflection, optionally connects a display snapshot of one local work, and
-presses `공개하기`. The feed is readable without an account. Reactions and
-publishing require authentication.
+Community core supports deliberate publication of reflections, board posts,
+reviews, and comments plus public profiles, reports, and moderation. Public
+reading remains available without an account; publishing and interaction
+require authentication and a unique handle. Publication never copies a private
+record automatically.
 
-## Approved Scope And Implementation Drift
+## Approved Scope And Gated Expansion
 
-승인된 alpha는 짧은 공개 감상, 단일 feed, 단일 reaction, post delete,
-report와 moderation뿐이다. 현재 저장소에는 이 계약을 넘어선 boards, public
-profiles, comments, follows, taste/trending surface와 관련 route/API가 존재한다.
+승인된 `community-core`는 짧은 감상, boards, reviews, comments, public
+profiles, report와 moderation을 포함한다. follows, taste와 notifications는
+`community-full` capability다.
 
-이 확장은 제품 헌법 변경이나 별도 승인 없이 같은 alpha로 간주할 수 없다.
-개인 아카이브 release profile에서는 노출하지 않으며, 별도 decision record,
-데이터 권리 검토, 성공·중단 기준, browser/host evidence를 갖추기 전까지
+`community-full`은 export·삭제·신고·moderation·rollback, 공개 전 안내,
+desktop/mobile 핵심 흐름, 전체 CI, P0/P1 결함 부재 evidence를 갖추기 전까지
 **production blocked** 상태를 유지한다.
 
-승인된 web route allowlist는 Community feed와 feed 안의 publish/reaction/
-report/delete 흐름이다. public profile, board detail, taste/trending route는
-approved alpha allowlist에 포함되지 않는다.
+베타 기본 allowlist에는 feed, board/detail, review/comment, public profile,
+report/delete/moderation이 포함된다. taste/follow/notification은 포함되지 않는다.
 
 ## Publication Contract
 
@@ -79,9 +78,9 @@ not expose raw user IDs, email, OAuth identifiers, session data, report details,
 reporter identity, or moderation notes.
 
 The `/community/posts`, `/community/feed`, reviews, comments, profiles,
-follows, notifications, taste, and trending endpoints belong to the separate
-`community-social-experiment` surface. They are not aliases for the approved
-reflection alpha.
+reports, and moderation endpoints belong to `community-core`. Follows,
+notifications, taste, and following-feed scope require `community-full`.
+Deprecated profile aliases retain their old capability sets for one quarter.
 
 ## Runtime And Storage Enforcement
 
@@ -108,10 +107,10 @@ reflection alpha.
 - Moderator access applies only to community rows. It grants no access to
   private archive, sync, credential, or diagnostic data.
 
-The approved reflection alpha has repository-level implementation and local verification only.
-The broader social expansion is not part of this approval. Production exposure remains pending until host smoke, database migration,
-moderation-operator, retention, and takedown evidence are recorded for the
-release commit.
+Community core has repository-level implementation and local verification.
+Single-instance beta exposure still requires host smoke, database migration,
+moderation-operator, retention, takedown, backup/restore, OAuth, and rollback
+evidence for the release commit. Community full remains blocked separately.
 
 ## UI Benchmark Notes
 
