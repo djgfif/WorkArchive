@@ -803,10 +803,7 @@ export class AuthService {
         }),
         this.prisma.communityFollow.findMany({
           where: {
-            OR: [
-              { followerId: user.userId },
-              { followingId: user.userId },
-            ],
+            OR: [{ followerId: user.userId }, { followingId: user.userId }],
           },
           orderBy: {
             createdAt: 'desc',
@@ -996,6 +993,7 @@ export class AuthService {
         anonymizedSecurityEvents,
         anonymizedCatalogSubmissionReviews,
         anonymizedCatalogAuditLogs,
+        anonymizedCommunityNotificationActors,
         anonymizedCommunityReportAssignments,
         anonymizedCommunityModerationAuditLogs,
       ] = await this.prisma.$transaction([
@@ -1024,13 +1022,26 @@ export class AuthService {
             actorId: null,
           },
         }),
+        this.prisma.communityNotification.updateMany({
+          where: {
+            actorId: user.userId,
+            recipientId: { not: user.userId },
+          },
+          data: {
+            actorId: null,
+          },
+        }),
         this.prisma.communityReport.updateMany({
           where: {
             moderatorId: user.userId,
-            post: {
-              authorId: { not: user.userId },
-            },
             reporterId: { not: user.userId },
+            NOT: [
+              { post: { authorId: user.userId } },
+              { review: { authorId: user.userId } },
+              { comment: { authorId: user.userId } },
+              { comment: { post: { authorId: user.userId } } },
+              { comment: { review: { authorId: user.userId } } },
+            ],
           },
           data: {
             moderatorId: null,
@@ -1062,6 +1073,8 @@ export class AuthService {
           catalogSubmissionReviews: anonymizedCatalogSubmissionReviews.count,
           communityModerationAuditLogs:
             anonymizedCommunityModerationAuditLogs.count,
+          communityNotificationActors:
+            anonymizedCommunityNotificationActors.count,
           communityReportAssignments:
             anonymizedCommunityReportAssignments.count,
           securityEvents: anonymizedSecurityEvents.count,
@@ -1124,12 +1137,20 @@ export class AuthService {
         tierBoardCards,
         tierBoardAssets,
         catalogSubmissions,
+        communityProfiles,
         communityPosts,
+        communityReviews,
         communityReactions,
+        communityReviewReactions,
+        communityComments,
+        communityCommentReactions,
+        communityFollows,
+        communityNotifications,
         communityReports,
         securityEvents,
         catalogSubmissionReviews,
         catalogAuditLogs,
+        communityNotificationActors,
         communityReportAssignments,
         communityModerationAuditLogs,
       ] = await this.prisma.$transaction([
@@ -1240,7 +1261,17 @@ export class AuthService {
             submitterId: user.userId,
           },
         }),
+        this.prisma.userCommunityProfile.count({
+          where: {
+            userId: user.userId,
+          },
+        }),
         this.prisma.communityPost.count({
+          where: {
+            authorId: user.userId,
+          },
+        }),
+        this.prisma.communityReview.count({
           where: {
             authorId: user.userId,
           },
@@ -1250,11 +1281,52 @@ export class AuthService {
             OR: [{ userId: user.userId }, { post: { authorId: user.userId } }],
           },
         }),
+        this.prisma.communityReviewReaction.count({
+          where: {
+            OR: [
+              { userId: user.userId },
+              { review: { authorId: user.userId } },
+            ],
+          },
+        }),
+        this.prisma.communityComment.count({
+          where: {
+            OR: [
+              { authorId: user.userId },
+              { post: { authorId: user.userId } },
+              { review: { authorId: user.userId } },
+            ],
+          },
+        }),
+        this.prisma.communityCommentReaction.count({
+          where: {
+            OR: [
+              { userId: user.userId },
+              { comment: { authorId: user.userId } },
+              { comment: { post: { authorId: user.userId } } },
+              { comment: { review: { authorId: user.userId } } },
+            ],
+          },
+        }),
+        this.prisma.communityFollow.count({
+          where: {
+            OR: [{ followerId: user.userId }, { followingId: user.userId }],
+          },
+        }),
+        this.prisma.communityNotification.count({
+          where: {
+            recipientId: user.userId,
+          },
+        }),
         this.prisma.communityReport.count({
           where: {
             OR: [
               { reporterId: user.userId },
               { post: { authorId: user.userId } },
+              { review: { authorId: user.userId } },
+              { comment: { authorId: user.userId } },
+              { comment: { post: { authorId: user.userId } } },
+              { comment: { review: { authorId: user.userId } } },
             ],
           },
         }),
@@ -1273,13 +1345,23 @@ export class AuthService {
             actorId: user.userId,
           },
         }),
+        this.prisma.communityNotification.count({
+          where: {
+            actorId: user.userId,
+            recipientId: { not: user.userId },
+          },
+        }),
         this.prisma.communityReport.count({
           where: {
             moderatorId: user.userId,
-            post: {
-              authorId: { not: user.userId },
-            },
             reporterId: { not: user.userId },
+            NOT: [
+              { post: { authorId: user.userId } },
+              { review: { authorId: user.userId } },
+              { comment: { authorId: user.userId } },
+              { comment: { post: { authorId: user.userId } } },
+              { comment: { review: { authorId: user.userId } } },
+            ],
           },
         }),
         this.prisma.communityModerationAuditLog.count({
@@ -1299,15 +1381,23 @@ export class AuthService {
           catalogAuditLogs,
           catalogSubmissionReviews,
           communityModerationAuditLogs,
+          communityNotificationActors,
           communityReportAssignments,
           securityEvents,
         },
         cascadeDeletedRecords: {
           authAccounts,
           catalogSubmissions,
+          communityComments,
+          communityCommentReactions,
+          communityFollows,
+          communityNotifications,
           communityPosts,
+          communityProfiles,
           communityReactions,
           communityReports,
+          communityReviewReactions,
+          communityReviews,
           contributors,
           externalApiCredentials,
           notionPullPreviewSnapshots,

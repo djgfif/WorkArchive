@@ -29,6 +29,30 @@ function requirePattern(path, content, pattern, message) {
   }
 }
 
+function extractClassBlock(path, content, className) {
+  const marker = `export class ${className}`;
+  const start = content.indexOf(marker);
+  if (start === -1) {
+    failures.push(`${path} must define ${className}.`);
+    return '';
+  }
+
+  const next = content.indexOf('\nexport class ', start + marker.length);
+  return next === -1 ? content.slice(start) : content.slice(start, next);
+}
+
+function requireAbsentIdentifiers(path, content, className, identifiers) {
+  const classBlock = extractClassBlock(path, content, className);
+
+  for (const identifier of identifiers) {
+    if (new RegExp(`\\b${identifier}\\b`).test(classBlock)) {
+      failures.push(
+        `${path}: ${className} must not accept private field ${identifier}.`,
+      );
+    }
+  }
+}
+
 function walkFiles(directory) {
   const entries = readdirSync(directory);
   const files = [];
@@ -56,12 +80,22 @@ const localEvidencePath = 'scripts/qa/gate1-evidence-local.sh';
 const packagePath = 'package.json';
 const communityControllerPath =
   'apps/api/src/modules/community/community-reflection.controller.ts';
+const communityCoreControllerPath =
+  'apps/api/src/modules/community/community.controller.ts';
+const communityDtoPath = 'apps/api/src/modules/community/dto/community.dto.ts';
+const configureAppPath = 'apps/api/src/configure-app.ts';
 const communityServiceBasePath =
   'apps/api/src/modules/community/services/community-service-base.ts';
 const communityInteractionServicePath =
   'apps/api/src/modules/community/services/community-interaction.service.ts';
 const communityPublishPath =
   'apps/web/src/features/community/services/community-publish.ts';
+const communityPublishTestPath =
+  'apps/web/src/features/community/services/community-publish.test.ts';
+const communityReviewSharePath =
+  'apps/web/src/features/community/services/community-review-share.ts';
+const communityReviewShareTestPath =
+  'apps/web/src/features/community/services/community-review-share.test.ts';
 const communityPagePath =
   'apps/web/src/features/community/pages/CommunityReflectionPage.tsx';
 
@@ -72,11 +106,17 @@ const gates = readRequired(gatesPath);
 const localEvidence = readRequired(localEvidencePath);
 const packageJson = readRequired(packagePath);
 const communityController = readRequired(communityControllerPath);
+const communityCoreController = readRequired(communityCoreControllerPath);
+const communityDto = readRequired(communityDtoPath);
+const configureApp = readRequired(configureAppPath);
 const communityServiceBase = readRequired(communityServiceBasePath);
 const communityInteractionService = readRequired(
   communityInteractionServicePath,
 );
 const communityPublish = readRequired(communityPublishPath);
+const communityPublishTest = readRequired(communityPublishTestPath);
+const communityReviewShare = readRequired(communityReviewSharePath);
+const communityReviewShareTest = readRequired(communityReviewShareTestPath);
 const communityPage = readRequired(communityPagePath);
 
 requireIncludes(boundaryPath, boundary, [
@@ -87,7 +127,12 @@ requireIncludes(boundaryPath, boundary, [
   '`exported`',
   'Do not add a `public` visibility state',
   'Data That Must Never Become Public By Accident',
-  'Community Alpha Permission Semantics',
+  'Community Public Plane Permission Semantics',
+  '`personal-archive` registers no Community surface',
+  '`community-core`',
+  '`community-full`',
+  'personal record IDs, progress, personal tags, private reflections',
+  'Global API validation rejects non-allowlisted request fields',
   'Repository implementation does not approve production exposure by itself',
   'Required Review Before Public Expansion',
   'npm run qa:public-boundary',
@@ -125,7 +170,14 @@ requirePattern(
 );
 for (const model of [
   'CommunityPost',
+  'UserCommunityProfile',
+  'CommunityReview',
   'CommunityReaction',
+  'CommunityReviewReaction',
+  'CommunityComment',
+  'CommunityCommentReaction',
+  'CommunityFollow',
+  'CommunityNotification',
   'CommunityReport',
   'CommunityModerationAuditLog',
 ]) {
@@ -154,6 +206,40 @@ requirePattern(
   /@RequireCommunityRelease\('reflection'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
   'approved Community endpoints must require the reflection release capability.',
 );
+requirePattern(
+  communityCoreControllerPath,
+  communityCoreController,
+  /@RequireCommunityRelease\('core'\)[\s\S]{0,100}@UseGuards\(CommunityReleaseGuard\)/,
+  'Community core endpoints must require the core release capability.',
+);
+requirePattern(
+  communityCoreControllerPath,
+  communityCoreController,
+  /@Get\('posts'\)[\s\S]{0,700}getOptionalUser\(authorizationHeader\)/,
+  'Community core post reads must remain public with optional viewer flags.',
+);
+requirePattern(
+  communityCoreControllerPath,
+  communityCoreController,
+  /@Post\('posts'\)[\s\S]{0,180}@UseGuards\(JwtAuthGuard\)/,
+  'Community core publication must require authentication.',
+);
+for (const fullRoute of [
+  "@Put('profiles/:handle/follow')",
+  "@Get('taste/candidates')",
+  "@Get('notifications')",
+]) {
+  const routeStart = communityCoreController.indexOf(fullRoute);
+  const routeDecorators =
+    routeStart === -1
+      ? ''
+      : communityCoreController.slice(routeStart, routeStart + 180);
+  if (!routeDecorators.includes("@RequireCommunityRelease('full')")) {
+    failures.push(
+      `${communityCoreControllerPath}: ${fullRoute} must remain gated behind community-full.`,
+    );
+  }
+}
 for (const route of [
   "@Post(':id/reactions')",
   "@Post('moderation/:id/hide')",
@@ -180,6 +266,54 @@ requireIncludes(communityPublishPath, communityPublish, [
   'body: body.trim()',
   'workThumbnailUrl',
 ]);
+requireIncludes(communityPublishTestPath, communityPublishTest, [
+  "not.toHaveProperty('id')",
+  "not.toHaveProperty('progress')",
+  "not.toHaveProperty('tags')",
+  'does not attach a work snapshot without an explicit selection',
+]);
+requireIncludes(communityReviewSharePath, communityReviewShare, [
+  'buildCommunityReviewRequest',
+  'body: draft.body.trim()',
+  'rating: draft.rating || null',
+  'spoiler: draft.spoiler',
+]);
+requireIncludes(communityReviewShareTestPath, communityReviewShareTest, [
+  'never local ids or private notes',
+  "not.toHaveProperty('catalogTitleId')",
+  "not.toHaveProperty('personalTags')",
+]);
+requireIncludes(configureAppPath, configureApp, [
+  'forbidNonWhitelisted: true',
+  'whitelist: true',
+]);
+
+const forbiddenCommunityRecordFields = [
+  'userRecordId',
+  'workRecordId',
+  'recordId',
+  'progressCurrent',
+  'progressTotal',
+  'progressUnit',
+  'personalTags',
+  'privateReflection',
+  'syncStatus',
+  'clientMutationId',
+  'timelineEntries',
+];
+for (const className of [
+  'CreateCommunityPostDto',
+  'UpsertCommunityReviewDto',
+  'CreateCommunityCommentDto',
+  'UpdateCommunityCommentDto',
+]) {
+  requireAbsentIdentifiers(
+    communityDtoPath,
+    communityDto,
+    className,
+    forbiddenCommunityRecordFields,
+  );
+}
 requireIncludes(communityServiceBasePath, communityServiceBase, [
   'parseAllowedImageUrl',
   'CommunityPostStatus.published',

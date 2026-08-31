@@ -34,7 +34,9 @@ The export includes server-owned user data such as:
   payloads;
 - catalog submission metadata without submission payloads or notes;
 - community posts authored by the user, reactions made by the user, and reports
-  submitted by the user without moderator assignment or moderator notes;
+  submitted by the user without moderator assignment or moderator notes. The
+  export also includes the Community profile, reviews, comments, reactions,
+  follows, and notifications owned by or addressed to the user;
 - security event summaries tied to the user.
 
 The export intentionally omits:
@@ -59,6 +61,11 @@ When metrics are enabled, export success and failure are counted in
 ## Account Deletion
 
 Account deletion is available for authenticated server-side accounts.
+
+Community preview counts cover the profile, posts, reviews, comments, all three
+reaction tables, follows, recipient notifications, and reports reached through
+the user's authorship or their public content. Retained notification actor,
+report moderator, and moderation audit references are counted as anonymized.
 
 Users can preview server-side deletion impact without row contents from:
 
@@ -113,11 +120,17 @@ for account-owned records:
   snapshots, user series, user contributors, user work relations, tier boards,
   and catalog submissions made by the user are deleted by cascade.
 - Community posts authored by the user, reactions made by the user, and reports
-  submitted by the user are deleted by cascade.
+  submitted by the user are deleted by cascade. Profiles, reviews, comments,
+  reactions, follows, and recipient notifications are also deleted through
+  their direct user or public-content relations.
 - Community reports assigned to the deleted moderator keep the report but set
-  `moderatorId` to `null`.
+  `moderatorId` to `null` when the reporter and reported content survive.
+  Community notification actor references keep notifications addressed to
+  other users but set `actorId` to `null`; recipient-owned notifications are
+  deleted by cascade.
 - Community moderation audit logs keep the action record but set `actorId` to
   `null`.
+
 - Catalog submissions reviewed by the deleted user keep their moderation record
   but set `reviewerId` to `null`.
 - Catalog audit logs keep the moderation audit record but set `actorId` to

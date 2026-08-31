@@ -116,6 +116,9 @@ BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 
 ## Smoke Tests
 
+- Beta launch preflight accepts only `community-core`; profile-only rollback
+  preflight accepts only `personal-archive`. `community-full` remains blocked.
+- Confirm `/api/product-release` and `/work-archive-config.js` match with no-store.
 - Google OAuth login and logout.
 - Guest/local archive create and JSON export.
 - Authenticated sync push and pull.
@@ -131,6 +134,9 @@ BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 
 ## Rollback
 
+- Rehearse `BETA_RELEASE_MODE=rollback` with
+  `PRODUCT_RELEASE_PROFILE=personal-archive`; confirm Community returns `404`
+  while the local archive shell, sync, and export remain available.
 - If no incompatible migration was applied, roll back API/web code to the previous release.
 - If an irreversible migration was applied, restore from the pre-deployment backup.
 - After rollback, check `/health`, `/livez`, `/readyz`, sync smoke, tier board smoke, and Google OAuth redirect.

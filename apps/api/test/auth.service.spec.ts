@@ -602,6 +602,9 @@ function createAccountDeletionPrismaMock() {
     communityModerationAuditLog: {
       updateMany: updateMany(6),
     },
+    communityNotification: {
+      updateMany: updateMany(7),
+    },
     communityReport: {
       updateMany: updateMany(5),
     },
@@ -632,11 +635,35 @@ function createAccountDeletionPreviewPrismaMock() {
     communityModerationAuditLog: {
       count: count(26),
     },
+    communityComment: {
+      count: count(30),
+    },
+    communityCommentReaction: {
+      count: count(31),
+    },
+    communityFollow: {
+      count: count(32),
+    },
+    communityNotification: {
+      count: jest
+        .fn<(...args: unknown[]) => Promise<number>>()
+        .mockResolvedValueOnce(33)
+        .mockResolvedValueOnce(34),
+    },
     communityPost: {
       count: count(22),
     },
+    userCommunityProfile: {
+      count: count(27),
+    },
     communityReaction: {
       count: count(23),
+    },
+    communityReview: {
+      count: count(28),
+    },
+    communityReviewReaction: {
+      count: count(29),
     },
     communityReport: {
       count: jest
@@ -1662,6 +1689,7 @@ describe('AuthService', () => {
           catalogAuditLogs: 3,
           catalogSubmissionReviews: 2,
           communityModerationAuditLogs: 6,
+          communityNotificationActors: 7,
           communityReportAssignments: 5,
           securityEvents: 4,
         },
@@ -1692,17 +1720,28 @@ describe('AuthService', () => {
         actorId: null,
       },
     });
+    expect(prisma.communityNotification.updateMany).toHaveBeenCalledWith({
+      where: {
+        actorId: 'user-1',
+        recipientId: { not: 'user-1' },
+      },
+      data: {
+        actorId: null,
+      },
+    });
     expect(prisma.communityReport.updateMany).toHaveBeenCalledWith({
       where: {
         moderatorId: 'user-1',
-        post: {
-          authorId: {
-            not: 'user-1',
-          },
-        },
         reporterId: {
           not: 'user-1',
         },
+        NOT: [
+          { post: { authorId: 'user-1' } },
+          { review: { authorId: 'user-1' } },
+          { comment: { authorId: 'user-1' } },
+          { comment: { post: { authorId: 'user-1' } } },
+          { comment: { review: { authorId: 'user-1' } } },
+        ],
       },
       data: {
         moderatorId: null,
@@ -1791,14 +1830,22 @@ describe('AuthService', () => {
           catalogAuditLogs: 3,
           catalogSubmissionReviews: 2,
           communityModerationAuditLogs: 26,
+          communityNotificationActors: 34,
           communityReportAssignments: 25,
           securityEvents: 7,
         },
         cascadeDeletedRecords: expect.objectContaining({
           authAccounts: 1,
+          communityComments: 30,
+          communityCommentReactions: 31,
+          communityFollows: 32,
+          communityNotifications: 33,
           communityPosts: 22,
+          communityProfiles: 27,
           communityReactions: 23,
           communityReports: 24,
+          communityReviewReactions: 29,
+          communityReviews: 28,
           externalApiCredentials: 4,
           refreshSessions: 9,
           workRecords: 19,
@@ -1858,22 +1905,64 @@ describe('AuthService', () => {
         OR: [{ userId: 'user-1' }, { post: { authorId: 'user-1' } }],
       },
     });
+    expect(prisma.communityComment.count).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { authorId: 'user-1' },
+          { post: { authorId: 'user-1' } },
+          { review: { authorId: 'user-1' } },
+        ],
+      },
+    });
+    expect(prisma.communityCommentReaction.count).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { userId: 'user-1' },
+          { comment: { authorId: 'user-1' } },
+          { comment: { post: { authorId: 'user-1' } } },
+          { comment: { review: { authorId: 'user-1' } } },
+        ],
+      },
+    });
+    expect(prisma.communityFollow.count).toHaveBeenCalledWith({
+      where: {
+        OR: [{ followerId: 'user-1' }, { followingId: 'user-1' }],
+      },
+    });
+    expect(prisma.communityNotification.count).toHaveBeenNthCalledWith(1, {
+      where: {
+        recipientId: 'user-1',
+      },
+    });
+    expect(prisma.communityNotification.count).toHaveBeenNthCalledWith(2, {
+      where: {
+        actorId: 'user-1',
+        recipientId: { not: 'user-1' },
+      },
+    });
     expect(prisma.communityReport.count).toHaveBeenNthCalledWith(1, {
       where: {
-        OR: [{ reporterId: 'user-1' }, { post: { authorId: 'user-1' } }],
+        OR: [
+          { reporterId: 'user-1' },
+          { post: { authorId: 'user-1' } },
+          { review: { authorId: 'user-1' } },
+          { comment: { authorId: 'user-1' } },
+          { comment: { post: { authorId: 'user-1' } } },
+          { comment: { review: { authorId: 'user-1' } } },
+        ],
       },
     });
     expect(prisma.communityReport.count).toHaveBeenNthCalledWith(2, {
       where: {
         moderatorId: 'user-1',
-        post: {
-          authorId: {
-            not: 'user-1',
-          },
-        },
-        reporterId: {
-          not: 'user-1',
-        },
+        reporterId: { not: 'user-1' },
+        NOT: [
+          { post: { authorId: 'user-1' } },
+          { review: { authorId: 'user-1' } },
+          { comment: { authorId: 'user-1' } },
+          { comment: { post: { authorId: 'user-1' } } },
+          { comment: { review: { authorId: 'user-1' } } },
+        ],
       },
     });
   });

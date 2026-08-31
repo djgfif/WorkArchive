@@ -169,6 +169,7 @@ run_check "npm run test" npm run test
 run_check "npm run test:e2e" npm run test:e2e
 run_check "npm run build" npm run build
 
+run_check "bash syntax: beta release profile preflight" bash -n scripts/deploy/beta-release-profile-preflight.sh
 run_check "bash syntax: beta-preflight" bash -n scripts/deploy/beta-preflight.sh
 run_check "bash syntax: beta-smoke" bash -n scripts/deploy/beta-smoke.sh
 run_check "bash syntax: commercial beta rehearsal" bash -n scripts/deploy/commercial-beta-rehearsal.sh

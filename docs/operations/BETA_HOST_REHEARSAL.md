@@ -30,6 +30,12 @@ scripts/deploy/beta-preflight.sh
 
 The script checks, without printing secret values:
 
+- a normal beta launch explicitly sets
+  `PRODUCT_RELEASE_PROFILE=community-core`;
+- `community-full`, deprecated aliases, missing values, and typos fail before
+  Docker starts;
+- a rollback preflight requires both `BETA_RELEASE_MODE=rollback` and
+  `PRODUCT_RELEASE_PROFILE=personal-archive`;
 - required `.env.prod` keys are present and not placeholders;
 - public URLs use HTTPS;
 - `CORS_ORIGIN` and `WEB_BASE_URL` match for the single-host beta deployment;
@@ -116,6 +122,10 @@ The default smoke checks:
 - `GET /livez` returns API liveness;
 - `GET /readyz` returns API readiness after config, PostgreSQL, migrations, and
   Redis, with safe dependency `checks` in the JSON body;
+- `GET /api/product-release` and `/work-archive-config.js` expose the same
+  expected profile with `Cache-Control: no-store`;
+- `community-core` exposes the core feed but returns `404` for taste discovery;
+  `personal-archive` returns `404` for the Community feed;
 - `GET /api/auth/google/status` returns `{ configured: true }` by default;
 - `GET /api/auth/google/start` redirects to Google and preserves the OAuth flow
   cookie through the deployed proxy with `HttpOnly`, `Secure`, `SameSite=Lax`,
@@ -221,3 +231,25 @@ Expected log shape:
 
 In deletion mode, `dryRun` must be `false` and `deleted` must match the reviewed
 operator expectation before closing the maintenance ticket.
+
+## 6. Profile-Only Rollback Rehearsal
+
+Do not roll back the database. Change only the host env profile, then use the
+same images and schema:
+
+```bash
+# In the host-only .env.prod file:
+PRODUCT_RELEASE_PROFILE=personal-archive
+
+BETA_RELEASE_MODE=rollback scripts/deploy/beta-preflight.sh
+scripts/deploy/prod-up.sh api web
+EXPECTED_PRODUCT_RELEASE_PROFILE=personal-archive \
+  BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
+```
+
+The smoke must show that API and web runtime profiles agree and Community
+returns `404`, while health, OAuth, sync, and the local-first web shell remain
+available. After the rollback rehearsal, restore
+`PRODUCT_RELEASE_PROFILE=community-core`, run the normal launch preflight, and
+repeat the smoke. Record only timestamps, commit/image identifiers, profile
+names, statuses, and redacted failures in the evidence ledger.

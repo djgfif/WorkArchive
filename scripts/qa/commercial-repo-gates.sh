@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 cd "$ROOT_DIR"
 
+bash -n scripts/deploy/beta-release-profile-preflight.sh
 bash -n scripts/deploy/beta-preflight.sh
 bash -n scripts/deploy/beta-smoke.sh
 bash -n scripts/deploy/commercial-beta-rehearsal.sh
