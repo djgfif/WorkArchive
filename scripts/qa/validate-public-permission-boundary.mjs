@@ -56,8 +56,10 @@ const localEvidencePath = 'scripts/qa/gate1-evidence-local.sh';
 const packagePath = 'package.json';
 const communityControllerPath =
   'apps/api/src/modules/community/community-reflection.controller.ts';
-const communityServicePath =
-  'apps/api/src/modules/community/community.service.ts';
+const communityServiceBasePath =
+  'apps/api/src/modules/community/services/community-service-base.ts';
+const communityInteractionServicePath =
+  'apps/api/src/modules/community/services/community-interaction.service.ts';
 const communityPublishPath =
   'apps/web/src/features/community/services/community-publish.ts';
 const communityPagePath =
@@ -70,7 +72,10 @@ const gates = readRequired(gatesPath);
 const localEvidence = readRequired(localEvidencePath);
 const packageJson = readRequired(packagePath);
 const communityController = readRequired(communityControllerPath);
-const communityService = readRequired(communityServicePath);
+const communityServiceBase = readRequired(communityServiceBasePath);
+const communityInteractionService = readRequired(
+  communityInteractionServicePath,
+);
 const communityPublish = readRequired(communityPublishPath);
 const communityPage = readRequired(communityPagePath);
 
@@ -165,8 +170,8 @@ for (const route of [
   );
 }
 requirePattern(
-  communityServicePath,
-  communityService,
+  communityServiceBasePath,
+  communityServiceBase,
   /const PUBLIC_AUTHOR_SELECT = \{(?:(?!\b(?:email|id|oauthAccounts)\s*:)[^}])*\}/s,
   'Community public author selection must exclude raw ids, email, and OAuth data.',
 );
@@ -175,10 +180,12 @@ requireIncludes(communityPublishPath, communityPublish, [
   'body: body.trim()',
   'workThumbnailUrl',
 ]);
-requireIncludes(communityServicePath, communityService, [
+requireIncludes(communityServiceBasePath, communityServiceBase, [
   'parseAllowedImageUrl',
   'CommunityPostStatus.published',
   "{ reactionCount: 'desc' as const }",
+]);
+requireIncludes(communityInteractionServicePath, communityInteractionService, [
   'reactionCount: { increment: 1 }',
   'reactionCount: { decrement: 1 }',
 ]);

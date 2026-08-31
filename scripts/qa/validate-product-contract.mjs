@@ -52,8 +52,14 @@ const socialControllerPath =
   'apps/api/src/modules/community/community.controller.ts';
 const reflectionControllerPath =
   'apps/api/src/modules/community/community-reflection.controller.ts';
-const communityServicePath =
-  'apps/api/src/modules/community/community.service.ts';
+const communityQueryServicePath =
+  'apps/api/src/modules/community/services/community-query.service.ts';
+const communityPublicationServicePath =
+  'apps/api/src/modules/community/services/community-publication.service.ts';
+const communityInteractionServicePath =
+  'apps/api/src/modules/community/services/community-interaction.service.ts';
+const communityModerationServicePath =
+  'apps/api/src/modules/community/services/community-moderation.service.ts';
 const prismaSchemaPath = 'apps/api/prisma/schema.prisma';
 const surfaceMigrationPath =
   'apps/api/prisma/migrations/20260826210000_community_release_surface/migration.sql';
@@ -80,7 +86,14 @@ const webRoutes = readRequired(webRoutesPath);
 const apiPolicy = readRequired(apiPolicyPath);
 const socialController = readRequired(socialControllerPath);
 const reflectionController = readRequired(reflectionControllerPath);
-const communityService = readRequired(communityServicePath);
+const communityQueryService = readRequired(communityQueryServicePath);
+const communityPublicationService = readRequired(
+  communityPublicationServicePath,
+);
+const communityInteractionService = readRequired(
+  communityInteractionServicePath,
+);
+const communityModerationService = readRequired(communityModerationServicePath);
 const prismaSchema = readRequired(prismaSchemaPath);
 const surfaceMigration = readRequired(surfaceMigrationPath);
 const compose = readRequired(composePath);
@@ -302,26 +315,26 @@ requirePattern(
   'reflection controller must use a separate guarded API surface.',
 );
 requirePattern(
-  communityServicePath,
-  communityService,
+  communityQueryServicePath,
+  communityQueryService,
   /listPosts\([\s\S]{0,260}surface: CommunityPostSurface[\s\S]{0,260}surface,/,
   'post lists must filter by surface.',
 );
 requirePattern(
-  communityServicePath,
-  communityService,
+  communityPublicationServicePath,
+  communityPublicationService,
   /createPost\([\s\S]{0,300}surface: CommunityPostSurface[\s\S]{0,1500}surface,/,
   'post writes must persist an explicit surface.',
 );
 requirePattern(
-  communityServicePath,
-  communityService,
+  communityInteractionServicePath,
+  communityInteractionService,
   /addReaction\([\s\S]{0,420}surface[\s\S]{0,900}removeReaction\([\s\S]{0,420}surface/,
   'post reactions must remain surface-scoped.',
 );
 requirePattern(
-  communityServicePath,
-  communityService,
+  communityModerationServicePath,
+  communityModerationService,
   /reportPost\([\s\S]{0,360}surface[\s\S]{0,1800}postSurface/,
   'post reports must remain surface-scoped.',
 );
