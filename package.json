@@ -117,14 +117,14 @@
     "postinstall": "npm run prisma:generate --workspace @work-archive/api"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.62.1",
     "body-parser": "^2.3.0",
     "concurrently": "^10.0.5",
     "eslint": "^10.5.0",
-    "fast-check": "^4.8.0",
-    "msw": "^2.14.6",
-    "orval": "^8.17.0",
-    "prettier": "^3.8.4",
+    "fast-check": "^4.9.0",
+    "msw": "^2.15.0",
+    "orval": "^8.28.1",
+    "prettier": "^3.9.6",
     "typescript": "^6.0.3"
   },
   "overrides": {
